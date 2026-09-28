@@ -1,0 +1,318 @@
+// Schema de base de datos — Plataforma de Teletriage Veterinario
+// Cada modelo referencia, en comentario, la sección del contrato o del
+// documento de decisiones de diseño de donde sale la regla que codifica.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Veterinario
+// ---------------------------------------------------------------------------
+
+model Veterinario {
+  id                String   @id @default(uuid())
+  nombre            String
+  apellido          String
+  email             String   @unique
+  telefono          String?
+
+  // Habilitación (Sección 2 del contrato)
+  dniONumero        String
+  matriculaNumero   String
+  matriculaColegio  String
+  matriculaVenceEl  DateTime
+  seguroAseguradora String
+  seguroPoliza      String
+  seguroVenceEl     DateTime
+
+  // Estado operativo
+  estado            EstadoVeterinario @default(PENDIENTE_VERIFICACION)
+  disponible        Boolean           @default(false)
+
+  // Ubicación para matching por proximidad (Sección 11)
+  latitud           Float?
+  longitud          Float?
+
+  // Cobro (Sección 5 del contrato)
+  medioDeCobro      MedioDeCobroVeterinario @default(MERCADO_PAGO)
+  mercadoPagoOAuthId String?
+  payoneerEmail      String?
+
+  // Verificación de identidad (Sección 6)
+  verificacionesIdentidad VerificacionIdentidad[]
+
+  casos             Caso[]
+  calificaciones    Calificacion[]
+  disputasIdentidad DisputaIdentidad[]
+  puntos            PuntoPremio[]
+
+  creadoEl          DateTime @default(now())
+  actualizadoEl     DateTime @updatedAt
+
+  @@index([disponible, latitud, longitud])
+}
+
+enum EstadoVeterinario {
+  PENDIENTE_VERIFICACION
+  HABILITADO
+  SUSPENDIDO_MATRICULA_VENCIDA // suspensión automática, no disciplinaria (Sección 2)
+  SUSPENDIDO_SEGURO_VENCIDO    // ídem
+  SUSPENDIDO_DISPUTA_IDENTIDAD // cautelar, Sección 10
+  SUSPENDIDO_INCUMPLIMIENTO    // Sección 15
+  DESVINCULADO
+}
+
+enum MedioDeCobroVeterinario {
+  MERCADO_PAGO
+  PAYONEER
+}
+
+// ---------------------------------------------------------------------------
+// Cliente
+// ---------------------------------------------------------------------------
+
+model Cliente {
+  id            String   @id @default(uuid())
+  nombre        String
+  email         String   @unique
+  telefono      String?
+  paisDePago    String?  // determina si se le ofrece Mercado Pago, PayPal o tarjeta internacional
+
+  casos         Caso[]
+  creadoEl      DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Caso (una sesión de teletriage, de punta a punta)
+// ---------------------------------------------------------------------------
+
+model Caso {
+  id              String       @id @default(uuid())
+  cliente         Cliente      @relation(fields: [clienteId], references: [id])
+  clienteId       String
+  veterinario     Veterinario? @relation(fields: [veterinarioId], references: [id])
+  veterinarioId   String?
+
+  estado          EstadoCaso   @default(INTAKE)
+
+  // Intake — dos capas (Sección 9 del contrato)
+  intake          IntakeFormulario?
+
+  // Franja horaria y montos (Sección 4 del contrato)
+  franjaHoraria   FranjaHoraria
+  honorarioDeclarado Decimal   @db.Decimal(10, 2) // lo fija el veterinario, libremente
+  cargoPlataforma    Decimal   @db.Decimal(10, 2) // $3.500 diurno / $4.000 nocturno al momento del caso
+
+  // Cierre del caso (Sección 9): determina la Sección 8 (reembolso)
+  cierre          CierreCaso?
+
+  // Verificación de identidad de esa sesión puntual (Sección 6)
+  verificacionIdentidad VerificacionIdentidad?
+
+  // Grabación (Sección 7)
+  grabacionUrl    String?
+  grabacionExpiraEl DateTime?
+
+  pago            Pago?
+  disputaCalidad  DisputaCalidad?
+
+  iniciadoEl      DateTime?
+  finalizadoEl    DateTime?
+  creadoEl        DateTime     @default(now())
+
+  @@index([veterinarioId, estado])
+}
+
+enum EstadoCaso {
+  INTAKE                  // formulario en curso
+  BANDERA_ROJA_MOSTRADA   // capa 1 disparó el aviso de emergencia (no bloquea el flujo)
+  ASIGNADO                // veterinario asignado, pago autorizado (hold)
+  EN_SESION
+  CERRADO
+  CANCELADO_FALLA_PLATAFORMA // dispara reembolso, Sección 8
+}
+
+enum FranjaHoraria {
+  DIURNA    // 08:30–20:00, cargo $3.500
+  NOCTURNA  // 20:01–08:29, cargo $4.000
+}
+
+// ---------------------------------------------------------------------------
+// Intake de dos capas (Sección 9 del contrato)
+// ---------------------------------------------------------------------------
+
+model IntakeFormulario {
+  id               String   @id @default(uuid())
+  caso             Caso     @relation(fields: [casoId], references: [id])
+  casoId           String   @unique
+
+  // Capa 1 — banderas rojas (cualquier true dispara el banner, no bloquea)
+  dificultadRespiratoria Boolean @default(false)
+  inconsciente           Boolean @default(false)
+  sangradoActivo         Boolean @default(false)
+  sospechaIngestaToxico  Boolean @default(false)
+  convulsionEnCurso      Boolean @default(false)
+  noPuedeParseCaminar    Boolean @default(false)
+  distensionAbdominal    Boolean @default(false)
+  traumatismoMayor       Boolean @default(false)
+
+  // Capa 2 — contexto clínico estándar
+  especie          String
+  raza             String?
+  edadAproximada   String?
+  pesoAproximadoKg Float?
+  motivoConsulta   String
+  tiempoEvolucion  String?
+  medicacionActual String?
+  antecedentes     String?
+  fotosUrls        String[] @default([])
+  videoUrl         String?
+
+  completadoEl     DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Cierre de caso — checklist estructurado (Sección 9 → determina Sección 8)
+// ---------------------------------------------------------------------------
+
+model CierreCaso {
+  id               String           @id @default(uuid())
+  caso             Caso             @relation(fields: [casoId], references: [id])
+  casoId           String           @unique
+  clasificacion    ClasificacionCierre
+  notas            String?
+  registradoEl     DateTime         @default(now())
+}
+
+enum ClasificacionCierre {
+  RESUELTO_POR_ORIENTACION   // Sección 8: honorario completo, sin reembolso
+  DERIVADO_A_EMERGENCIA      // Sección 8: honorario completo, sin reembolso
+  NO_COMPLETADO              // puede habilitar reembolso si la causa es falla de plataforma
+}
+
+// ---------------------------------------------------------------------------
+// Verificación de identidad (Sección 6 del contrato)
+// ---------------------------------------------------------------------------
+
+model VerificacionIdentidad {
+  id             String      @id @default(uuid())
+  veterinario    Veterinario @relation(fields: [veterinarioId], references: [id])
+  veterinarioId  String
+  caso           Caso?       @relation(fields: [casoId], references: [id])
+  casoId         String?     @unique
+
+  resultado      ResultadoVerificacion
+  proveedor      String      @default("truora")
+  proveedorRefId String?     // id de la verificación en Truora, para auditoría
+  creadoEl       DateTime    @default(now())
+}
+
+enum ResultadoVerificacion {
+  APROBADA
+  RECHAZADA
+  INCONSISTENTE // dispara DisputaIdentidad y posible suspensión cautelar
+}
+
+// ---------------------------------------------------------------------------
+// Pago — refleja el split Mercado Pago 1:1 (documento de proveedores, Sección 3)
+// ---------------------------------------------------------------------------
+
+model Pago {
+  id                    String        @id @default(uuid())
+  caso                  Caso          @relation(fields: [casoId], references: [id])
+  casoId                String        @unique
+
+  medioDeCobro          MedioDeCobroCliente
+  montoTotal            Decimal       @db.Decimal(10, 2) // honorario + cargo de plataforma
+  montoHonorarioVet     Decimal       @db.Decimal(10, 2)
+  montoCargoPlataforma  Decimal       @db.Decimal(10, 2)
+
+  estado                EstadoPago    @default(AUTORIZADO)
+
+  // Referencias externas para reconciliación
+  mercadoPagoPaymentId  String?
+  paypalOrderId         String?       // cuando el split es en dos pasos (PayPal Payouts), ver doc de proveedores
+  paypalPayoutId        String?
+
+  autorizadoEl          DateTime      @default(now())
+  capturadoEl           DateTime?
+  reembolsadoEl         DateTime?
+  montoReembolsado      Decimal?      @db.Decimal(10, 2) // Sección 8: solo puede ser el cargo de plataforma
+}
+
+enum MedioDeCobroCliente {
+  MERCADO_PAGO
+  STRIPE
+  PAYPAL
+}
+
+enum EstadoPago {
+  AUTORIZADO           // hold, sesión aún no terminó
+  CAPTURADO            // caso resuelto por orientación o derivado — cobro completo
+  REEMBOLSADO_PARCIAL  // solo el cargo de plataforma, por falla de plataforma (Sección 8)
+  CANCELADO            // no llegó a capturarse
+}
+
+// ---------------------------------------------------------------------------
+// Disputas — dos circuitos separados (Sección 10 del contrato)
+// ---------------------------------------------------------------------------
+
+model DisputaIdentidad {
+  id             String      @id @default(uuid())
+  veterinario    Veterinario @relation(fields: [veterinarioId], references: [id])
+  veterinarioId  String
+  motivo         String
+  estado         EstadoDisputa @default(ABIERTA)
+  resolucion     String?
+  abiertaEl      DateTime    @default(now())
+  resueltaEl     DateTime?
+}
+
+model DisputaCalidad {
+  id             String      @id @default(uuid())
+  caso           Caso        @relation(fields: [casoId], references: [id])
+  casoId         String      @unique
+  motivo         String
+  // Nunca afecta el pago ya liquidado al veterinario (Sección 10) — como máximo,
+  // resuelve en reembolso del cargo de plataforma, nunca del honorario.
+  estado         EstadoDisputa @default(ABIERTA)
+  resolucion     String?
+  abiertaEl      DateTime    @default(now())
+  resueltaEl     DateTime?
+}
+
+enum EstadoDisputa {
+  ABIERTA
+  EN_REVISION
+  RESUELTA
+}
+
+// ---------------------------------------------------------------------------
+// Calificaciones y premios (Secciones 11 y 12 del contrato)
+// ---------------------------------------------------------------------------
+
+model Calificacion {
+  id             String      @id @default(uuid())
+  veterinario    Veterinario @relation(fields: [veterinarioId], references: [id])
+  veterinarioId  String
+  casoId         String      @unique
+  estrellas      Int         // 1–5
+  comentario     String?
+  // Botón de confirmación no punitiva (Sección 10): dato cualitativo, nunca dispara reembolso
+  creadoEl       DateTime    @default(now())
+}
+
+model PuntoPremio {
+  id             String      @id @default(uuid())
+  veterinario    Veterinario @relation(fields: [veterinarioId], references: [id])
+  veterinarioId  String
+  puntos         Int
+  motivo         String      // rating sostenido / antigüedad / volumen (Sección 12)
+  creadoEl       DateTime    @default(now())
+}
