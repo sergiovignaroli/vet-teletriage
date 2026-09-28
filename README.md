@@ -50,21 +50,29 @@ npm run dev             # desde la raíz, levanta api y web en paralelo (turbo)
   franja horaria en el momento real de inicio de sesión (no el de la reserva) — Sección 4 — y cierre de
   caso con el checklist estructurado — Sección 9.
 - **Módulo `pagos`**: la regla de reembolso de la Sección 8, codificada — solo `NO_COMPLETADO` habilita
-  reembolso, y ese reembolso alcanza únicamente al cargo de plataforma, nunca al honorario. Incluye un
-  stub del webhook de Mercado Pago (falta la verificación de firma antes de producción, marcada con TODO).
+  reembolso, y ese reembolso alcanza únicamente al cargo de plataforma, nunca al honorario. El webhook de
+  Mercado Pago verifica la firma HMAC-SHA256 (`x-signature` + `x-request-id` + `data.id`, comparación en
+  tiempo constante) antes de procesar cualquier notificación — un payload con firma inválida o ausente
+  devuelve 401, no se confía en el body sin verificar.
+- **Módulo `disputas`**: los dos circuitos de la Sección 10. Identidad → abre disputa y suspende
+  cautelarmente al veterinario de inmediato; al resolver, se revalida vigencia de matrícula/seguro antes de
+  restituir el estado `HABILITADO`. Calidad → abre disputa y, si se hace lugar, dispara
+  `reembolsarCargoPlataforma` (nunca el honorario) vía el mismo servicio de `pagos`.
+- **Módulo `calificaciones`**: registro de estrellas + comentario, promedio por veterinario, y un sistema de
+  puntos-premio con regla placeholder (10 puntos si estrellas ≥ 4) — el mecanismo funciona, el umbral y el
+  valor exacto son decisiones de negocio pendientes de Sergio, aisladas en un solo lugar del código para
+  ajustarlas sin tocar el resto.
 - **Formulario de intake en `apps/web/app/intake`**: las 8 banderas rojas de la Sección 9, con el aviso de
   emergencia calculado en el cliente en tiempo real y sin bloquear el flujo — tal como lo describe el
   contrato.
 
 ## Lo que falta (a propósito, no por error)
 
-- **Módulos `disputas` y `calificaciones`**: los modelos de Prisma ya existen (`DisputaIdentidad`,
-  `DisputaCalidad`, `Calificacion`, `PuntoPremio`); falta escribir el controller/service siguiendo el mismo
-  patrón que `veterinarios` y `casos`.
 - **Integraciones reales** de Mercado Pago (OAuth por veterinario + captura/reembolso vía API, no solo el
   webhook), Truora, y el proveedor de video que salga ganador de la prueba de carga.
 - **Autenticación** (todavía no hay login ni JWT — los endpoints están abiertos, no usar así en producción).
-- **Verificación de firma del webhook de Mercado Pago** (marcado con TODO en `pagos.controller.ts`).
+- **Valores de negocio de `calificaciones`**: umbral de estrellas y puntos exactos a otorgar (ver comentario
+  en `calificaciones.service.ts`).
 
 ## Próximo paso sugerido
 

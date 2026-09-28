@@ -45,6 +45,26 @@ export class PagosService {
     });
   }
 
+  // Sección 10 del contrato: una disputa de CALIDAD puede, como máximo,
+  // reembolsar el cargo de servicio de la plataforma — nunca el honorario
+  // ya liquidado al veterinario. Lo llama disputas.service al resolver una
+  // DisputaCalidad a favor del cliente; nunca se llama a partir de una
+  // DisputaIdentidad (esas no tocan el pago, tocan la habilitación del vet).
+  async reembolsarCargoPlataforma(casoId: string) {
+    const pago = await this.prisma.pago.findUnique({ where: { casoId } });
+    if (!pago) throw new BadRequestException("El caso no tiene pago registrado");
+    if (pago.estado === "REEMBOLSADO_PARCIAL") return pago; // idempotente
+
+    return this.prisma.pago.update({
+      where: { casoId },
+      data: {
+        estado: "REEMBOLSADO_PARCIAL",
+        reembolsadoEl: new Date(),
+        montoReembolsado: pago.montoCargoPlataforma,
+      },
+    });
+  }
+
   // Stub del webhook de Mercado Pago (split 1:1, ver documento de
   // proveedores) — Mercado Pago notifica acá cuando el pago autorizado
   // (hold) se puede capturar. La lógica real de firma/verificación del
