@@ -59,7 +59,9 @@ export class AuthService {
       },
     });
 
-    return this.emitirTokenVeterinario(veterinario.id, veterinario.estado);
+    return this.emitirToken(veterinario.id, "VETERINARIO", veterinario.tokenVersion, {
+      estado: veterinario.estado,
+    });
   }
 
   async loginVeterinario(email: string, password: string) {
@@ -71,12 +73,20 @@ export class AuthService {
     const passwordValida = await bcrypt.compare(password, veterinario.passwordHash);
     if (!passwordValida) throw new UnauthorizedException("Credenciales inválidas");
 
-    return this.emitirTokenVeterinario(veterinario.id, veterinario.estado);
+    return this.emitirToken(veterinario.id, "VETERINARIO", veterinario.tokenVersion, {
+      estado: veterinario.estado,
+    });
   }
 
-  private emitirTokenVeterinario(veterinarioId: string, estado: string) {
-    const accessToken = this.jwt.sign({ sub: veterinarioId, rol: "VETERINARIO" });
-    return { accessToken, rol: "VETERINARIO" as const, estado };
+  // Invalida TODOS los JWT de veterinario emitidos hasta ahora (password
+  // filtrada, dispositivo perdido, etc.) sin blacklist — sube tokenVersion,
+  // y jwt.strategy.ts rechaza cualquier token firmado con un valor anterior.
+  async revocarSesionesVeterinario(veterinarioId: string) {
+    await this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    return { revocado: true };
   }
 
   // -------------------------------------------------------------------------
@@ -132,12 +142,47 @@ export class AuthService {
     }
 
     // Éxito: invalidar el código para que no se pueda reusar.
-    await this.prisma.cliente.update({
+    const actualizado = await this.prisma.cliente.update({
       where: { id: cliente.id },
       data: { otpCodeHash: null, otpExpiraEl: null, otpIntentos: 0 },
     });
 
-    const accessToken = this.jwt.sign({ sub: cliente.id, rol: "CLIENTE" });
-    return { accessToken, rol: "CLIENTE" as const, clienteId: cliente.id };
+    return this.emitirToken(cliente.id, "CLIENTE", actualizado.tokenVersion, { clienteId: cliente.id });
+  }
+
+  // -------------------------------------------------------------------------
+  // Admin — SIN alta pública. registrarAdmin solo se puede llamar detrás de
+  // AdminKeyGuard (ver auth.controller.ts): la clave compartida de .env deja
+  // de usarse para operar el día a día (eso ahora es JWT + rol ADMIN) y
+  // queda reducida a "quién puede crear la primera cuenta de staff".
+  // -------------------------------------------------------------------------
+  async registrarAdmin(nombre: string, email: string, password: string) {
+    const yaExiste = await this.prisma.admin.findUnique({ where: { email } });
+    if (yaExiste) throw new BadRequestException("Ya existe un admin con ese email");
+
+    const passwordHash = await bcrypt.hash(password, RONDAS_BCRYPT);
+    const admin = await this.prisma.admin.create({ data: { nombre, email, passwordHash } });
+
+    return this.emitirToken(admin.id, "ADMIN", admin.tokenVersion, {});
+  }
+
+  async loginAdmin(email: string, password: string) {
+    const admin = await this.prisma.admin.findUnique({ where: { email } });
+    if (!admin) throw new UnauthorizedException("Credenciales inválidas");
+
+    const passwordValida = await bcrypt.compare(password, admin.passwordHash);
+    if (!passwordValida) throw new UnauthorizedException("Credenciales inválidas");
+
+    return this.emitirToken(admin.id, "ADMIN", admin.tokenVersion, {});
+  }
+
+  private emitirToken(
+    sub: string,
+    rol: "VETERINARIO" | "CLIENTE" | "ADMIN",
+    tokenVersion: number,
+    extra: Record<string, unknown>,
+  ) {
+    const accessToken = this.jwt.sign({ sub, rol, tv: tokenVersion });
+    return { accessToken, rol, ...extra };
   }
 }

@@ -14,9 +14,13 @@ export class DisputasService {
     private readonly pagos: PagosService,
   ) {}
 
-  async abrirDisputaIdentidad(veterinarioId: string, motivo: string) {
+  // adminId es null cuando la abre el propio sistema (ej. identidad.service
+  // ante un resultado inconsistente de Truora) — es una decisión automática,
+  // no de un humano, y el registro de auditoría debe reflejar eso, no
+  // inventarle un admin responsable que no actuó.
+  async abrirDisputaIdentidad(veterinarioId: string, motivo: string, adminId: string | null) {
     const disputa = await this.prisma.disputaIdentidad.create({
-      data: { veterinarioId, motivo },
+      data: { veterinarioId, motivo, abiertaPorAdminId: adminId },
     });
 
     // Suspensión cautelar inmediata — Sección 10: "pueden derivar en
@@ -34,10 +38,11 @@ export class DisputasService {
     disputaId: string,
     resolucion: string,
     restituirHabilitacion: boolean,
+    adminId: string,
   ) {
     const disputa = await this.prisma.disputaIdentidad.update({
       where: { id: disputaId },
-      data: { estado: "RESUELTA", resolucion, resueltaEl: new Date() },
+      data: { estado: "RESUELTA", resolucion, resueltaEl: new Date(), resueltaPorAdminId: adminId },
     });
 
     if (restituirHabilitacion) {
@@ -79,10 +84,10 @@ export class DisputasService {
     return this.prisma.disputaCalidad.create({ data: { casoId, motivo } });
   }
 
-  async resolverDisputaCalidad(disputaId: string, resolucion: string, hacerLugar: boolean) {
+  async resolverDisputaCalidad(disputaId: string, resolucion: string, hacerLugar: boolean, adminId: string) {
     const disputa = await this.prisma.disputaCalidad.update({
       where: { id: disputaId },
-      data: { estado: "RESUELTA", resolucion, resueltaEl: new Date() },
+      data: { estado: "RESUELTA", resolucion, resueltaEl: new Date(), resueltaPorAdminId: adminId },
     });
 
     if (hacerLugar) {

@@ -1,13 +1,11 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { timingSafeEqual } from "crypto";
 
-// STOPGAP, no un sistema de roles de staff: no existe todavía un modelo
-// "Admin" con su propio login (eso es un desarrollo aparte, con su propia
-// superficie de auditoría). Mientras tanto, esto es lo mínimo para que
-// resolver una disputa de identidad o de calidad NO quede abierto a
-// cualquier veterinario o cliente autenticado — que es exactamente el
-// agujero que había antes de este cambio: un veterinario podía, en teoría,
-// "resolver" su propia disputa de identidad y reincorporarse solo.
+// Ya NO protege el día a día de disputas — eso ahora es JWT + rol ADMIN
+// (cuentas de staff individuales, con auditoría de quién resolvió qué; ver
+// Admin en schema.prisma y disputas.controller.ts). Lo único que queda
+// detrás de esta clave compartida es AuthController.registrarAdmin: cómo se
+// crea la PRIMERA cuenta de staff sin exponer un alta pública de admins.
 // Requiere el header `x-admin-key` con el valor de ADMIN_API_KEY (.env).
 @Injectable()
 export class AdminKeyGuard implements CanActivate {

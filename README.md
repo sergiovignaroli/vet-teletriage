@@ -78,11 +78,20 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   sesión, calificar y liquidar un pago ahora exigen el rol correcto Y que quien llama sea efectivamente el
   cliente o veterinario dueño de ese caso — el id nunca sale del body, sale del JWT. Antes de este cambio,
   cualquiera con la URL podía hacer cualquiera de estas cinco cosas en nombre de otro.
-- **Disputas — stopgap de administración**: abrir/resolver una disputa de identidad y resolver una de
-  calidad quedan detrás de un `x-admin-key` (ver `admin-key.guard.ts`) — no hay todavía un rol de staff con
-  su propio login, así que esto es lo mínimo para que un veterinario no pueda "resolver" su propia disputa
-  de identidad y reincorporarse solo. Abrir una disputa de calidad sí queda en manos del cliente dueño del
-  caso, porque el daño posible es acotado (como mucho, revisa un reembolso del cargo de plataforma).
+- **Disputas — rol `ADMIN` real, no una clave compartida**: abrir/resolver una disputa de identidad y
+  resolver una de calidad exigen JWT con rol `ADMIN`, y cada disputa queda con `abiertaPorAdminId` /
+  `resueltaPorAdminId` — se sabe qué cuenta de staff tomó cada decisión, no solo que "alguien con la clave"
+  la tomó. No hay alta pública de admins: la primera cuenta (y cualquier otra) se crea con
+  `POST /auth/admin/registrar` detrás de `ADMIN_API_KEY` (ver `admin-key.guard.ts`, que ahora protege
+  únicamente ese endpoint de bootstrap); de ahí en más es login normal con email+contraseña. Abrir una
+  disputa de calidad sigue en manos del cliente dueño del caso, porque el daño posible es acotado (como
+  mucho, revisa un reembolso del cargo de plataforma).
+- **Revocación de sesiones (sin blacklist)**: cada Veterinario/Cliente/Admin tiene un `tokenVersion` en la
+  base; el JWT lleva ese valor (`tv`) al momento de firmarse, y `jwt.strategy.ts` lo revalida en cada
+  request contra la base. `POST /auth/veterinario/revocar-sesiones` incrementa el contador y listo: todo
+  JWT emitido antes queda inválido al toque, sin esperar a que expire, sin guardar una lista de tokens
+  revocados. Probado en vivo: mismo token, antes de revocar pasa; después de revocar, 401 inmediato; un
+  login nuevo después de revocar, válido de nuevo.
 - **OAuth de Mercado Pago (Split 1:1)**: `GET /pagos/mercadopago/oauth/iniciar` (autenticado, devuelve la
   URL de autorización con un `state` firmado con HMAC para que el callback no pueda ser manipulado) y
   `GET /pagos/mercadopago/oauth/callback` (público — lo llama Mercado Pago, no el navegador logueado —
@@ -98,16 +107,14 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 
 ## Lo que falta (a propósito, no por error)
 
-- **Rol de staff/administración real**: hoy la resolución de disputas usa una clave compartida
-  (`ADMIN_API_KEY`), no cuentas de staff individuales con su propio login y auditoría de quién resolvió qué.
 - **Creación de la preferencia de pago con split**: la conexión OAuth del veterinario ya guarda su
   `access_token`, pero falta el código que arma el checkout con `marketplace_fee` usando ese token —
   necesita al menos un veterinario conectado de verdad para poder probarlo contra la API real.
 - **Proveedor de video**: sigue pendiente de la prueba de carga de Sergio (Twilio/Daily.co/Zoom Video SDK).
 - **Valores de negocio de `calificaciones`**: umbral de estrellas y puntos exactos a otorgar (ver comentario
   en `calificaciones.service.ts`).
-- **Refresh token**: el JWT actual no tiene renovación — vence a las 12 h y hay que loguearse de nuevo
-  (aceptable para el MVP, no para producción con volumen).
+- **Refresh token**: el JWT actual no tiene renovación automática — vence a las 12 h y hay que loguearse de
+  nuevo (aceptable para el MVP). La revocación anticipada (logout forzado) sí está resuelta, ver arriba.
 
 ## Próximo paso sugerido
 

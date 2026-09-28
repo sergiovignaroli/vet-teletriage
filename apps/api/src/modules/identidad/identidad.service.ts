@@ -70,6 +70,7 @@ export class IdentidadService {
       await this.disputas.abrirDisputaIdentidad(
         veterinarioId,
         `Verificación de identidad Truora inconsistente (process_id ${verificacion.proveedorRefId})`,
+        null, // abierta por el sistema, no por un admin humano
       );
     }
 

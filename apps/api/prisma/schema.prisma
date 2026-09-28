@@ -22,6 +22,10 @@ model Veterinario {
   email             String   @unique
   telefono          String?
   passwordHash      String
+  // Se incrementa para invalidar TODOS los JWT emitidos antes de este valor
+  // (logout forzado / password comprometida) sin necesidad de una blacklist
+  // de tokens — ver jwt.strategy.ts.
+  tokenVersion      Int      @default(0)
 
   // Habilitación (Sección 2 del contrato)
   dniONumero        String
@@ -97,9 +101,27 @@ model Cliente {
   otpCodeHash   String?
   otpExpiraEl   DateTime?
   otpIntentos   Int      @default(0)
+  tokenVersion  Int      @default(0) // ver comentario en Veterinario.tokenVersion
 
   casos         Caso[]
   creadoEl      DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Admin — staff de la plataforma, NO de autoservicio (no hay endpoint público
+// de alta). El primer admin se crea con la clave de bootstrap (ver
+// admin-key.guard.ts / AuthService.registrarAdmin); de ahí en más entra con
+// email + contraseña como cualquier otro rol, y cada decisión de staff sobre
+// una disputa queda firmada con SU id, no con una clave compartida.
+// ---------------------------------------------------------------------------
+
+model Admin {
+  id           String   @id @default(uuid())
+  nombre       String
+  email        String   @unique
+  passwordHash String
+  tokenVersion Int      @default(0)
+  creadoEl     DateTime @default(now())
 }
 
 // ---------------------------------------------------------------------------
@@ -280,27 +302,31 @@ enum EstadoPago {
 // ---------------------------------------------------------------------------
 
 model DisputaIdentidad {
-  id             String      @id @default(uuid())
-  veterinario    Veterinario @relation(fields: [veterinarioId], references: [id])
-  veterinarioId  String
-  motivo         String
-  estado         EstadoDisputa @default(ABIERTA)
-  resolucion     String?
-  abiertaEl      DateTime    @default(now())
-  resueltaEl     DateTime?
+  id                 String      @id @default(uuid())
+  veterinario        Veterinario @relation(fields: [veterinarioId], references: [id])
+  veterinarioId      String
+  motivo             String
+  estado             EstadoDisputa @default(ABIERTA)
+  resolucion         String?
+  // Auditoría de staff — qué admin abrió/resolvió, no una clave compartida.
+  abiertaPorAdminId  String?
+  resueltaPorAdminId String?
+  abiertaEl          DateTime    @default(now())
+  resueltaEl         DateTime?
 }
 
 model DisputaCalidad {
-  id             String      @id @default(uuid())
-  caso           Caso        @relation(fields: [casoId], references: [id])
-  casoId         String      @unique
-  motivo         String
+  id                 String      @id @default(uuid())
+  caso               Caso        @relation(fields: [casoId], references: [id])
+  casoId             String      @unique
+  motivo             String
   // Nunca afecta el pago ya liquidado al veterinario (Sección 10) — como máximo,
   // resuelve en reembolso del cargo de plataforma, nunca del honorario.
-  estado         EstadoDisputa @default(ABIERTA)
-  resolucion     String?
-  abiertaEl      DateTime    @default(now())
-  resueltaEl     DateTime?
+  estado             EstadoDisputa @default(ABIERTA)
+  resolucion         String?
+  resueltaPorAdminId String?
+  abiertaEl          DateTime    @default(now())
+  resueltaEl         DateTime?
 }
 
 enum EstadoDisputa {
