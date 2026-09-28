@@ -29,6 +29,17 @@ export const CIERRES_SIN_REEMBOLSO: ClasificacionCierre[] = [
   "DERIVADO_A_EMERGENCIA",
 ];
 
+// Sección 11/12 del contrato — piso de calidad y puntos-premio (decisión de
+// negocio de Sergio, 2026-09-28): la escala de calificación es de 1 a 5
+// estrellas; 3 es el piso — por debajo, el veterinario queda fuera del gate
+// de elegibilidad del matching (Fase 2, todavía no implementado: en la Fase
+// 1 el dispatch es manual). Los puntos-premio solo se otorgan con 5
+// estrellas, no con 4 — el "casi perfecto" no suma puntos, la calificación
+// perfecta sí.
+export const PISO_CALIDAD_ESTRELLAS = 3;
+export const ESTRELLAS_PARA_PUNTO_PREMIO = 5;
+export const PUNTOS_POR_CALIFICACION_PERFECTA = 10;
+
 export interface BanderasRojasIntake {
   dificultadRespiratoria: boolean;
   inconsciente: boolean;

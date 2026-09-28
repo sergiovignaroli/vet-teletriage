@@ -111,8 +111,10 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   `access_token`, pero falta el código que arma el checkout con `marketplace_fee` usando ese token —
   necesita al menos un veterinario conectado de verdad para poder probarlo contra la API real.
 - **Proveedor de video**: sigue pendiente de la prueba de carga de Sergio (Twilio/Daily.co/Zoom Video SDK).
-- **Valores de negocio de `calificaciones`**: umbral de estrellas y puntos exactos a otorgar (ver comentario
-  en `calificaciones.service.ts`).
+- **Piso de calidad (3 estrellas) sin gate de matching que lo consuma**: `calificaciones.service.ts` ya expone
+  `estaPorDebajoDelPisoDeCalidad()`, pero el motor de matching con score compuesto es Fase 2 del roadmap — la
+  Fase 1 asigna casos a mano (dispatcher humano), así que hoy nada llama a ese método todavía. Conectarlo es
+  tarea de cuando se construya el matching real.
 - **Refresh token**: el JWT actual no tiene renovación automática — vence a las 12 h y hay que loguearse de
   nuevo (aceptable para el MVP). La revocación anticipada (logout forzado) sí está resuelta, ver arriba.
 
