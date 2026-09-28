@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { CIERRES_SIN_REEMBOLSO } from "@vet-teletriage/types";
+import {
+  construirUrlAutorizacionMercadoPago,
+  intercambiarCodigoPorToken,
+  verificarYExtraerState,
+} from "../../common/mercadopago-oauth.util";
 
 @Injectable()
 export class PagosService {
@@ -16,13 +21,18 @@ export class PagosService {
   // - NO_COMPLETADO → habilita reembolso, pero SOLO del cargo de plataforma;
   //   si la sesión no se prestó, el veterinario no devengó honorario, así
   //   que no hay nada que reembolsarle a él.
-  async liquidarSegunCierre(casoId: string) {
+  async liquidarSegunCierre(casoId: string, veterinarioId: string) {
     const caso = await this.prisma.caso.findUnique({
       where: { id: casoId },
       include: { cierre: true, pago: true },
     });
     if (!caso || !caso.cierre || !caso.pago) {
       throw new BadRequestException("El caso no tiene cierre o pago registrado todavía");
+    }
+    // Sin este chequeo, cualquier veterinario autenticado podía liquidar
+    // (y por lo tanto capturar el pago de) un caso ajeno.
+    if (caso.veterinarioId !== veterinarioId) {
+      throw new ForbiddenException("No sos el veterinario asignado a este caso");
     }
 
     const sinDerechoAReembolso = CIERRES_SIN_REEMBOLSO.includes(caso.cierre.clasificacion);
@@ -75,5 +85,35 @@ export class PagosService {
       where: { casoId: payload.casoId },
       data: { mercadoPagoPaymentId: payload.mercadoPagoPaymentId, estado: "AUTORIZADO" },
     });
+  }
+
+  // -------------------------------------------------------------------------
+  // OAuth de Mercado Pago (Split de Pagos 1:1) — el veterinario conecta su
+  // propia cuenta antes de poder cobrar. Sin esto, no hay collector_id ni
+  // access_token propios para armar el split en el checkout (esa parte —
+  // crear la preferencia de pago con marketplace_fee — todavía no está
+  // escrita: depende de tener primero al menos un veterinario conectado
+  // para probarla contra la API real).
+  // -------------------------------------------------------------------------
+  iniciarOAuthMercadoPago(veterinarioId: string): { url: string } {
+    return { url: construirUrlAutorizacionMercadoPago(veterinarioId) };
+  }
+
+  async manejarCallbackOAuthMercadoPago(code: string, state: string) {
+    const veterinarioId = verificarYExtraerState(state); // lanza si el state fue manipulado
+    const token = await intercambiarCodigoPorToken(code);
+
+    await this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: {
+        mercadoPagoOAuthId: String(token.user_id),
+        mercadoPagoAccessToken: token.access_token,
+        mercadoPagoRefreshToken: token.refresh_token,
+        mercadoPagoTokenVenceEl: new Date(Date.now() + token.expires_in * 1000),
+        medioDeCobro: "MERCADO_PAGO",
+      },
+    });
+
+    return { veterinarioId, conectado: true };
   }
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import {
   BanderasRojasIntake,
@@ -61,6 +61,15 @@ export class CasosService {
   // Se llama cuando arranca efectivamente la videollamada — recalcula la
   // franja horaria por si pasó tiempo entre la reserva y el inicio real.
   async iniciarSesion(casoId: string, veterinarioId: string) {
+    const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
+    if (!caso) throw new BadRequestException("Caso no encontrado");
+    // Un caso ya tomado por otro veterinario no se puede "robar" pisando
+    // el veterinarioId — sin este chequeo, cualquier vet autenticado podía
+    // adjudicarse un caso ajeno con solo llamar a este endpoint.
+    if (caso.veterinarioId && caso.veterinarioId !== veterinarioId) {
+      throw new ForbiddenException("Este caso ya fue tomado por otro veterinario");
+    }
+
     const ahora = new Date();
     const franjaHoraria = franjaHorariaDe(ahora);
 
@@ -80,11 +89,16 @@ export class CasosService {
   // derecho a reembolso. RESUELTO_POR_ORIENTACION y DERIVADO_A_EMERGENCIA
   // se facturan al 100% — acá NO se toca el pago, eso lo hace pagos.service
   // en base a esta clasificación.
-  async cerrar(casoId: string, clasificacion: ClasificacionCierre, notas?: string) {
+  async cerrar(casoId: string, veterinarioId: string, clasificacion: ClasificacionCierre, notas?: string) {
     const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
     if (!caso) throw new BadRequestException("Caso no encontrado");
     if (caso.estado !== "EN_SESION") {
       throw new BadRequestException("Solo se puede cerrar un caso que está en sesión");
+    }
+    // Solo el veterinario asignado a ESTE caso puede cerrarlo — sin esto,
+    // cualquier vet autenticado podía clasificar el cierre de un caso ajeno.
+    if (caso.veterinarioId !== veterinarioId) {
+      throw new ForbiddenException("No sos el veterinario asignado a este caso");
     }
 
     return this.prisma.caso.update({

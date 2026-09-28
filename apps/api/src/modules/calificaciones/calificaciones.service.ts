@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 
 @Injectable()
@@ -8,7 +8,24 @@ export class CalificacionesService {
   // Sección 10: el botón de confirmación del cliente es NO PUNITIVO — solo
   // alimenta este sistema de calificaciones, nunca dispara un reembolso por
   // sí mismo (eso vive exclusivamente en disputas.service).
-  async registrar(veterinarioId: string, casoId: string, estrellas: number, comentario?: string) {
+  async registrar(clienteId: string, veterinarioId: string, casoId: string, estrellas: number, comentario?: string) {
+    if (estrellas < 1 || estrellas > 5) {
+      throw new BadRequestException("estrellas debe estar entre 1 y 5");
+    }
+
+    // El modelo Calificacion no guarda clienteId — la única forma de
+    // verificar que quien califica es quien realmente tuvo la sesión es
+    // yendo al Caso. Sin esto, cualquier cliente logueado podía calificar
+    // (y sumarle puntos-premio a) un veterinario que nunca lo atendió.
+    const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
+    if (!caso) throw new BadRequestException("Caso no encontrado");
+    if (caso.clienteId !== clienteId) {
+      throw new ForbiddenException("No podés calificar un caso que no es tuyo");
+    }
+    if (caso.veterinarioId !== veterinarioId) {
+      throw new BadRequestException("Ese veterinario no atendió este caso");
+    }
+
     const calificacion = await this.prisma.calificacion.create({
       data: { veterinarioId, casoId, estrellas, comentario },
     });

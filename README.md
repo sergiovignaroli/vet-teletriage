@@ -35,10 +35,13 @@ y no empuja hacia el hosting de Prisma.
 
 ```bash
 npm install
-cp .env.example .env   # completar con las credenciales reales de cada proveedor
-cd apps/api && npx prisma migrate dev --name init
+cp .env.example .env   # completar con las credenciales reales de cada proveedor y generar JWT_SECRET/ADMIN_API_KEY
+cd apps/api && npx prisma migrate dev --name init   # ya incluye la migración inicial en prisma/migrations/
 npm run dev             # desde la raíz, levanta api y web en paralelo (turbo)
 ```
+
+`JWT_SECRET`: generar con `openssl rand -base64 48`. `ADMIN_API_KEY`: cualquier string largo random —
+es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 
 ## Lo que ya está implementado (compilado y buildeado, no solo escrito)
 
@@ -65,16 +68,49 @@ npm run dev             # desde la raíz, levanta api y web en paralelo (turbo)
 - **Formulario de intake en `apps/web/app/intake`**: las 8 banderas rojas de la Sección 9, con el aviso de
   emergencia calculado en el cliente en tiempo real y sin bloquear el flujo — tal como lo describe el
   contrato.
+- **Módulo `auth`**: login de veterinarios con email + contraseña (bcrypt, JWT de 12 h) y login de
+  clientes sin contraseña vía código OTP enviado por WhatsApp Cloud API (el teléfono es el identificador,
+  no el email — no pide nombre/email para no meter fricción en un flujo de emergencia). Probado de punta a
+  punta contra una base Postgres real y contra la API real de WhatsApp Cloud (llegó un 401 real de Meta por
+  no tener token válido — confirma que el endpoint/payload están bien armados, solo falta un token de
+  producción).
+- **Guards de autorización aplicados a todo lo que quedaba abierto**: crear un caso, iniciar/cerrar una
+  sesión, calificar y liquidar un pago ahora exigen el rol correcto Y que quien llama sea efectivamente el
+  cliente o veterinario dueño de ese caso — el id nunca sale del body, sale del JWT. Antes de este cambio,
+  cualquiera con la URL podía hacer cualquiera de estas cinco cosas en nombre de otro.
+- **Disputas — stopgap de administración**: abrir/resolver una disputa de identidad y resolver una de
+  calidad quedan detrás de un `x-admin-key` (ver `admin-key.guard.ts`) — no hay todavía un rol de staff con
+  su propio login, así que esto es lo mínimo para que un veterinario no pueda "resolver" su propia disputa
+  de identidad y reincorporarse solo. Abrir una disputa de calidad sí queda en manos del cliente dueño del
+  caso, porque el daño posible es acotado (como mucho, revisa un reembolso del cargo de plataforma).
+- **OAuth de Mercado Pago (Split 1:1)**: `GET /pagos/mercadopago/oauth/iniciar` (autenticado, devuelve la
+  URL de autorización con un `state` firmado con HMAC para que el callback no pueda ser manipulado) y
+  `GET /pagos/mercadopago/oauth/callback` (público — lo llama Mercado Pago, no el navegador logueado —
+  intercambia el `code` por tokens y los guarda en el veterinario). Endpoint y payload verificados contra
+  la documentación oficial de Mercado Pago.
+- **Verificación de identidad con Truora (módulo `identidad`)**: `POST /identidad/iniciar` crea el proceso
+  en la Identity API de Truora; `GET /identidad/:id/estado` hace polling del resultado y, si vuelve
+  inconsistente, dispara automáticamente el circuito de disputa de identidad (suspensión cautelar). El
+  header de autenticación (`Truora-API-Key`) está verificado contra la doc oficial; el resto del flujo
+  (nombres exactos de campos de respuesta) sale de un resumen de la guía de Truora, no del JSON crudo de su
+  referencia — marcado como `[Probable]` en `truora.util.ts`, para revisar antes de cargar credenciales
+  reales.
 
 ## Lo que falta (a propósito, no por error)
 
-- **Integraciones reales** de Mercado Pago (OAuth por veterinario + captura/reembolso vía API, no solo el
-  webhook), Truora, y el proveedor de video que salga ganador de la prueba de carga.
-- **Autenticación** (todavía no hay login ni JWT — los endpoints están abiertos, no usar así en producción).
+- **Rol de staff/administración real**: hoy la resolución de disputas usa una clave compartida
+  (`ADMIN_API_KEY`), no cuentas de staff individuales con su propio login y auditoría de quién resolvió qué.
+- **Creación de la preferencia de pago con split**: la conexión OAuth del veterinario ya guarda su
+  `access_token`, pero falta el código que arma el checkout con `marketplace_fee` usando ese token —
+  necesita al menos un veterinario conectado de verdad para poder probarlo contra la API real.
+- **Proveedor de video**: sigue pendiente de la prueba de carga de Sergio (Twilio/Daily.co/Zoom Video SDK).
 - **Valores de negocio de `calificaciones`**: umbral de estrellas y puntos exactos a otorgar (ver comentario
   en `calificaciones.service.ts`).
+- **Refresh token**: el JWT actual no tiene renovación — vence a las 12 h y hay que loguearse de nuevo
+  (aceptable para el MVP, no para producción con volumen).
 
 ## Próximo paso sugerido
 
-Elegir el proveedor de video (punto pendiente del documento de proveedores) antes de construir la pantalla
-de videollamada — es la única pieza del frontend que cambia de forma significativa según cuál se elija.
+Elegir el proveedor de video (Sergio es el único que puede correr la prueba de carga) — es la única pieza
+del frontend que cambia de forma significativa según cuál se elija, y ya no hay nada más bloqueando el
+arranque técnico del lado del backend.

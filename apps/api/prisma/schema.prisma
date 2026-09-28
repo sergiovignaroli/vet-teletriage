@@ -21,6 +21,7 @@ model Veterinario {
   apellido          String
   email             String   @unique
   telefono          String?
+  passwordHash      String
 
   // Habilitación (Sección 2 del contrato)
   dniONumero        String
@@ -41,7 +42,12 @@ model Veterinario {
 
   // Cobro (Sección 5 del contrato)
   medioDeCobro      MedioDeCobroVeterinario @default(MERCADO_PAGO)
-  mercadoPagoOAuthId String?
+  // Split de Pagos 1:1 (doc de proveedores) — credenciales OAuth propias del
+  // veterinario como vendedor de Mercado Pago, nunca las de la plataforma.
+  mercadoPagoOAuthId       String?   // user_id del vendedor en Mercado Pago
+  mercadoPagoAccessToken   String?
+  mercadoPagoRefreshToken  String?
+  mercadoPagoTokenVenceEl  DateTime?
   payoneerEmail      String?
 
   // Verificación de identidad (Sección 6)
@@ -79,10 +85,18 @@ enum MedioDeCobroVeterinario {
 
 model Cliente {
   id            String   @id @default(uuid())
-  nombre        String
-  email         String   @unique
-  telefono      String?
+  // Login sin contraseña vía OTP por WhatsApp (doc de proveedores): el
+  // teléfono es el identificador primario, no el email. nombre/email se
+  // completan en el perfil después del primer login, no son requisito de
+  // alta — pedirlos antes solo agrega fricción a un flujo de emergencia.
+  nombre        String?
+  email         String?  @unique
+  telefono      String   @unique
   paisDePago    String?  // determina si se le ofrece Mercado Pago, PayPal o tarjeta internacional
+
+  otpCodeHash   String?
+  otpExpiraEl   DateTime?
+  otpIntentos   Int      @default(0)
 
   casos         Caso[]
   creadoEl      DateTime @default(now())
@@ -207,13 +221,15 @@ model VerificacionIdentidad {
   caso           Caso?       @relation(fields: [casoId], references: [id])
   casoId         String?     @unique
 
-  resultado      ResultadoVerificacion
+  resultado      ResultadoVerificacion @default(PENDIENTE)
   proveedor      String      @default("truora")
-  proveedorRefId String?     // id de la verificación en Truora, para auditoría
+  proveedorRefId String?     // process_id de Truora (Identity API), para auditoría y polling
+  actualizadoEl  DateTime    @updatedAt
   creadoEl       DateTime    @default(now())
 }
 
 enum ResultadoVerificacion {
+  PENDIENTE     // proceso creado en Truora, esperando resultado (API es asincrónica)
   APROBADA
   RECHAZADA
   INCONSISTENTE // dispara DisputaIdentidad y posible suspensión cautelar

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { PagosService } from "../pagos/pagos.service";
 
@@ -67,7 +67,15 @@ export class DisputasService {
     return disputa;
   }
 
-  async abrirDisputaCalidad(casoId: string, motivo: string) {
+  async abrirDisputaCalidad(clienteId: string, casoId: string, motivo: string) {
+    const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
+    if (!caso) throw new BadRequestException("Caso no encontrado");
+    // Sin esto, cualquier cliente autenticado podía abrir una disputa de
+    // calidad sobre un caso ajeno.
+    if (caso.clienteId !== clienteId) {
+      throw new ForbiddenException("No podés abrir una disputa sobre un caso que no es tuyo");
+    }
+
     return this.prisma.disputaCalidad.create({ data: { casoId, motivo } });
   }
 

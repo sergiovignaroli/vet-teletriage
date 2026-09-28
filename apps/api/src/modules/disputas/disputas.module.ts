@@ -8,5 +8,6 @@ import { DisputasService } from "./disputas.service";
   imports: [PagosModule],
   controllers: [DisputasController],
   providers: [DisputasService, PrismaService],
+  exports: [DisputasService],
 })
 export class DisputasModule {}
