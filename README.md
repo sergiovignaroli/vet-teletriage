@@ -294,6 +294,13 @@ conviene volver a separarla en `preDeployCommand`.
 - **No hay alta pública de admins, a propósito**: la primera cuenta de staff (y cualquier otra) se crea con
   `POST /auth/admin/registrar` detrás de `ADMIN_API_KEY` — no hay ninguna pantalla para eso ni la va a haber,
   es deliberado (ver sección de disputas arriba).
+- **Sin recupero de contraseña para veterinarios (encontrado 2026-09-29, Sergio confirmó: al final)**: un
+  veterinario que se olvida la contraseña queda trabado del todo — no hay self-service ni forma de que un
+  admin se la resetee desde el panel. A diferencia de otras situaciones probables arregladas esta vuelta,
+  esto no es un fix puntual: necesita mandar un email (WhatsApp no aplica, el login del veterinario es por
+  contraseña, no OTP) y hoy la plataforma no tiene ningún proveedor de email conectado — mismo tipo de
+  bloqueo que Truora o Mercado Pago. Falta que Sergio elija proveedor (Resend, SendGrid, u otro) y cargue la
+  API key.
 - **Todavía sin proveedor de video real conectado**: la interfaz ya está (ver arriba), pero
   `PlaceholderVideoProvider` devuelve `null` siempre — hasta que Sergio corra la prueba de carga y elija
   Twilio / Daily.co / Zoom Video SDK, `salaVideoUrl` va a seguir vacío y las pantallas van a seguir mostrando
@@ -313,6 +320,8 @@ implemente `ProveedorVideo`), que Sergio reemplace los valores placeholder de
 Truora para que la habilitación automática funcione de punta a punta (hoy el código está listo pero sin
 credenciales todo cae en la cola manual), que re-suba `landing-full.html` a Wix para que el link a
 `/ingresar-veterinario` salga a producción, y — cuando haya al menos un veterinario conectado de verdad a
-Mercado Pago — probar el checkout con split contra la API real. El registro de marca ante el INPI queda
-para el final, cuando toda la plataforma esté terminada y probada (decisión explícita de Sergio,
-2026-09-29).
+Mercado Pago — probar el checkout con split contra la API real. También queda para el final elegir un
+proveedor de email y cargar su API key, para poder armar el recupero de contraseña de veterinarios que hoy
+no existe (Sergio, 2026-09-29: confirmado que va al final, junto con el resto de las credenciales). El
+registro de marca ante el INPI queda para el final, cuando toda la plataforma esté terminada y probada
+(decisión explícita de Sergio, 2026-09-29).
