@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../lib/api";
@@ -116,6 +117,13 @@ export default function IngresarVeterinarioPage() {
           {cargando ? "Ingresando…" : "Ingresar"}
         </button>
       </form>
+
+      <Link
+        href="/ingresar"
+        style={{ fontSize: 13, opacity: 0.55, marginTop: 32, textDecoration: "underline" }}
+      >
+        ¿Sos dueño de una mascota? Ingresá acá
+      </Link>
     </main>
   );
 }

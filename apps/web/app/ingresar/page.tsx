@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../lib/api";
@@ -118,6 +119,13 @@ export default function IngresarPage() {
           </button>
         </>
       )}
+
+      <Link
+        href="/ingresar-veterinario"
+        style={{ fontSize: 13, opacity: 0.55, marginTop: 32, textDecoration: "underline" }}
+      >
+        ¿Sos veterinario? Ingresá acá
+      </Link>
     </main>
   );
 }

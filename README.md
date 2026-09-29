@@ -136,10 +136,13 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 - **Onboarding de producto, cliente y veterinario ya resueltos** — ver arriba, ambos lados de `apps/web`. Sin
   Postgres corriendo en este entorno no se pudo probar ninguno de los dos flujos end-to-end contra una base
   real — sí se verificó `tsc --noEmit`, `nest build` (api) y `next build` (web) limpios en cada cambio.
-- **No hay ningún link visible hacia `/ingresar-veterinario`**: ni la landing de Wix ni `/ingresar` (cliente)
-  apuntan ahí todavía — un veterinario ya registrado no tiene forma de encontrar la puerta de entrada sin que
-  alguien le pase la URL a mano. Hay que decidir dónde va ese link (¿en la landing de Wix, en un footer de la
-  app, ambos?) y agregarlo.
+- **Link a `/ingresar-veterinario` resuelto solo adentro de `apps/web`**: `/ingresar` y
+  `/ingresar-veterinario` ya se linkean entre sí ("¿Sos veterinario? Ingresá acá" / "¿Sos dueño de una
+  mascota? Ingresá acá"). Lo que sigue faltando es el link desde afuera — la landing de Wix, que es la
+  puerta de entrada real — y ese no se puede agregar todavía porque **`apps/web` no está deployado en
+  ningún lado** (no hay `render.yaml`, ni Vercel, ni ninguna URL pública en `.env.example` más que
+  `localhost`). Sin una URL real, un link desde Wix no tendría a dónde apuntar. Esto es lo que bloquea
+  terminar el punto 1 de verdad, no una decisión de diseño pendiente.
 - **`GET /casos/disponibles` no filtra por cercanía ni por especialidad**: devuelve TODOS los casos sin
   asignar, a cualquier veterinario habilitado que entre — para el volumen de la Fase 1 (dispatch
   manual, pocos veterinarios) alcanza, pero no escala. El matching real con distancia/score es la Fase 2 ya
