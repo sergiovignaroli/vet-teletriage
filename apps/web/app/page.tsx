@@ -41,7 +41,9 @@ export default function HomePage() {
         Cargo de plataforma ahora ({franja === "DIURNA" ? "horario diurno" : "horario nocturno"}):{" "}
         <strong style={{ fontSize: 15 }}>${CARGO_PLATAFORMA[franja]}</strong>
         <br />
-        <span style={{ opacity: 0.65 }}>+ el honorario que fije el veterinario que te atienda</span>
+        <span style={{ opacity: 0.65 }}>
+          + el honorario del veterinario que elijas — vas a ver el costo total de cada uno antes de contratar
+        </span>
       </div>
 
       <Link href="/intake" className="va-boton" style={{ marginBottom: 20, textDecoration: "none" }}>

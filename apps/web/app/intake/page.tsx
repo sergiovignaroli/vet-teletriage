@@ -59,9 +59,11 @@ export default function IntakePage() {
     setError(null);
     setEnviando(true);
     try {
-      // honorarioDeclarado no va acá: lo declara el veterinario, libremente,
-      // cuando toma el caso (ver PATCH /casos/:id/iniciar) — a esta altura
-      // todavía no hay veterinario asignado.
+      // honorarioDeclarado no va acá: se calcula recién cuando el cliente
+      // ELIGE veterinario (honorarioBase × margen del elegido — ver
+      // CasosService.asignar en /elegir-veterinario) — a esta altura
+      // todavía no hay ni precio final ni veterinario asignado, solo el
+      // honorarioBase que ya calculó el backend al crear el caso.
       const caso = await apiPostAuth<CasoResumen>("/casos", sesion.accessToken, {
         banderas,
         contexto: { especie, motivoConsulta },

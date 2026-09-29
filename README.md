@@ -254,6 +254,15 @@ conviene volver a separarla en `preDeployCommand`.
   lo rechaza) se topaba con un diálogo bloqueante que desentona con el resto. `PendienteItem`, nuevo
   componente, replica el mismo patrón de `enviando`/`error` local que ya usaban `DisputaIdentidadItem` y
   `DisputaCalidadItem`.
+- **Copy desactualizado en la home y comentario desactualizado en `/intake` (situación probable, 2026-09-29)**:
+  la home (`/`) todavía decía "+ el honorario que fije el veterinario que te atienda" — texto de ANTES del
+  rediseño de precios del 2026-09-29, cuando el veterinario ya no fija nada libremente (aplica un margen
+  acotado sobre `honorarioBase`, y el cliente ve el costo total antes de elegir). Es la primera pantalla que
+  ve un cliente nuevo — decirle que el precio "lo fija el veterinario" contradice el punto central del
+  rediseño (ver costo total ANTES de contratar). Corregido a "vas a ver el costo total de cada uno antes de
+  contratar". De paso, un comentario en `intake/page.tsx` (no visible para el usuario, pero engañoso para
+  quien lea el código) seguía describiendo el flujo viejo de `iniciar()`; actualizado para reflejar que el
+  precio se calcula en `asignar()`, no en `iniciar()`.
 
 ## Lo que falta (a propósito, no por error)
 
