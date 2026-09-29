@@ -13,4 +13,13 @@ ALTER TYPE "EstadoPago" ADD VALUE 'PENDIENTE';
 ALTER TABLE "Pago" RENAME COLUMN "autorizadoEl" TO "creadoEl";
 ALTER TABLE "Pago" ADD COLUMN "pagadoEl" TIMESTAMP(3);
 ALTER TABLE "Pago" ADD COLUMN "mercadoPagoPreferenciaId" TEXT;
-ALTER TABLE "Pago" ALTER COLUMN "estado" SET DEFAULT 'PENDIENTE';
+
+-- El "SET DEFAULT 'PENDIENTE'" se movió a la migración siguiente
+-- (20260929140001_pago_default_pendiente): Postgres no permite usar un
+-- valor de enum recién agregado (ALTER TYPE ... ADD VALUE, arriba) dentro
+-- de la MISMA transacción que lo agrega — error real de Postgres "unsafe
+-- use of new value of enum type", no una suposición. Cada migration.sql de
+-- Prisma corre en su propia transacción, así que el DEFAULT tiene que ir en
+-- una migración aparte que corra después de que ésta ya haya confirmado
+-- (commit) el nuevo valor del enum. Esto fue lo que hizo fallar el deploy a
+-- producción del 2026-09-29 (ver README).
