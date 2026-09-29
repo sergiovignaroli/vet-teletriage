@@ -1,0 +1,79 @@
+/* Paleta e identidad de marca — ver el trabajo de diseño de la landing
+   (portadas/*.html) para el origen de estos valores. Primera vez que se
+   define un token de marca dentro del código de apps/web: hasta ahora la
+   app no tenía ningún estilo propio aplicado. */
+
+:root {
+  --terracota: #c86b52;
+  --oliva: #7a8b68;
+  --crema: #fcfaf6;
+  --rosa: #e8cfc5;
+  --marron: #40352f;
+  --accent: var(--oliva);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--crema);
+  color: var(--marron);
+  font-family: "Nunito Sans", sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.va-logo {
+  font-family: "Big Shoulders Display", sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+
+.va-titular {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.va-boton {
+  display: block;
+  width: 100%;
+  background: var(--accent);
+  color: var(--crema);
+  font-weight: 800;
+  font-size: 16px;
+  padding: 16px 0;
+  border-radius: 14px;
+  border: none;
+  font-family: "Nunito Sans", sans-serif;
+  cursor: pointer;
+  text-align: center;
+}
+
+.va-boton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.va-boton-ghost {
+  background: transparent;
+  border: 1.5px solid var(--marron);
+  color: var(--marron);
+}
+
+.va-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(64, 53, 47, 0.25);
+  font-size: 16px;
+  font-family: "Nunito Sans", sans-serif;
+  background: #fff;
+  color: var(--marron);
+}

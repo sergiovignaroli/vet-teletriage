@@ -117,11 +117,18 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   tarea de cuando se construya el matching real.
 - **Refresh token**: el JWT actual no tiene renovación automática — vence a las 12 h y hay que loguearse de
   nuevo (aceptable para el MVP). La revocación anticipada (logout forzado) sí está resuelta, ver arriba.
-- **Onboarding de producto sin dashboard que lo muestre**: `Cliente.onboardingCompletado` y
-  `Veterinario.onboardingCompletado` ya existen en el schema, el login/registro ya devuelve el valor, y
-  `PATCH auth/onboarding-completado` ya lo marca. Falta el otro lado: `apps/web` hoy no tiene login, sesión
-  ni dashboard — son 3 páginas sueltas (landing vieja, intake público, layout base) sin nada que leer ese
-  flag. Construir esa base y el onboarding de 3 pantallas sobre ella es la próxima tarea de frontend.
+- **Onboarding de producto — resuelto solo para el cliente (tutor)**: `apps/web` ya tiene `/ingresar` (login
+  por OTP), sesión en localStorage (`lib/sesion.ts`, sin refresh token — mismo criterio que el JWT de arriba),
+  `/panel` (dashboard mínimo) y el gate de onboarding de 3 pantallas (`components/Onboarding.tsx`) que llama a
+  `PATCH auth/onboarding-completado`. **Falta el lado del veterinario**: login por email+contraseña, su propio
+  dashboard, y decidir si ve el mismo onboarding o uno con copy distinto (el backend ya soporta ambos roles).
+  Sin Postgres corriendo en este entorno no se pudo probar el flujo end-to-end contra una base real — sí se
+  verificó `tsc --noEmit` y `next build` limpios en `apps/web`.
+- **Sin estilos globales hasta ahora**: `apps/web/app/globals.css` es la primera vez que la paleta de marca
+  (terracota/oliva/crema/rosa/marrón) y las tipografías (Big Shoulders Display, Bricolage Grotesque, Nunito
+  Sans) entran al código — antes la app no tenía ningún estilo propio aplicado. La landing pública en sí va
+  a vivir en Wix (decisión de Sergio), así que este CSS es solo para las pantallas *dentro* del producto
+  (login, panel, onboarding), no para el sitio de marketing.
 
 ## Próximo paso sugerido
 
