@@ -38,6 +38,15 @@ export class VeterinariosController {
     return this.veterinarios.desconectar(usuario.id);
   }
 
+  // Cola de excepciones del panel admin — veterinarios que NO se
+  // auto-habilitaron al aprobar Truora (ver identidad.service.ts).
+  @Get("pendientes")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  pendientes() {
+    return this.veterinarios.listarPendientes();
+  }
+
   // Blast radius alto (deja conectar y tomar casos reales) — solo ADMIN,
   // nunca el propio veterinario. El id va por param, no por JWT, porque
   // acá quien actúa (el admin) no es el mismo que el afectado.

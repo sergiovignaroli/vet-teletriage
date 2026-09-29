@@ -72,6 +72,33 @@ export class DisputasService {
     return disputa;
   }
 
+  // Colas del panel admin (Sergio, 2026-09-29) — sin esto no hay forma de
+  // ver qué está pendiente sin pegarle a la base a mano.
+  async listarIdentidadAbiertas() {
+    return this.prisma.disputaIdentidad.findMany({
+      where: { estado: "ABIERTA" },
+      include: { veterinario: { select: { id: true, nombre: true, apellido: true, email: true } } },
+      orderBy: { abiertaEl: "asc" },
+    });
+  }
+
+  async listarCalidadAbiertas() {
+    return this.prisma.disputaCalidad.findMany({
+      where: { estado: "ABIERTA" },
+      include: {
+        caso: {
+          select: {
+            id: true,
+            clienteId: true,
+            veterinarioId: true,
+            intake: true,
+          },
+        },
+      },
+      orderBy: { abiertaEl: "asc" },
+    });
+  }
+
   async abrirDisputaCalidad(clienteId: string, casoId: string, motivo: string) {
     const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
     if (!caso) throw new BadRequestException("Caso no encontrado");

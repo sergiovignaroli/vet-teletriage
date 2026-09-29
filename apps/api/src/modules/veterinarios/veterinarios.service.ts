@@ -49,32 +49,70 @@ export class VeterinariosService {
     return this.prisma.veterinario.update({ where: { id: veterinarioId }, data: { disponible: false } });
   }
 
-  // Habilitación manual por admin (Sergio, 2026-09-29). Hueco real que
-  // encontramos recién hoy: el circuito de Truora (identidad.service.ts)
-  // marca la VerificacionIdentidad como APROBADA pero nunca tocaba
-  // Veterinario.estado — no existía NINGÚN camino para que alguien llegara
-  // a HABILITADO por primera vez (disputas.service.ts solo restituye a
-  // quien ya lo estaba antes de una disputa). Esto no es un parche
-  // descartable: hasta que Truora esté conectado con credenciales reales,
-  // esta es la forma real de habilitar — un admin revisa matrícula y
-  // seguro a mano y aprueba, mismo criterio de "Fase 1 manual" que ya se
-  // usa para el dispatch de casos.
+  // Habilitación manual por admin (Sergio, 2026-09-29) — vía el panel de
+  // administración. Es el camino de EXCEPCIÓN: matrícula/seguro cargados
+  // mal, Truora rechazó o no corrió, o cualquier caso que no resolvió solo
+  // el camino automático de abajo. Tira error si no corresponde, porque acá
+  // hay un humano mirando la pantalla que puede reaccionar al motivo.
   async habilitarManualmente(veterinarioId: string) {
     const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
     if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
 
-    const hoy = new Date();
-    if (veterinario.matriculaVenceEl < hoy) {
-      throw new BadRequestException("La matrícula cargada ya está vencida — no se puede habilitar así");
-    }
-    if (veterinario.seguroVenceEl < hoy) {
-      throw new BadRequestException("El seguro cargado ya está vencido — no se puede habilitar así");
-    }
+    const { habilitable, motivo } = this.evaluarHabilitable(veterinario);
+    if (!habilitable) throw new BadRequestException(motivo);
 
     return this.prisma.veterinario.update({
       where: { id: veterinarioId },
       data: { estado: "HABILITADO" },
     });
+  }
+
+  // Camino AUTOMÁTICO (Sergio, 2026-09-29): "la idea es que funcione solo y
+  // casi automático porque cuando haya mucho flujo de gente no quiero
+  // volverme loco". Lo llama identidad.service.ts apenas Truora aprueba la
+  // identidad — sin esto, CADA veterinario nuevo, sin excepción, dependía
+  // de que un admin humano tocara un botón, lo cual no escala. Es
+  // best-effort y silencioso: si matrícula/seguro no están vigentes, el
+  // veterinario simplemente queda en PENDIENTE_VERIFICACION — ahí lo
+  // recoge el panel admin como excepción a revisar, no se lanza ningún
+  // error al veterinario (que no puede hacer nada al respecto desde acá).
+  async intentarHabilitarAutomaticamente(veterinarioId: string): Promise<boolean> {
+    const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
+    if (!veterinario) return false;
+
+    const { habilitable } = this.evaluarHabilitable(veterinario);
+    if (!habilitable) return false;
+
+    await this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { estado: "HABILITADO" },
+    });
+    return true;
+  }
+
+  // Veterinarios que NO se auto-habilitaron y siguen esperando revisión —
+  // es la cola de excepciones que muestra el panel admin (Sergio,
+  // 2026-09-29): si la habilitación automática funciona, esta lista debería
+  // ser chica y rara, no el flujo principal.
+  async listarPendientes() {
+    return this.prisma.veterinario.findMany({
+      where: { estado: "PENDIENTE_VERIFICACION" },
+      orderBy: { creadoEl: "asc" },
+    });
+  }
+
+  private evaluarHabilitable(veterinario: {
+    matriculaVenceEl: Date;
+    seguroVenceEl: Date;
+  }): { habilitable: boolean; motivo?: string } {
+    const hoy = new Date();
+    if (veterinario.matriculaVenceEl < hoy) {
+      return { habilitable: false, motivo: "La matrícula cargada ya está vencida — no se puede habilitar así" };
+    }
+    if (veterinario.seguroVenceEl < hoy) {
+      return { habilitable: false, motivo: "El seguro cargado ya está vencido — no se puede habilitar así" };
+    }
+    return { habilitable: true };
   }
 
   // Sergio, 2026-09-29: el margen es un % sobre el honorarioBase que

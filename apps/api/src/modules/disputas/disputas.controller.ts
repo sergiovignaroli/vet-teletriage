@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { DisputasService } from "./disputas.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
@@ -14,6 +14,22 @@ export class DisputasController {
   // queda en manos de un cliente cualquiera con un motivo en texto libre:
   // solo staff (rol ADMIN), y queda firmado con su id, no con una clave
   // compartida.
+  // Colas del panel admin — sin listado no hay nada que resolver desde una
+  // pantalla, solo a ciegas contra la API.
+  @Get("identidad/abiertas")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  identidadAbiertas() {
+    return this.disputas.listarIdentidadAbiertas();
+  }
+
+  @Get("calidad/abiertas")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  calidadAbiertas() {
+    return this.disputas.listarCalidadAbiertas();
+  }
+
   @Post("identidad")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("ADMIN")

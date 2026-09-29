@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { DisputasService } from "../disputas/disputas.service";
+import { VeterinariosService } from "../veterinarios/veterinarios.service";
 import { consultarEstadoProcesoIdentidad, crearProcesoIdentidad } from "../../common/truora.util";
 
 @Injectable()
@@ -8,6 +9,7 @@ export class IdentidadService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly disputas: DisputasService,
+    private readonly veterinarios: VeterinariosService,
   ) {}
 
   // Sección 6 del contrato: arranca el proceso de KYC en Truora. La captura
@@ -72,6 +74,15 @@ export class IdentidadService {
         `Verificación de identidad Truora inconsistente (process_id ${verificacion.proveedorRefId})`,
         null, // abierta por el sistema, no por un admin humano
       );
+    }
+
+    // Camino automático (Sergio, 2026-09-29): Truora aprobada + matrícula y
+    // seguro vigentes → HABILITADO sin que ningún humano tenga que tocar
+    // nada. Si matrícula/seguro no están vigentes, queda en
+    // PENDIENTE_VERIFICACION y el panel admin lo toma como excepción — no
+    // es un error de esta llamada, así que no se propaga ninguno.
+    if (resultado === "APROBADA") {
+      await this.veterinarios.intentarHabilitarAutomaticamente(veterinarioId);
     }
 
     return actualizada;

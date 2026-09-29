@@ -186,7 +186,20 @@ conviene volver a separarla en `preDeployCommand`.
   header de autenticación (`Truora-API-Key`) está verificado contra la doc oficial; el resto del flujo
   (nombres exactos de campos de respuesta) sale de un resumen de la guía de Truora, no del JSON crudo de su
   referencia — marcado como `[Probable]` en `truora.util.ts`, para revisar antes de cargar credenciales
-  reales.
+  reales. Si Truora aprueba (`resultado === "APROBADA"`), ahora dispara además la habilitación automática de
+  abajo — antes de este cambio, una aprobación de Truora no tenía ningún efecto sobre `Veterinario.estado`.
+- **Habilitación automática de veterinarios + panel admin mínimo (Sergio, 2026-09-29: "la idea es que
+  funcione solo... porque cuando haya mucho flujo de gente no quiero volverme loco")**: hasta ahora, NINGÚN
+  código movía `Veterinario.estado` de `PENDIENTE_VERIFICACION` a `HABILITADO` la primera vez — un admin
+  tenía que aprobar a cada veterinario nuevo a mano, sin excepción, algo que no escala. Ahora
+  `VeterinariosService.intentarHabilitarAutomaticamente()` corre solo cuando Truora aprueba la identidad: si
+  matrícula y seguro están vigentes, habilita sin que nadie toque nada; si no, el veterinario queda en
+  `PENDIENTE_VERIFICACION` como excepción a revisar. El panel (`/admin/ingresar` + `/admin` en `apps/web`,
+  login contra `POST /auth/admin/login`) muestra solo esas excepciones — veterinarios pendientes
+  (`GET /veterinarios/pendientes`, botón habilitar manual), disputas de identidad abiertas
+  (`GET /disputas/identidad/abiertas`) y disputas de calidad abiertas (`GET /disputas/calidad/abiertas`),
+  cada una con su formulario de resolución. Si la habilitación automática funciona, estas listas deberían
+  estar casi siempre vacías — eso es lo esperado, no un bug.
 
 ## Lo que falta (a propósito, no por error)
 
@@ -217,12 +230,33 @@ conviene volver a separarla en `preDeployCommand`.
   Sans) entran al código — antes la app no tenía ningún estilo propio aplicado. La landing pública en sí va
   a vivir en Wix (decisión de Sergio), así que este CSS es solo para las pantallas *dentro* del producto
   (login, panel, onboarding), no para el sitio de marketing.
+- **Logotipo completo y aviso legal en todas las pantallas (Sergio, 2026-09-29)**: `components/Logo.tsx`
+  (ícono + wordmark, el mismo SVG que ya está en vivo en la landing de Wix) y `components/LegalFooter.tsx`
+  ahora aparecen, centrados, en las 10 pantallas de `apps/web` (home, ingresar cliente/veterinario/admin,
+  intake, elegir-veterinario, panel cliente/veterinario/admin, ambos onboardings). El aviso usa © (derecho
+  de autor, automático en Argentina por el Convenio de Berna) y no ® ni "marca registrada" — Sergio confirmó
+  que el registro de marca ante el INPI todavía no se inició, lo va a hacer recién cuando toda la
+  plataforma esté terminada y probada; ese día el texto pasa a ® en la misma sesión que se confirme el
+  registro otorgado.
+
+- **Credenciales reales de Truora sin configurar**: la habilitación automática (ver arriba) depende de que
+  Truora esté conectado de verdad en producción — sin esas credenciales, todo veterinario nuevo cae en
+  `PENDIENTE_VERIFICACION` y pasa por el panel admin como si fuera la excepción, cuando en realidad sería el
+  camino normal. No es un bug del código nuevo: es que el circuito automático todavía no tiene con qué
+  correr.
+- **No hay alta pública de admins, a propósito**: la primera cuenta de staff (y cualquier otra) se crea con
+  `POST /auth/admin/registrar` detrás de `ADMIN_API_KEY` — no hay ninguna pantalla para eso ni la va a haber,
+  es deliberado (ver sección de disputas arriba).
 
 ## Próximo paso sugerido
 
-Con los dos lados del producto conectados de punta a punta Y el matching por elección de precio+rating ya
-armado, lo que queda es menos código y más decisiones/infraestructura: que Sergio reemplace los valores
-placeholder de `HONORARIO_BASE`/`RECARGO_URGENCIA_PORCENTAJE` por precio de mercado real, que re-suba
-`landing-full.html` a Wix para que el link a `/ingresar-veterinario` salga a producción, elegir el proveedor
-de video (Sergio es el único que puede correr la prueba de carga), y — cuando haya al menos un veterinario
-conectado de verdad a Mercado Pago — probar el checkout con split contra la API real.
+Con los dos lados del producto conectados de punta a punta, el matching por elección de precio+rating
+armado, y ahora un tercer flujo (admin) mínimo y con habilitación automática, lo que queda es menos código y
+más decisiones/infraestructura: que Sergio reemplace los valores placeholder de
+`HONORARIO_BASE`/`RECARGO_URGENCIA_PORCENTAJE` por precio de mercado real, cargue credenciales reales de
+Truora para que la habilitación automática funcione de punta a punta (hoy el código está listo pero sin
+credenciales todo cae en la cola manual), que re-suba `landing-full.html` a Wix para que el link a
+`/ingresar-veterinario` salga a producción, elegir el proveedor de video (Sergio es el único que puede
+correr la prueba de carga), y — cuando haya al menos un veterinario conectado de verdad a Mercado Pago —
+probar el checkout con split contra la API real. El registro de marca ante el INPI queda para el final,
+cuando toda la plataforma esté terminada y probada (decisión explícita de Sergio, 2026-09-29).
