@@ -109,12 +109,8 @@ export default function AdminPage() {
 
   async function habilitar(id: string) {
     if (!sesion) return;
-    try {
-      await apiPatch(`/veterinarios/${id}/habilitar`, sesion.accessToken);
-      setPendientes((prev) => prev?.filter((v) => v.id !== id) ?? prev);
-    } catch (e) {
-      alert(e instanceof ApiError ? e.message : "No pudimos habilitarlo. Probá de nuevo.");
-    }
+    await apiPatch(`/veterinarios/${id}/habilitar`, sesion.accessToken);
+    setPendientes((prev) => prev?.filter((v) => v.id !== id) ?? prev);
   }
 
   async function resolverIdentidad(id: string, resolucion: string, restituirHabilitacion: boolean) {
@@ -176,22 +172,7 @@ export default function AdminPage() {
         </p>
       )}
       {pendientes?.map((v) => (
-        <Tarjeta key={v.id}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
-            {v.nombre} {v.apellido}
-          </div>
-          <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>{v.email}</div>
-          <VencimientoLinea etiqueta={`Matrícula ${v.matriculaNumero} (${v.matriculaColegio})`} fecha={v.matriculaVenceEl} />
-          <VencimientoLinea etiqueta={`Seguro (${v.seguroAseguradora})`} fecha={v.seguroVenceEl} />
-          <button
-            type="button"
-            className="va-boton"
-            style={{ width: "auto", padding: "0 16px", marginTop: 10 }}
-            onClick={() => habilitar(v.id)}
-          >
-            Habilitar
-          </button>
-        </Tarjeta>
+        <PendienteItem key={v.id} veterinario={v} onHabilitar={habilitar} />
       ))}
 
       <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 28, marginBottom: 10 }}>
@@ -216,6 +197,61 @@ export default function AdminPage() {
 
       <LegalFooter />
     </main>
+  );
+}
+
+// Antes usaba `alert()` para el error — la única pantalla de todo `apps/web`
+// que lo hacía (situación probable, encontrada al revisar esta pantalla,
+// 2026-09-29): un diálogo nativo del navegador no tiene nada que ver con la
+// identidad visual del resto de la app, y encima bloquea la pestaña hasta
+// que el admin lo cierra. Se reemplaza por el mismo patrón inline +
+// botón-deshabilitado-mientras-envía que ya usan DisputaIdentidadItem y
+// DisputaCalidadItem, acá abajo.
+function PendienteItem({
+  veterinario: v,
+  onHabilitar,
+}: {
+  veterinario: VeterinarioPendiente;
+  onHabilitar: (id: string) => Promise<void>;
+}) {
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function habilitar() {
+    setEnviando(true);
+    setError(null);
+    try {
+      await onHabilitar(v.id);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No pudimos habilitarlo. Probá de nuevo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Tarjeta>
+      <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+        {v.nombre} {v.apellido}
+      </div>
+      <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>{v.email}</div>
+      <VencimientoLinea etiqueta={`Matrícula ${v.matriculaNumero} (${v.matriculaColegio})`} fecha={v.matriculaVenceEl} />
+      <VencimientoLinea etiqueta={`Seguro (${v.seguroAseguradora})`} fecha={v.seguroVenceEl} />
+      {error && (
+        <p style={{ color: "var(--terracota)", fontSize: 12, marginTop: 8, marginBottom: 0 }} role="alert">
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        className="va-boton"
+        style={{ width: "auto", padding: "0 16px", marginTop: 10 }}
+        onClick={habilitar}
+        disabled={enviando}
+      >
+        {enviando ? "…" : "Habilitar"}
+      </button>
+    </Tarjeta>
   );
 }
 

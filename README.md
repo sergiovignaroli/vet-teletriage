@@ -247,6 +247,13 @@ conviene volver a separarla en `preDeployCommand`.
   no había ningún botón que lo hiciera directo, solo "Cambiar número" (que además sugiere que hay que escribir
   un número distinto). WhatsApp puede tardar o el código vence a los 5 minutos — es un caso frecuente, no una
   rareza. Ahora hay un botón "Pedir un código nuevo" al lado de "Cambiar número" en la pantalla del código.
+- **`/admin` ya no usa `alert()` para errores (situación probable, 2026-09-29)**: era la única pantalla de
+  toda `apps/web` que mostraba un error con el diálogo nativo del navegador en vez del mismo patrón inline
+  (`role="alert"`, texto en terracota) que usan las tarjetas de disputas de la misma pantalla — un admin que
+  intenta habilitar a alguien con matrícula/seguro vencido (motivo real, no hipotético — `evaluarHabilitable`
+  lo rechaza) se topaba con un diálogo bloqueante que desentona con el resto. `PendienteItem`, nuevo
+  componente, replica el mismo patrón de `enviando`/`error` local que ya usaban `DisputaIdentidadItem` y
+  `DisputaCalidadItem`.
 
 ## Lo que falta (a propósito, no por error)
 
