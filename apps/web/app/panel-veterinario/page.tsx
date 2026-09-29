@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CasoParaVeterinario, ClasificacionCierre } from "@vet-teletriage/types";
 import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
-import { apiGet, apiPatch, ApiError } from "../../lib/api";
+import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { Onboarding } from "../../components/Onboarding";
 import { Logo } from "../../components/Logo";
@@ -55,6 +55,18 @@ export default function PanelVeterinarioPage() {
 
   const [iniciando, setIniciando] = useState<string | null>(null);
   const [errorIniciar, setErrorIniciar] = useState<string | null>(null);
+
+  // POST /auth/veterinario/revocar-sesiones existía en el backend desde
+  // antes (invalida TODO JWT emitido hasta ahora, incrementando
+  // tokenVersion), pero ninguna pantalla lo llamaba — situación probable:
+  // un veterinario que pierde el celular o sospecha que alguien más tiene
+  // su clave no tenía forma de cerrar sesión en todos lados sin pedírselo a
+  // Sergio directamente. Confirmación INLINE, no window.confirm — mismo
+  // criterio que el resto de la app (ver por qué se sacó el alert() del
+  // panel admin), porque esto invalida también la sesión actual.
+  const [confirmandoRevocar, setConfirmandoRevocar] = useState(false);
+  const [revocando, setRevocando] = useState(false);
+  const [errorRevocar, setErrorRevocar] = useState<string | null>(null);
 
   // sesion === undefined: todavía no se leyó localStorage (primer render).
   // sesion === null: se leyó y no hay nadie logueado -> a /ingresar-veterinario.
@@ -159,6 +171,24 @@ export default function PanelVeterinarioPage() {
     if (!sesion) return;
     await apiPatch(`/casos/${casoId}/cerrar`, sesion.accessToken, { clasificacion, notas: notas || undefined });
     await cargarCasos();
+  }
+
+  async function revocarSesiones() {
+    if (!sesion) return;
+    setErrorRevocar(null);
+    setRevocando(true);
+    try {
+      await apiPostAuth("/auth/veterinario/revocar-sesiones", sesion.accessToken);
+      // El token que acabamos de usar para esta llamada ya quedó invalidado
+      // por la respuesta (tokenVersion incrementado) — no tiene sentido
+      // seguir mostrando el panel con una sesión que el backend ya no va a
+      // aceptar. cerrarSesion() limpia el storage local y el effect de
+      // arriba redirige solo a /ingresar-veterinario.
+      cerrarSesion();
+    } catch (e) {
+      setErrorRevocar(e instanceof ApiError ? e.message : "No pudimos cerrar tus sesiones. Probá de nuevo.");
+      setRevocando(false);
+    }
   }
 
   if (!sesion) {
@@ -375,6 +405,66 @@ export default function PanelVeterinarioPage() {
             {caso.estado === "EN_SESION" && <SesionEnCurso caso={caso} onCerrar={cerrarCaso} />}
           </div>
         ))}
+      </div>
+
+      <div style={{ marginTop: 36, textAlign: "center" }}>
+        {!confirmandoRevocar ? (
+          <button
+            type="button"
+            onClick={() => setConfirmandoRevocar(true)}
+            style={{ background: "none", border: "none", opacity: 0.4, fontSize: 12, cursor: "pointer" }}
+          >
+            Cerrar sesión en todos mis dispositivos
+          </button>
+        ) : (
+          <div
+            style={{
+              border: "1px solid rgba(192,57,43,0.3)",
+              borderRadius: 14,
+              padding: 14,
+              background: "#fdecea",
+              maxWidth: 340,
+              margin: "0 auto",
+            }}
+          >
+            <p style={{ fontSize: 12, color: "#c0392b", margin: "0 0 10px" }}>
+              Esto va a cerrar tu sesión acá y en cualquier otro celular o computadora donde hayas ingresado —
+              vas a tener que volver a loguearte en todos lados.
+            </p>
+            {errorRevocar && (
+              <p style={{ fontSize: 12, color: "#c0392b", fontWeight: 700, margin: "0 0 10px" }} role="alert">
+                {errorRevocar}
+              </p>
+            )}
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <button
+                type="button"
+                onClick={revocarSesiones}
+                disabled={revocando}
+                style={{
+                  background: "#c0392b",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {revocando ? "Cerrando…" : "Sí, cerrar en todos lados"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmandoRevocar(false)}
+                disabled={revocando}
+                style={{ background: "none", border: "none", opacity: 0.6, fontSize: 12, cursor: "pointer" }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <LegalFooter />

@@ -27,6 +27,39 @@ export class VeterinariosService {
       .sort((a, b) => a.distanciaKm - b.distanciaKm);
   }
 
+  // Directorio público (situación probable, 2026-09-29): los endpoints de
+  // calificaciones.service ya exponían promedio/puntos por veterinario,
+  // pero no había forma de listar QUIÉNES son los veterinarios habilitados
+  // sin conocer sus ids de antemano — sin listado, esos endpoints no tenían
+  // ninguna pantalla real que los consumiera. Se muestra TODO habilitado
+  // (esté conectado o no en este instante), a diferencia de para-elegir()
+  // que solo muestra a quien puede atender AHORA — este listado es
+  // "conocé a nuestros veterinarios", no "elegí quién me atiende ya".
+  // Público, sin guard: es contenido de marketing/confianza, no un dato
+  // sensible del veterinario (nunca expone email/teléfono/matrícula acá).
+  async directorioPublico() {
+    const habilitados = await this.prisma.veterinario.findMany({
+      where: { estado: "HABILITADO" },
+      include: { calificaciones: { select: { estrellas: true } } },
+      orderBy: { nombre: "asc" },
+    });
+
+    return habilitados.map((v) => {
+      const cantidadCalificaciones = v.calificaciones.length;
+      const ratingPromedio =
+        cantidadCalificaciones > 0
+          ? v.calificaciones.reduce((suma, c) => suma + c.estrellas, 0) / cantidadCalificaciones
+          : null;
+      return {
+        id: v.id,
+        nombre: v.nombre,
+        apellido: v.apellido,
+        ratingPromedio,
+        cantidadCalificaciones,
+      };
+    });
+  }
+
   // Filtro real de "casos disponibles" (decisión de Sergio, 2026-09-28): NO
   // es por cercanía ni por especialidad — cualquier veterinario matriculado
   // en el país puede darse de alta y atender, de punta a punta. El único

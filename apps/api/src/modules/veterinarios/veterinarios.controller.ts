@@ -9,6 +9,13 @@ import { CurrentUser, UsuarioAutenticado } from "../auth/current-user.decorator"
 export class VeterinariosController {
   constructor(private readonly veterinarios: VeterinariosService) {}
 
+  // Público — el directorio es contenido de confianza/marketing, no un
+  // dato sensible del veterinario.
+  @Get("directorio")
+  directorio() {
+    return this.veterinarios.directorioPublico();
+  }
+
   @Get("disponibles")
   buscarDisponibles(
     @Query("lat") lat: string,

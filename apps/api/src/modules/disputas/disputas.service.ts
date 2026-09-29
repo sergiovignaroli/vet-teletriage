@@ -19,6 +19,13 @@ export class DisputasService {
   // no de un humano, y el registro de auditoría debe reflejar eso, no
   // inventarle un admin responsable que no actuó.
   async abrirDisputaIdentidad(veterinarioId: string, motivo: string, adminId: string | null) {
+    // Defensivo (encontrado 2026-09-29 al conectar el path manual del admin
+    // — ver abrirDisputaIdentidadPorEmail): sin este chequeo, un veterinarioId
+    // inexistente rompía en un error crudo de FK de Prisma al crear la
+    // disputa, en vez de un mensaje que un admin pueda entender.
+    const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
+    if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
+
     const disputa = await this.prisma.disputaIdentidad.create({
       data: { veterinarioId, motivo, abiertaPorAdminId: adminId },
     });
@@ -32,6 +39,20 @@ export class DisputasService {
     });
 
     return disputa;
+  }
+
+  // Situación probable (encontrada 2026-09-29, no pedida puntualmente):
+  // POST /disputas/identidad ya existía para ADMIN, pero pedía un
+  // veterinarioId — algo que ningún admin humano tiene a mano sin abrir la
+  // base a mano. El panel admin no tiene ningún directorio/búsqueda de
+  // veterinarios (a propósito: el panel solo muestra excepciones, no un
+  // listado completo), así que el punto de entrada natural para abrir una
+  // disputa manual (sospecha externa, sin que Truora la haya disparado) es
+  // el email del veterinario, no su id interno.
+  async abrirDisputaIdentidadPorEmail(email: string, motivo: string, adminId: string) {
+    const veterinario = await this.prisma.veterinario.findUnique({ where: { email } });
+    if (!veterinario) throw new BadRequestException("No encontramos ningún veterinario con ese email");
+    return this.abrirDisputaIdentidad(veterinario.id, motivo, adminId);
   }
 
   async resolverDisputaIdentidad(

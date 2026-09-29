@@ -61,6 +61,13 @@ export default function HomePage() {
         ¿Sos veterinario? Ingresá acá
       </Link>
 
+      <Link
+        href="/veterinarios"
+        style={{ fontSize: 13, opacity: 0.55, marginTop: 14, textDecoration: "underline" }}
+      >
+        Conocé a nuestros veterinarios
+      </Link>
+
       <LegalFooter />
     </main>
   );

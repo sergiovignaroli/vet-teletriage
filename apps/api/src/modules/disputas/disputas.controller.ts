@@ -30,11 +30,18 @@ export class DisputasController {
     return this.disputas.listarCalidadAbiertas();
   }
 
+  // El body pide el EMAIL del veterinario, no su id — el panel admin no
+  // tiene ningún directorio/búsqueda de veterinarios (a propósito, ver
+  // disputas.service.ts), así que el email es el único dato que un admin
+  // humano tiene a mano para señalar a alguien puntual.
   @Post("identidad")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("ADMIN")
-  abrirIdentidad(@CurrentUser() admin: UsuarioAutenticado, @Body() body: { veterinarioId: string; motivo: string }) {
-    return this.disputas.abrirDisputaIdentidad(body.veterinarioId, body.motivo, admin.id);
+  abrirIdentidad(
+    @CurrentUser() admin: UsuarioAutenticado,
+    @Body() body: { veterinarioEmail: string; motivo: string },
+  ) {
+    return this.disputas.abrirDisputaIdentidadPorEmail(body.veterinarioEmail, body.motivo, admin.id);
   }
 
   @Patch("identidad/:id/resolver")

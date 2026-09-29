@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiGet, apiPatch, ApiError } from "../../lib/api";
+import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useSesionAdmin } from "../../lib/sesion-admin";
 import { Logo } from "../../components/Logo";
 import { LegalFooter } from "../../components/LegalFooter";
@@ -113,6 +113,21 @@ export default function AdminPage() {
     setPendientes((prev) => prev?.filter((v) => v.id !== id) ?? prev);
   }
 
+  // Situación probable (encontrada 2026-09-29, no pedida puntualmente):
+  // POST /disputas/identidad existía para ADMIN desde antes, pero ninguna
+  // pantalla lo llamaba — la única forma de abrir una disputa de identidad
+  // era que Truora la disparara automática (ver identidad.service.ts). Un
+  // admin que recibe una denuncia o sospecha externa (sin que Truora haya
+  // corrido) no tenía forma de suspender cautelarmente a nadie desde acá.
+  async function abrirDisputaManual(veterinarioEmail: string, motivo: string) {
+    if (!sesion) return;
+    await apiPostAuth("/disputas/identidad", sesion.accessToken, { veterinarioEmail, motivo });
+    // La nueva disputa recién abierta tiene que aparecer en la cola de
+    // arriba — más simple recargar todo que armar el objeto a mano acá sin
+    // tener el id que generó el backend.
+    await cargarTodo();
+  }
+
   async function resolverIdentidad(id: string, resolucion: string, restituirHabilitacion: boolean) {
     if (!sesion) return;
     await apiPatch(`/disputas/identidad/${id}/resolver`, sesion.accessToken, { resolucion, restituirHabilitacion });
@@ -178,6 +193,9 @@ export default function AdminPage() {
       <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 28, marginBottom: 10 }}>
         Disputas de identidad abiertas {disputasIdentidad && `(${disputasIdentidad.length})`}
       </h2>
+
+      <AbrirDisputaIdentidad onAbrir={abrirDisputaManual} />
+
       {disputasIdentidad && disputasIdentidad.length === 0 && (
         <p style={{ fontSize: 13, opacity: 0.55, marginBottom: 20 }}>Ninguna abierta.</p>
       )}
@@ -197,6 +215,107 @@ export default function AdminPage() {
 
       <LegalFooter />
     </main>
+  );
+}
+
+// Formulario para abrir una disputa de identidad manual (Sergio,
+// 2026-09-29) — pide EMAIL, no un id de veterinario: el panel admin no
+// tiene ningún directorio de veterinarios (a propósito, solo excepciones),
+// así que el email es lo único que un admin humano tiene a mano. Suspende
+// cautelarmente apenas se envía (ver disputas.service.ts) — por eso
+// arranca colapsado, no es una acción para hacer por accidente.
+function AbrirDisputaIdentidad({ onAbrir }: { onAbrir: (email: string, motivo: string) => Promise<void> }) {
+  const [abierto, setAbierto] = useState(false);
+  const [email, setEmail] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function enviar() {
+    if (!email.trim() || !motivo.trim()) return;
+    setEnviando(true);
+    setError(null);
+    try {
+      await onAbrir(email.trim(), motivo.trim());
+      setEmail("");
+      setMotivo("");
+      setAbierto(false);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No pudimos abrir la disputa. Probá de nuevo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        style={{
+          background: "none",
+          border: "1px dashed rgba(64,53,47,0.3)",
+          borderRadius: 12,
+          padding: "8px 14px",
+          fontSize: 12,
+          opacity: 0.7,
+          cursor: "pointer",
+          marginBottom: 16,
+        }}
+      >
+        + Abrir una disputa de identidad manualmente (sin que Truora la haya disparado)
+      </button>
+    );
+  }
+
+  return (
+    <Tarjeta>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Abrir disputa de identidad manual</div>
+      <p style={{ fontSize: 12, opacity: 0.6, margin: "0 0 10px" }}>
+        Suspende cautelarmente al veterinario apenas se envía — usalo solo ante una sospecha o denuncia real,
+        no como prueba.
+      </p>
+      <input
+        className="va-input"
+        type="email"
+        placeholder="Email del veterinario"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={{ marginBottom: 8 }}
+      />
+      <textarea
+        className="va-input"
+        placeholder="Motivo"
+        value={motivo}
+        onChange={(e) => setMotivo(e.target.value)}
+        rows={2}
+        style={{ marginBottom: 8, resize: "vertical" }}
+      />
+      {error && (
+        <p style={{ color: "var(--terracota)", fontSize: 12, marginBottom: 8 }} role="alert">
+          {error}
+        </p>
+      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          className="va-boton"
+          style={{ width: "auto", padding: "0 16px" }}
+          onClick={enviar}
+          disabled={enviando || !email.trim() || !motivo.trim()}
+        >
+          {enviando ? "…" : "Abrir disputa"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setAbierto(false)}
+          disabled={enviando}
+          style={{ background: "none", border: "none", opacity: 0.6, fontSize: 13, cursor: "pointer" }}
+        >
+          Cancelar
+        </button>
+      </div>
+    </Tarjeta>
   );
 }
 

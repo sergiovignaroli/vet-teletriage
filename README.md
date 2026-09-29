@@ -303,6 +303,32 @@ conviene volver a separarla en `preDeployCommand`.
   cargados en Render, el botón muestra un mensaje propio en vez del `Internal server error` genérico que
   devolvería el backend (esa llamada tira un `Error` crudo sin excepción curada — único lugar de toda la
   app donde no convenía mostrar `e.message` directo).
+- **Cerrar sesión en todos los dispositivos (situación probable, 2026-09-29)**: `POST
+  /auth/veterinario/revocar-sesiones` existía desde antes (invalida todo JWT emitido hasta ahora, subiendo
+  `tokenVersion`), pero ninguna pantalla lo llamaba — un veterinario que perdía el celular o sospechaba que
+  alguien más tenía su clave no tenía forma de cerrar sesión en todos lados sin pedírselo a Sergio
+  directamente. Botón agregado al final de `/panel-veterinario`, con confirmación inline (no
+  `window.confirm`, mismo criterio que el resto de la app) porque la acción invalida también la sesión
+  actual — al confirmar, limpia la sesión local y redirige a `/ingresar-veterinario`.
+- **Abrir una disputa de identidad manualmente, sin esperar a Truora (situación probable, 2026-09-29)**:
+  `POST /disputas/identidad` era ADMIN-only desde antes, pero la única forma real de que se disparara era
+  automática, cuando Truora rechazaba una verificación (`identidad.service.ts`). Un admin que recibe una
+  denuncia o sospecha externa (sin que Truora haya corrido) no tenía ninguna pantalla para suspender
+  cautelarmente a un veterinario. El endpoint pedía `veterinarioId`, pero el panel admin no tiene ningún
+  directorio/búsqueda de veterinarios (a propósito — ver arriba, "no hay alta pública de admins" y el
+  criterio de "solo excepciones") — el único dato que un admin humano tiene a mano para señalar a alguien es
+  su email, así que el endpoint pasó a pedir `veterinarioEmail` (`abrirDisputaIdentidadPorEmail`, con su
+  propio `BadRequestException` si no encuentra a nadie con ese email) en vez de exigir un id que nadie tenía
+  cómo conseguir. Formulario nuevo en `/admin`, colapsado por default (no es una acción para abrir por
+  accidente, dado que suspende de inmediato).
+- **Directorio público de veterinarios (situación probable, 2026-09-29)**: los endpoints de calificaciones
+  ya exponían el promedio de estrellas por veterinario, pero no existía ninguna forma de listar QUIÉNES son
+  los veterinarios habilitados sin conocer sus ids de antemano — sin un listado, ese promedio no tenía desde
+  dónde mostrarse. El propio proyecto lo describe como "testimonios estilo google por estrellitas", y esos
+  tienen que poder verse ANTES de registrarse, no recién al elegir veterinario en medio de una consulta ya
+  iniciada. Nuevo endpoint público `GET /veterinarios/directorio` (sin guard — es contenido de
+  marketing/confianza, nunca expone email/teléfono/matrícula) y nueva pantalla pública `/veterinarios`, con
+  link agregado desde la home.
 
 ## Lo que falta (a propósito, no por error)
 
