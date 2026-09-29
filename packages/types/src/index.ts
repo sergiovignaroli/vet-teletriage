@@ -87,8 +87,28 @@ export interface BanderasRojasIntake {
   traumatismoMayor: boolean;
 }
 
+// OJO acá: recorrer con Object.values() asume que el objeto recibido tiene
+// SOLO estos 8 campos booleanos. `IntakeResumen` (más abajo) extiende
+// BanderasRojasIntake agregando motivoConsulta/especie/etc — campos de
+// texto no vacíos, que Object.values().some(Boolean) cuenta como "true" sin
+// que haya ninguna bandera roja real. Bug real que hizo que el panel del
+// veterinario mostrara "Posible emergencia" en TODOS los casos, encontrado
+// recién al verificar la pantalla con una captura (2026-09-29) — antes de
+// este fix, nada distinguía un caso urgente de uno que no lo era. Por eso
+// se listan las claves explícitas en vez de confiar en Object.values.
+const CLAVES_BANDERAS_ROJAS: Array<keyof BanderasRojasIntake> = [
+  "dificultadRespiratoria",
+  "inconsciente",
+  "sangradoActivo",
+  "sospechaIngestaToxico",
+  "convulsionEnCurso",
+  "noPuedeParseCaminar",
+  "distensionAbdominal",
+  "traumatismoMayor",
+];
+
 export function hayBanderaRoja(banderas: BanderasRojasIntake): boolean {
-  return Object.values(banderas).some(Boolean);
+  return CLAVES_BANDERAS_ROJAS.some((clave) => banderas[clave]);
 }
 
 export interface VeterinarioResumen {
