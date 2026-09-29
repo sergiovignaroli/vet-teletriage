@@ -241,6 +241,12 @@ conviene volver a separarla en `preDeployCommand`.
   (`casos: { none: { estado: { in: ["ASIGNADO", "EN_SESION"] } } }`), y `asignar()` repite el mismo chequeo
   justo antes de escribir — porque puede pasar tiempo entre que el cliente VE la lista y hace click, y para
   entonces otro cliente ya lo pudo haber elegido para otro caso.
+- **"Pedir un código nuevo" en `/ingresar` (situación probable, 2026-09-29)**: el backend ya soportaba pedir
+  un OTP nuevo sin cambiar de número (`otp/solicitar` resetea vencimiento e intentos), y los mensajes de
+  error de "código vencido" o "demasiados intentos fallidos" literalmente dicen "pedí un código nuevo" — pero
+  no había ningún botón que lo hiciera directo, solo "Cambiar número" (que además sugiere que hay que escribir
+  un número distinto). WhatsApp puede tardar o el código vence a los 5 minutos — es un caso frecuente, no una
+  rareza. Ahora hay un botón "Pedir un código nuevo" al lado de "Cambiar número" en la pantalla del código.
 
 ## Lo que falta (a propósito, no por error)
 

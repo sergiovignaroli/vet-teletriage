@@ -40,6 +40,19 @@ export default function IngresarPage() {
     }
   }
 
+  // Situación probable (encontrada 2026-09-29, no pedida puntualmente): el
+  // backend ya soporta pedir un código nuevo sin cambiar de número (cada
+  // /otp/solicitar resetea vencimiento e intentos — ver auth.service.ts),
+  // pero acá no había ningún botón que lo hiciera directo. Los mensajes de
+  // error de "código vencido" o "demasiados intentos" literalmente dicen
+  // "pedí un código nuevo" y antes de esto la única salida era adivinar que
+  // "Cambiar número" también servía para eso. WhatsApp puede tardar o el
+  // código vence a los 5 minutos — es un caso frecuente, no una rareza.
+  async function reenviarCodigo() {
+    setCodigo("");
+    await pedirCodigo();
+  }
+
   async function verificarCodigo() {
     setError(null);
     setCargando(true);
@@ -107,13 +120,23 @@ export default function IngresarPage() {
           <button type="button" className="va-boton" onClick={verificarCodigo} disabled={cargando || codigo.length !== 6}>
             {cargando ? "Verificando…" : "Ingresar"}
           </button>
-          <button
-            type="button"
-            onClick={() => setEtapa("telefono")}
-            style={{ background: "none", border: "none", opacity: 0.6, fontSize: 13, marginTop: 14, cursor: "pointer" }}
-          >
-            Cambiar número
-          </button>
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14 }}>
+            <button
+              type="button"
+              onClick={reenviarCodigo}
+              disabled={cargando}
+              style={{ background: "none", border: "none", opacity: 0.6, fontSize: 13, cursor: "pointer" }}
+            >
+              Pedir un código nuevo
+            </button>
+            <button
+              type="button"
+              onClick={() => setEtapa("telefono")}
+              style={{ background: "none", border: "none", opacity: 0.6, fontSize: 13, cursor: "pointer" }}
+            >
+              Cambiar número
+            </button>
+          </div>
         </>
       )}
 
