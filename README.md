@@ -272,6 +272,23 @@ conviene volver a separarla en `preDeployCommand`.
   veterinario y sus puntos-premio, y dejando una disputa de calidad sin `Pago` capturado para reembolsar si
   un admin le hacía lugar. Ahora los dos métodos rechazan explícitamente cualquier caso que no esté
   `CERRADO`.
+- **`/registrar-veterinario` — el hueco más grande de toda la revisión de 2026-09-29**: `POST
+  /auth/veterinario/registrar` existía en el backend, completo, desde antes — pero ninguna pantalla de
+  `apps/web` lo llamaba nunca. Un veterinario podía loguearse (`/ingresar-veterinario`) pero no había ninguna
+  forma de crear la cuenta primero: el flujo de alta de colegas, el corazón de la plataforma ("colegas se
+  registran" según la descripción del proyecto), no existía de punta a punta. Nueva pantalla con los mismos
+  campos que ya pedía el backend (datos personales, matrícula, seguro), confirmación de contraseña en el
+  cliente, y el mismo patrón de sesión/redirect que `/ingresar-veterinario` — al terminar, cae directo en
+  `/panel-veterinario`, que ya sabe mostrar el onboarding de 3 pantallas para una cuenta nueva
+  (`onboardingCompletado: false` por default). Cross-link agregado en `/ingresar-veterinario`
+  ("¿Todavía no tenés cuenta? Registrate acá").
+  A propósito NO dispara `POST /identidad/iniciar` automáticamente al registrarse: esa llamada necesita
+  `TRUORA_API_KEY`/`TRUORA_FLOW_ID` configurados (ver más abajo) y el flujo real de captura de
+  documento/selfie de Truora todavía no está confirmado contra su documentación viva (nota `[Probable]` en
+  `truora.util.ts`) — mandar al veterinario recién registrado a un botón que hoy tira un error 500 sin
+  credenciales reales sería peor que dejarlo en `PENDIENTE_VERIFICACION`, visible como excepción en el panel
+  admin. Conectar Truora de verdad también va a necesitar una pantalla nueva para la captura en sí (redirect
+  u SDK embebido) — no es solo cargar las credenciales.
 
 ## Lo que falta (a propósito, no por error)
 
@@ -311,11 +328,14 @@ conviene volver a separarla en `preDeployCommand`.
   plataforma esté terminada y probada; ese día el texto pasa a ® en la misma sesión que se confirme el
   registro otorgado.
 
-- **Credenciales reales de Truora sin configurar**: la habilitación automática (ver arriba) depende de que
-  Truora esté conectado de verdad en producción — sin esas credenciales, todo veterinario nuevo cae en
-  `PENDIENTE_VERIFICACION` y pasa por el panel admin como si fuera la excepción, cuando en realidad sería el
-  camino normal. No es un bug del código nuevo: es que el circuito automático todavía no tiene con qué
-  correr.
+- **Credenciales reales de Truora sin configurar, y falta la pantalla de captura**: la habilitación
+  automática (ver arriba) depende de que Truora esté conectado de verdad en producción — sin esas
+  credenciales, todo veterinario nuevo cae en `PENDIENTE_VERIFICACION` y pasa por el panel admin como si
+  fuera la excepción, cuando en realidad sería el camino normal. No es un bug del código nuevo: es que el
+  circuito automático todavía no tiene con qué correr. Además, ni con credenciales reales hay hoy una
+  pantalla en `apps/web` que dispare `POST /identidad/iniciar` y lleve al veterinario a subir
+  documento/selfie (redirect u SDK embebido de Truora, según confirme su documentación viva) — falta
+  construirla el día que se conecten las credenciales.
 - **No hay alta pública de admins, a propósito**: la primera cuenta de staff (y cualquier otra) se crea con
   `POST /auth/admin/registrar` detrás de `ADMIN_API_KEY` — no hay ninguna pantalla para eso ni la va a haber,
   es deliberado (ver sección de disputas arriba).
@@ -337,13 +357,15 @@ conviene volver a separarla en `preDeployCommand`.
 
 Con los tres flujos (paciente, veterinario, admin) conectados de punta a punta — matching por elección de
 precio+rating, calificación y reporte de problemas ya alimentando el sistema, habilitación automática de
-veterinarios, y ahora el caso cerrándose de verdad (con o sin sala de video real) — lo que queda es menos
-código y más decisiones/infraestructura: elegir el **proveedor de video** (la interfaz ya está armada y
-lista para recibirlo — ver arriba — solo falta la prueba de carga de Sergio y escribir una clase que
-implemente `ProveedorVideo`), que Sergio reemplace los valores placeholder de
+veterinarios, el caso cerrándose de verdad (con o sin sala de video real), y ahora también el alta de
+veterinarios (`/registrar-veterinario`, el hueco más grande que apareció en la revisión pantalla por
+pantalla) — lo que queda es menos código y más decisiones/infraestructura: elegir el **proveedor de video**
+(la interfaz ya está armada y lista para recibirlo — ver arriba — solo falta la prueba de carga de Sergio y
+escribir una clase que implemente `ProveedorVideo`), que Sergio reemplace los valores placeholder de
 `HONORARIO_BASE`/`RECARGO_URGENCIA_PORCENTAJE` por precio de mercado real, cargue credenciales reales de
 Truora para que la habilitación automática funcione de punta a punta (hoy el código está listo pero sin
-credenciales todo cae en la cola manual), que re-suba `landing-full.html` a Wix para que el link a
+credenciales todo cae en la cola manual — y además va a hacer falta construir la pantalla de captura de
+documento/selfie que hoy tampoco existe), que re-suba `landing-full.html` a Wix para que el link a
 `/ingresar-veterinario` salga a producción, y — cuando haya al menos un veterinario conectado de verdad a
 Mercado Pago — probar el checkout con split contra la API real. También queda para el final elegir un
 proveedor de email y cargar su API key, para poder armar el recupero de contraseña de veterinarios que hoy

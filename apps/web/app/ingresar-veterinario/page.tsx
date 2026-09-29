@@ -111,8 +111,15 @@ export default function IngresarVeterinarioPage() {
       </form>
 
       <Link
+        href="/registrar-veterinario"
+        style={{ fontSize: 13, opacity: 0.7, marginTop: 20, textDecoration: "underline", fontWeight: 700 }}
+      >
+        ¿Todavía no tenés cuenta? Registrate acá
+      </Link>
+
+      <Link
         href="/ingresar"
-        style={{ fontSize: 13, opacity: 0.55, marginTop: 32, textDecoration: "underline" }}
+        style={{ fontSize: 13, opacity: 0.55, marginTop: 14, textDecoration: "underline" }}
       >
         ¿Sos dueño de una mascota? Ingresá acá
       </Link>
