@@ -91,16 +91,30 @@ conviene volver a separarla en `preDeployCommand`.
   Sección 2 del contrato. `PATCH /veterinarios/conectar` / `PATCH /veterinarios/desconectar` prenden y
   apagan `Veterinario.disponible` — antes ese campo solo lo tocaba el sistema (vencimientos, disputas),
   nunca el propio veterinario. `conectar` exige `estado === "HABILITADO"`.
-- **Módulo `casos`**: creación de caso con intake de dos capas, cálculo del cargo de plataforma según
-  franja horaria en el momento real de inicio de sesión (no el de la reserva) — Sección 4 — y cierre de
-  caso con el checklist estructurado — Sección 9. `honorarioDeclarado` es nullable en el schema y nace en
-  null: lo declara el veterinario, libremente, recién en `PATCH /casos/:id/iniciar` (el cliente nunca lo
-  fija). `GET /casos/disponibles` (casos sin veterinario asignado) y `GET /casos/mios` (casos de quien
-  llama, por JWT) son las dos listas que necesita el panel del veterinario — antes no existía ninguna forma
-  de listar casos. **Decisión de Sergio (2026-09-28): el filtro de "disponibles" no es geográfico ni por
-  especialidad** — el alta de veterinario está abierta a cualquier matriculado del país (o de otro), sin
-  restricción territorial; el único filtro real es que el veterinario se haya conectado explícitamente
-  (`disponible = true`). `GET /casos/disponibles` devuelve 403 si el que llama no está conectado.
+- **Módulo `casos`**: creación de caso con intake de dos capas y cierre con el checklist estructurado —
+  Sección 9. **El matching cambió de sentido (decisión de Sergio, 2026-09-29): el cliente tiene que ver el
+  costo total y poder elegir ANTES de contratar**, así que ya no es el veterinario quien "toma" el primer
+  caso libre de una cola — el cliente pide `GET /casos/:id/para-elegir` (veterinarios conectados +
+  habilitados, con el precio ya calculado para ESE caso y su rating) y elige con `PATCH /casos/:id/asignar
+  { veterinarioId }`, que congela el precio y pasa el caso a `ASIGNADO`. El veterinario solo confirma el
+  arranque con `PATCH /casos/:id/iniciar` (sin body — ya no declara nada ahí, ver más abajo) y pasa a
+  `EN_SESION`. La vieja cola `GET /casos/disponibles` (donde el veterinario agarraba casos libres) quedó
+  retirada — la reemplaza el flujo de arriba.
+  - **Precio calculado por la plataforma, no declarado libremente por el veterinario**: `Caso.honorarioBase`
+    se fija al crear el caso (`honorarioBaseDe()` en `packages/types` — franja horaria + si el intake
+    disparó alguna bandera roja, sin pedirle nada nuevo al cliente) y queda fijo desde ahí. Cada veterinario
+    conectado tiene su propio `Veterinario.margenPorcentaje` (−20% a +20%, `PATCH /veterinarios/margen`,
+    acotado siempre en el backend) que ajusta esa base. `Caso.honorarioDeclarado` ya no nace libre: se
+    calcula una sola vez, en `asignar()`, como `honorarioBase × (1 + margen del elegido / 100)`, y no se
+    vuelve a tocar en `iniciar()` — el número que el cliente vio antes de elegir es el que paga.
+    **`HONORARIO_BASE` y `RECARGO_URGENCIA_PORCENTAJE` en `packages/types` son placeholders** (mismos
+    valores que `CARGO_PLATAFORMA` como punto de partida) — Sergio tiene que reemplazarlos por precio de
+    mercado real antes de producción.
+  - El piso de calidad de la Sección 11/12 (`PISO_CALIDAD_ESTRELLAS = 3`) ya tiene consumidor real: un
+    veterinario con calificaciones por debajo del piso queda fuera de la lista de `para-elegir` (uno sin
+    calificaciones todavía no se excluye — no hay señal para juzgarlo). Esto era justamente lo que el
+    comentario de `calificaciones.service.ts` marcaba como "Fase 2, todavía no implementado" — dejó de serlo.
+  - `GET /casos/mios` (casos del veterinario que llama, por JWT) sigue igual.
 - **Módulo `pagos`**: la regla de reembolso de la Sección 8, codificada — solo `NO_COMPLETADO` habilita
   reembolso, y ese reembolso alcanza únicamente al cargo de plataforma, nunca al honorario. El webhook de
   Mercado Pago verifica la firma HMAC-SHA256 (`x-signature` + `x-request-id` + `data.id`, comparación en
@@ -115,11 +129,11 @@ conviene volver a separarla en `preDeployCommand`.
   valor exacto son decisiones de negocio pendientes de Sergio, aisladas en un solo lugar del código para
   ajustarlas sin tocar el resto.
 - **Formulario de intake en `apps/web/app/intake`, conectado de punta a punta**: las 8 banderas rojas de la
-  Sección 9, con el aviso de emergencia calculado en el cliente en tiempo real y sin bloquear el flujo, y el
-  botón "Buscar veterinario disponible" ya llama de verdad a `POST /casos` con el token del cliente logueado
-  (antes era cosmético, sin `onClick`). Si no hay sesión, redirige a `/ingresar`. Al crear el caso muestra una
-  confirmación honesta sobre lo que pasa hoy (dispatch manual, contacto por WhatsApp), no una pantalla de
-  "buscando veterinario" en vivo que todavía no existe.
+  Sección 9, con el aviso de emergencia calculado en el cliente en tiempo real y sin bloquear el flujo. Al
+  crear el caso (`POST /casos`, con el token del cliente logueado) ya no muestra un cartel genérico de
+  "te contactamos por WhatsApp" — redirige a `/elegir-veterinario/[casoId]` (nueva pantalla), donde el
+  cliente ve el costo total de cada veterinario conectado y elige antes de que nadie lo atienda. Si no hay
+  ninguno conectado en ese momento, el caso queda registrado igual con un mensaje honesto sobre eso.
 - **Módulo `auth`**: login de veterinarios con email + contraseña (bcrypt, JWT de 12 h) y login de
   clientes sin contraseña vía código OTP enviado por WhatsApp Cloud API (el teléfono es el identificador,
   no el email — no pide nombre/email para no meter fricción en un flujo de emergencia). Probado de punta a
@@ -131,14 +145,18 @@ conviene volver a separarla en `preDeployCommand`.
   email+contraseña), sesión en localStorage (`lib/sesion-veterinario.ts`, misma clave de diseño que la del
   cliente pero en un storage key distinto — un mismo navegador podría tener las dos sesiones abiertas),
   `/panel-veterinario` con un interruptor real de "Conectado / Desconectado" (`PATCH
-  /veterinarios/conectar|desconectar`, deshabilitado si la cuenta no está `HABILITADO`) y dos vistas contra
-  la API (`Casos disponibles` — solo visible si está conectado, si no muestra "Conectate para ver los casos
-  que están esperando" en vez de pedirle algo al backend que ya sabemos que va a rechazar — / `Mis casos`,
-  con el aviso de posible emergencia si el intake tiene alguna bandera roja) y el gate de onboarding con
-  copy propio del veterinario (`<Onboarding variante="veterinario">`, mismo componente que el del cliente,
-  mismo endpoint `PATCH auth/onboarding-completado`). Tomar un caso pide el honorario ahí mismo, en el mismo
-  click que `PATCH /casos/:id/iniciar` — no hay un paso separado de "aceptar" y otro de "poner precio".
-  `/ingresar` y `/ingresar-veterinario` se linkean entre sí para quien entra por la puerta equivocada.
+  /veterinarios/conectar|desconectar`, deshabilitado si la cuenta no está `HABILITADO`), un control de
+  margen (`PATCH /veterinarios/margen`, −20% a +20%) y una sola lista, `Mis casos` (`GET /casos/mios`) — ya
+  no hay pestaña de "casos disponibles" para agarrar: cuando el cliente elige a este veterinario, el caso
+  aparece acá directamente en estado `ASIGNADO` con un botón "Iniciar videollamada"
+  (`PATCH /casos/:id/iniciar`, sin body). El gate de onboarding tiene copy propio del veterinario
+  (`<Onboarding variante="veterinario">`, mismo componente que el del cliente, mismo endpoint
+  `PATCH auth/onboarding-completado`). `/ingresar` y `/ingresar-veterinario` se linkean entre sí para quien
+  entra por la puerta equivocada.
+- **Home (`/`) con la identidad de marca aplicada**: era la única pantalla que había quedado con estilo de
+  navegador puro (sin `globals.css`) desde que se armó el wiring del intake — ahora usa el mismo logo,
+  tipografías y `.va-boton` que `/ingresar`, con enlaces a iniciar consulta, ingresar como cliente e ingresar
+  como veterinario.
 - **Guards de autorización aplicados a todo lo que quedaba abierto**: crear un caso, iniciar/cerrar una
   sesión, calificar y liquidar un pago ahora exigen el rol correcto Y que quien llama sea efectivamente el
   cliente o veterinario dueño de ese caso — el id nunca sale del body, sale del JWT. Antes de este cambio,
@@ -176,22 +194,24 @@ conviene volver a separarla en `preDeployCommand`.
   `access_token`, pero falta el código que arma el checkout con `marketplace_fee` usando ese token —
   necesita al menos un veterinario conectado de verdad para poder probarlo contra la API real.
 - **Proveedor de video**: sigue pendiente de la prueba de carga de Sergio (Twilio/Daily.co/Zoom Video SDK).
-- **Piso de calidad (3 estrellas) sin gate de matching que lo consuma**: `calificaciones.service.ts` ya expone
-  `estaPorDebajoDelPisoDeCalidad()`, pero el motor de matching con score compuesto es Fase 2 del roadmap — la
-  Fase 1 asigna casos a mano (dispatcher humano), así que hoy nada llama a ese método todavía. Conectarlo es
-  tarea de cuando se construya el matching real.
+- **`GET /veterinarios/disponibles` (búsqueda por proximidad) sigue sin consumidor**: quedó explícitamente
+  a propósito (Sergio, 2026-09-29) como opción futura para una consulta a domicilio separada de la
+  plataforma online — no se toca ni se borra, es un feature distinto al matching por elección que sí se
+  conectó esta vuelta.
 - **Refresh token**: el JWT actual no tiene renovación automática — vence a las 12 h y hay que loguearse de
   nuevo (aceptable para el MVP). La revocación anticipada (logout forzado) sí está resuelta, ver arriba.
 - **Onboarding de producto, cliente y veterinario ya resueltos** — ver arriba, ambos lados de `apps/web`. Sin
   Postgres corriendo en este entorno no se pudo probar ninguno de los dos flujos end-to-end contra una base
   real — sí se verificó `tsc --noEmit`, `nest build` (api) y `next build` (web) limpios en cada cambio.
-- **Link a `/ingresar-veterinario` resuelto solo adentro de `apps/web`**: `/ingresar` y
-  `/ingresar-veterinario` ya se linkean entre sí ("¿Sos veterinario? Ingresá acá" / "¿Sos dueño de una
-  mascota? Ingresá acá"). Lo que sigue faltando es el link desde afuera — la landing de Wix, que es la
-  puerta de entrada real — y ese no se puede agregar todavía porque **`apps/web` no está deployado en
-  ningún lado** (no hay `render.yaml`, ni Vercel, ni ninguna URL pública en `.env.example` más que
-  `localhost`). Sin una URL real, un link desde Wix no tendría a dónde apuntar. Esto es lo que bloquea
-  terminar el punto 1 de verdad, no una decisión de diseño pendiente.
+- **`apps/web` y `apps/api` ya están deployados en Render** (ver "Deploy a Render" más arriba) — el link
+  desde la landing de Wix hacia `/ingresar-veterinario` ya tiene una URL real a la que apuntar
+  (`https://vet-teletriage-web.onrender.com/ingresar-veterinario`) y quedó agregado en el footer del HTML de
+  la landing; falta que Sergio vuelva a subir ese HTML actualizado al sitio de Wix para que salga a
+  producción.
+- **Precio base y recargo de urgencia con valores placeholder**: `HONORARIO_BASE` y
+  `RECARGO_URGENCIA_PORCENTAJE` en `packages/types/src/index.ts` arrancan con los mismos números que
+  `CARGO_PLATAFORMA` para que el cálculo funcione de punta a punta — son un punto de partida, no precio de
+  mercado real. Sergio los tiene que ajustar antes de producción (están los dos juntos, en un solo lugar).
 - **Sin estilos globales hasta ahora**: `apps/web/app/globals.css` es la primera vez que la paleta de marca
   (terracota/oliva/crema/rosa/marrón) y las tipografías (Big Shoulders Display, Bricolage Grotesque, Nunito
   Sans) entran al código — antes la app no tenía ningún estilo propio aplicado. La landing pública en sí va
@@ -200,8 +220,9 @@ conviene volver a separarla en `preDeployCommand`.
 
 ## Próximo paso sugerido
 
-Con los dos lados del producto (cliente y veterinario) ya conectados de punta a punta, lo que queda es
-menos código y más decisiones/infraestructura: **deployar `apps/web` en algún lado** (bloquea el link real
-desde la landing de Wix hacia `/ingresar-veterinario` — hoy no existe ninguna URL pública a la que apuntar),
-elegir el proveedor de video (Sergio es el único que puede correr la prueba de carga), y — cuando haya al
-menos un veterinario conectado de verdad a Mercado Pago — probar el checkout con split contra la API real.
+Con los dos lados del producto conectados de punta a punta Y el matching por elección de precio+rating ya
+armado, lo que queda es menos código y más decisiones/infraestructura: que Sergio reemplace los valores
+placeholder de `HONORARIO_BASE`/`RECARGO_URGENCIA_PORCENTAJE` por precio de mercado real, que re-suba
+`landing-full.html` a Wix para que el link a `/ingresar-veterinario` salga a producción, elegir el proveedor
+de video (Sergio es el único que puede correr la prueba de carga), y — cuando haya al menos un veterinario
+conectado de verdad a Mercado Pago — probar el checkout con split contra la API real.

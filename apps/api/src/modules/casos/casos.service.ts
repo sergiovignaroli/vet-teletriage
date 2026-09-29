@@ -6,6 +6,10 @@ import {
   ClasificacionCierre,
   franjaHorariaDe,
   hayBanderaRoja,
+  honorarioBaseDe,
+  honorarioFinalDe,
+  PISO_CALIDAD_ESTRELLAS,
+  VeterinarioParaElegir,
 } from "@vet-teletriage/types";
 
 interface CrearCasoInput {
@@ -30,22 +34,24 @@ export class CasosService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Sección 4 del contrato: el cargo de plataforma se fija según la franja
-  // horaria de INICIO EFECTIVO de la sesión, no la de la reserva — acá solo
-  // calculamos el valor de referencia al crear el caso; se recalcula al
-  // iniciar la videollamada (ver iniciarSesion()). honorarioDeclarado no se
-  // pide acá: lo fija el veterinario, libremente, recién cuando toma el
-  // caso (ver comentario en schema.prisma) — a esta altura todavía no hay
-  // veterinario asignado.
+  // horaria al crear el caso. honorarioBase se calcula acá mismo (franja +
+  // si hay bandera roja) y queda fijo desde este momento — es lo que el
+  // cliente va a ver, junto al margen de cada veterinario, en la pantalla
+  // de "elegí veterinario" (GET /casos/:id/para-elegir), ANTES de contratar
+  // a nadie. honorarioDeclarado sigue en null: se completa recién cuando el
+  // cliente elige (ver asignar()), no antes.
   async crear(input: CrearCasoInput) {
     const ahora = new Date();
     const franjaHoraria = franjaHorariaDe(ahora);
+    const hayUrgencia = hayBanderaRoja(input.banderas);
 
     const caso = await this.prisma.caso.create({
       data: {
         clienteId: input.clienteId,
         franjaHoraria,
         cargoPlataforma: CARGO_PLATAFORMA[franjaHoraria],
-        estado: hayBanderaRoja(input.banderas) ? "BANDERA_ROJA_MOSTRADA" : "INTAKE",
+        honorarioBase: honorarioBaseDe(franjaHoraria, hayUrgencia),
+        estado: hayUrgencia ? "BANDERA_ROJA_MOSTRADA" : "INTAKE",
         intake: {
           create: {
             ...input.banderas,
@@ -59,26 +65,91 @@ export class CasosService {
     return caso;
   }
 
-  // Casos sin veterinario asignado todavía, para que cualquier veterinario
-  // HABILITADO pueda elegir cuál tomar (Fase 1: dispatch manual — el
-  // dispatcher avisa por fuera de la app, esto es lo que el veterinario ve
-  // al entrar a mirar). Solo estados pre-asignación: uno ya EN_SESION o
-  // CERRADO no tiene sentido "disponible".
-  //
-  // Decisión de Sergio (2026-09-28): el filtro NO es geográfico ni por
-  // especialidad — cualquier veterinario matriculado en el país puede verlo
-  // todo, de punta a punta. El único filtro es que se haya conectado
-  // (Veterinario.disponible, ver VeterinariosService.conectar/desconectar).
-  async disponibles(veterinarioId: string) {
-    const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
-    if (!veterinario?.disponible) {
-      throw new ForbiddenException("Tenés que conectarte para ver los casos disponibles");
+  // Reemplaza a la vieja "cola de disponibles" (2026-09-28) donde el
+  // veterinario agarraba el primer caso libre. Decisión de Sergio
+  // (2026-09-29): el cliente tiene que ver el costo total y poder elegir
+  // ANTES de contratar — así que ahora es al revés: el cliente pide esta
+  // lista y elige, el veterinario ya no "toma" nada por su cuenta (ver
+  // asignar() más abajo). El filtro de conexión sigue siendo el mismo
+  // (Veterinario.disponible + estado HABILITADO), solo que ahora se aplica
+  // del lado del cliente, no del veterinario.
+  async paraElegir(casoId: string, clienteId: string): Promise<VeterinarioParaElegir[]> {
+    const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
+    if (!caso) throw new BadRequestException("Caso no encontrado");
+    if (caso.clienteId !== clienteId) {
+      throw new ForbiddenException("Este caso no te pertenece");
+    }
+    if (caso.veterinarioId) {
+      throw new BadRequestException("Este caso ya tiene un veterinario asignado");
+    }
+    if (caso.honorarioBase == null) {
+      // No debería pasar nunca (crear() siempre lo completa) — defensivo.
+      throw new BadRequestException("Este caso todavía no tiene un precio base calculado");
     }
 
-    return this.prisma.caso.findMany({
-      where: { veterinarioId: null, estado: { in: ["INTAKE", "BANDERA_ROJA_MOSTRADA"] } },
-      include: { intake: true },
-      orderBy: { creadoEl: "asc" },
+    const honorarioBase = Number(caso.honorarioBase);
+    const cargoPlataforma = Number(caso.cargoPlataforma);
+
+    const conectados = await this.prisma.veterinario.findMany({
+      where: { disponible: true, estado: "HABILITADO" },
+      include: { calificaciones: { select: { estrellas: true } } },
+    });
+
+    return conectados
+      .map((v) => {
+        const cantidadCalificaciones = v.calificaciones.length;
+        const ratingPromedio =
+          cantidadCalificaciones > 0
+            ? v.calificaciones.reduce((suma, c) => suma + c.estrellas, 0) / cantidadCalificaciones
+            : null;
+        const honorarioFinal = honorarioFinalDe(honorarioBase, v.margenPorcentaje);
+        return {
+          id: v.id,
+          nombre: v.nombre,
+          apellido: v.apellido,
+          honorarioFinal,
+          costoTotal: honorarioFinal + cargoPlataforma,
+          ratingPromedio,
+          cantidadCalificaciones,
+        };
+      })
+      // Piso de calidad (Sección 11/12, PISO_CALIDAD_ESTRELLAS): un
+      // veterinario con calificaciones por debajo del piso queda fuera de
+      // esta lista. Uno sin calificaciones todavía (recién habilitado) NO
+      // se excluye — no hay señal para juzgarlo, no es lo mismo que un mal
+      // rating.
+      .filter((v) => v.ratingPromedio === null || v.ratingPromedio >= PISO_CALIDAD_ESTRELLAS)
+      .sort((a, b) => a.costoTotal - b.costoTotal);
+  }
+
+  // El cliente elige veterinario (reemplaza al viejo "tomar caso" desde el
+  // lado del veterinario). Se recalcula disponible/HABILITADO acá también
+  // —no solo en paraElegir()— porque puede pasar tiempo entre que el
+  // cliente ve la lista y hace click; si el veterinario se desconectó en el
+  // medio, mejor un error claro que asignarle un caso a quien ya no está.
+  async asignar(casoId: string, clienteId: string, veterinarioId: string) {
+    const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
+    if (!caso) throw new BadRequestException("Caso no encontrado");
+    if (caso.clienteId !== clienteId) {
+      throw new ForbiddenException("Este caso no te pertenece");
+    }
+    if (caso.veterinarioId) {
+      throw new BadRequestException("Este caso ya tiene un veterinario asignado");
+    }
+    if (caso.honorarioBase == null) {
+      throw new BadRequestException("Este caso todavía no tiene un precio base calculado");
+    }
+
+    const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
+    if (!veterinario || !veterinario.disponible || veterinario.estado !== "HABILITADO") {
+      throw new BadRequestException("Ese veterinario ya no está disponible — elegí otro de la lista");
+    }
+
+    const honorarioDeclarado = honorarioFinalDe(Number(caso.honorarioBase), veterinario.margenPorcentaje);
+
+    return this.prisma.caso.update({
+      where: { id: casoId },
+      data: { veterinarioId, honorarioDeclarado, estado: "ASIGNADO" },
     });
   }
 
@@ -93,38 +164,24 @@ export class CasosService {
     });
   }
 
-  // Se llama cuando el veterinario toma el caso y arranca la videollamada —
-  // en la Fase 1 (dispatch manual, sin matching automático) "tomarlo" y
-  // "empezar la sesión" son el mismo click, así que acá también se fija
-  // honorarioDeclarado (Sección 4: lo declara el veterinario, libremente,
-  // no el cliente ni la plataforma) y se recalcula la franja horaria por si
-  // pasó tiempo entre la creación del caso y el inicio real.
-  async iniciarSesion(casoId: string, veterinarioId: string, honorarioDeclarado: number) {
+  // El veterinario confirma que arranca la videollamada de un caso que el
+  // CLIENTE ya le asignó (ver asignar()) — ya no fija ni recalcula ningún
+  // monto acá: el precio quedó congelado en el momento en que el cliente
+  // eligió, precisamente para que sea el total que le prometimos, no uno
+  // que cambie según cuándo el veterinario efectivamente se conecte.
+  async iniciarSesion(casoId: string, veterinarioId: string) {
     const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
     if (!caso) throw new BadRequestException("Caso no encontrado");
-    // Un caso ya tomado por otro veterinario no se puede "robar" pisando
-    // el veterinarioId — sin este chequeo, cualquier vet autenticado podía
-    // adjudicarse un caso ajeno con solo llamar a este endpoint.
-    if (caso.veterinarioId && caso.veterinarioId !== veterinarioId) {
-      throw new ForbiddenException("Este caso ya fue tomado por otro veterinario");
+    if (caso.veterinarioId !== veterinarioId) {
+      throw new ForbiddenException("No sos el veterinario asignado a este caso");
     }
-    if (!honorarioDeclarado || honorarioDeclarado <= 0) {
-      throw new BadRequestException("Tenés que declarar un honorario válido para tomar el caso");
+    if (caso.estado !== "ASIGNADO") {
+      throw new BadRequestException("Este caso no está en condiciones de iniciarse");
     }
-
-    const ahora = new Date();
-    const franjaHoraria = franjaHorariaDe(ahora);
 
     return this.prisma.caso.update({
       where: { id: casoId },
-      data: {
-        veterinarioId,
-        honorarioDeclarado,
-        franjaHoraria,
-        cargoPlataforma: CARGO_PLATAFORMA[franjaHoraria],
-        estado: "EN_SESION",
-        iniciadoEl: ahora,
-      },
+      data: { estado: "EN_SESION", iniciadoEl: new Date() },
     });
   }
 

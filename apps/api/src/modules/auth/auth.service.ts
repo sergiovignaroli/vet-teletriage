@@ -65,6 +65,7 @@ export class AuthService {
       apellido: veterinario.apellido,
       estado: veterinario.estado,
       disponible: veterinario.disponible,
+      margenPorcentaje: veterinario.margenPorcentaje,
       onboardingCompletado: veterinario.onboardingCompletado,
     });
   }
@@ -88,6 +89,7 @@ export class AuthService {
       apellido: veterinario.apellido,
       estado: veterinario.estado,
       disponible: veterinario.disponible,
+      margenPorcentaje: veterinario.margenPorcentaje,
       onboardingCompletado: veterinario.onboardingCompletado,
     });
   }

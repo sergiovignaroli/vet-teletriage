@@ -18,6 +18,7 @@ export interface SesionVeterinario {
   apellido: string;
   estado: string;
   disponible: boolean;
+  margenPorcentaje: number;
   onboardingCompletado: boolean;
 }
 
@@ -76,10 +77,19 @@ export function useSesionVeterinario() {
     });
   }, []);
 
+  const actualizarMargen = useCallback((margenPorcentaje: number) => {
+    setSesion((prev) => {
+      if (!prev) return prev;
+      const actualizada = { ...prev, margenPorcentaje };
+      escribirStorage(actualizada);
+      return actualizada;
+    });
+  }, []);
+
   const cerrarSesion = useCallback(() => {
     escribirStorage(null);
     setSesion(null);
   }, []);
 
-  return { sesion, guardar, actualizarOnboarding, actualizarDisponible, cerrarSesion };
+  return { sesion, guardar, actualizarOnboarding, actualizarDisponible, actualizarMargen, cerrarSesion };
 }

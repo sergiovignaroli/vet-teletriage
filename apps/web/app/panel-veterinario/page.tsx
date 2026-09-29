@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CasoParaVeterinario } from "@vet-teletriage/types";
-import { hayBanderaRoja } from "@vet-teletriage/types";
+import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
 import { apiGet, apiPatch, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { Onboarding } from "../../components/Onboarding";
-
-type Vista = "disponibles" | "mios";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-AR", {
   day: "2-digit",
@@ -20,7 +18,7 @@ const FORMATO_FECHA = new Intl.DateTimeFormat("es-AR", {
 const ETIQUETA_ESTADO: Record<string, string> = {
   INTAKE: "Nuevo",
   BANDERA_ROJA_MOSTRADA: "Nuevo — posible emergencia",
-  ASIGNADO: "Asignado",
+  ASIGNADO: "Te eligieron — esperando que arranques",
   EN_SESION: "En sesión",
   CERRADO: "Cerrado",
   CANCELADO_FALLA_PLATAFORMA: "Cancelado",
@@ -28,21 +26,22 @@ const ETIQUETA_ESTADO: Record<string, string> = {
 
 export default function PanelVeterinarioPage() {
   const router = useRouter();
-  const { sesion, actualizarOnboarding, actualizarDisponible, cerrarSesion } = useSesionVeterinario();
+  const { sesion, actualizarOnboarding, actualizarDisponible, actualizarMargen, cerrarSesion } =
+    useSesionVeterinario();
   const [enviandoOnboarding, setEnviandoOnboarding] = useState(false);
   const [cambiandoConexion, setCambiandoConexion] = useState(false);
   const [errorConexion, setErrorConexion] = useState<string | null>(null);
 
-  const [vista, setVista] = useState<Vista>("disponibles");
   const [casos, setCasos] = useState<CasoParaVeterinario[] | null>(null);
   const [cargandoCasos, setCargandoCasos] = useState(false);
   const [errorCasos, setErrorCasos] = useState<string | null>(null);
 
-  // Honorario que el veterinario está por declarar, por caso — solo tiene
-  // sentido mientras el caso está en "disponibles" y no fue tomado todavía.
-  const [honorarioPorCaso, setHonorarioPorCaso] = useState<Record<string, string>>({});
-  const [tomando, setTomando] = useState<string | null>(null);
-  const [errorTomar, setErrorTomar] = useState<string | null>(null);
+  const [margenTexto, setMargenTexto] = useState("0");
+  const [guardandoMargen, setGuardandoMargen] = useState(false);
+  const [errorMargen, setErrorMargen] = useState<string | null>(null);
+
+  const [iniciando, setIniciando] = useState<string | null>(null);
+  const [errorIniciar, setErrorIniciar] = useState<string | null>(null);
 
   // sesion === undefined: todavía no se leyó localStorage (primer render).
   // sesion === null: se leyó y no hay nadie logueado -> a /ingresar-veterinario.
@@ -50,35 +49,28 @@ export default function PanelVeterinarioPage() {
     if (sesion === null) router.replace("/ingresar-veterinario");
   }, [sesion, router]);
 
-  const cargarCasos = useCallback(
-    async (destino: Vista) => {
-      if (!sesion) return;
-      setCargandoCasos(true);
-      setErrorCasos(null);
-      try {
-        const ruta = destino === "disponibles" ? "/casos/disponibles" : "/casos/mios";
-        const datos = await apiGet<CasoParaVeterinario[]>(ruta, sesion.accessToken);
-        setCasos(datos);
-      } catch (e) {
-        setErrorCasos(e instanceof ApiError ? e.message : "No pudimos cargar los casos. Probá de nuevo.");
-      } finally {
-        setCargandoCasos(false);
-      }
-    },
-    [sesion],
-  );
+  useEffect(() => {
+    if (sesion) setMargenTexto(String(sesion.margenPorcentaje));
+  }, [sesion?.margenPorcentaje]);
+
+  const cargarCasos = useCallback(async () => {
+    if (!sesion) return;
+    setCargandoCasos(true);
+    setErrorCasos(null);
+    try {
+      const datos = await apiGet<CasoParaVeterinario[]>("/casos/mios", sesion.accessToken);
+      setCasos(datos);
+    } catch (e) {
+      setErrorCasos(e instanceof ApiError ? e.message : "No pudimos cargar los casos. Probá de nuevo.");
+    } finally {
+      setCargandoCasos(false);
+    }
+  }, [sesion]);
 
   useEffect(() => {
     if (!sesion || !sesion.onboardingCompletado) return;
-    // "Casos disponibles" solo se pide si el veterinario está conectado — el
-    // backend lo rechaza igual, pero evitamos el pedido (y el error) cuando
-    // ya sabemos de antemano que va a fallar.
-    if (vista === "disponibles" && !sesion.disponible) {
-      setCasos(null);
-      return;
-    }
-    cargarCasos(vista);
-  }, [sesion, vista, cargarCasos]);
+    cargarCasos();
+  }, [sesion, cargarCasos]);
 
   async function alternarConexion() {
     if (!sesion) return;
@@ -92,6 +84,29 @@ export default function PanelVeterinarioPage() {
       setErrorConexion(e instanceof ApiError ? e.message : "No pudimos cambiar tu estado. Probá de nuevo.");
     } finally {
       setCambiandoConexion(false);
+    }
+  }
+
+  async function guardarMargen() {
+    if (!sesion) return;
+    const margenPorcentaje = Number(margenTexto);
+    if (
+      !Number.isFinite(margenPorcentaje) ||
+      margenPorcentaje < MARGEN_PORCENTAJE_MIN ||
+      margenPorcentaje > MARGEN_PORCENTAJE_MAX
+    ) {
+      setErrorMargen(`Tiene que estar entre ${MARGEN_PORCENTAJE_MIN}% y ${MARGEN_PORCENTAJE_MAX}%`);
+      return;
+    }
+    setErrorMargen(null);
+    setGuardandoMargen(true);
+    try {
+      await apiPatch("/veterinarios/margen", sesion.accessToken, { margenPorcentaje });
+      actualizarMargen(margenPorcentaje);
+    } catch (e) {
+      setErrorMargen(e instanceof ApiError ? e.message : "No pudimos guardar el margen. Probá de nuevo.");
+    } finally {
+      setGuardandoMargen(false);
     }
   }
 
@@ -110,25 +125,19 @@ export default function PanelVeterinarioPage() {
     }
   }
 
-  async function tomarCaso(casoId: string) {
+  async function iniciarCaso(casoId: string) {
     if (!sesion) return;
-    const honorarioTexto = honorarioPorCaso[casoId];
-    const honorarioDeclarado = Number(honorarioTexto);
-    if (!honorarioTexto || Number.isNaN(honorarioDeclarado) || honorarioDeclarado <= 0) {
-      setErrorTomar("Declará un honorario válido antes de tomar el caso.");
-      return;
-    }
-    setErrorTomar(null);
-    setTomando(casoId);
+    setErrorIniciar(null);
+    setIniciando(casoId);
     try {
-      await apiPatch(`/casos/${casoId}/iniciar`, sesion.accessToken, { honorarioDeclarado });
-      // El caso ya no está "disponible" — lo sacamos de la lista actual y
-      // dejamos que el veterinario lo vea en "Mis casos" si cambia de vista.
-      setCasos((prev) => prev?.filter((c) => c.id !== casoId) ?? prev);
+      await apiPatch(`/casos/${casoId}/iniciar`, sesion.accessToken);
+      setCasos(
+        (prev) => prev?.map((c) => (c.id === casoId ? { ...c, estado: "EN_SESION" as const } : c)) ?? prev,
+      );
     } catch (e) {
-      setErrorTomar(e instanceof ApiError ? e.message : "No pudimos tomar el caso. Puede que ya lo haya tomado otro veterinario.");
+      setErrorIniciar(e instanceof ApiError ? e.message : "No pudimos iniciar el caso. Probá de nuevo.");
     } finally {
-      setTomando(null);
+      setIniciando(null);
     }
   }
 
@@ -171,7 +180,7 @@ export default function PanelVeterinarioPage() {
           border: "1px solid rgba(64,53,47,0.15)",
           borderRadius: 14,
           padding: "12px 16px",
-          marginBottom: 20,
+          marginBottom: 12,
           background: "#fff",
         }}
       >
@@ -198,7 +207,7 @@ export default function PanelVeterinarioPage() {
         </button>
       </div>
       {!sesion.disponible && sesion.estado !== "HABILITADO" && (
-        <p style={{ fontSize: 12, color: "var(--terracota)", marginTop: -14, marginBottom: 20 }}>
+        <p style={{ fontSize: 12, color: "var(--terracota)", marginTop: -6, marginBottom: 16 }}>
           Todavía no podés conectarte — tu cuenta no está habilitada.
         </p>
       )}
@@ -208,24 +217,53 @@ export default function PanelVeterinarioPage() {
         </p>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <button
-          type="button"
-          className={vista === "disponibles" ? "va-boton" : "va-boton va-boton-ghost"}
-          style={{ width: "auto", padding: "10px 18px", fontSize: 14 }}
-          onClick={() => setVista("disponibles")}
-        >
-          Casos disponibles
-        </button>
-        <button
-          type="button"
-          className={vista === "mios" ? "va-boton" : "va-boton va-boton-ghost"}
-          style={{ width: "auto", padding: "10px 18px", fontSize: 14 }}
-          onClick={() => setVista("mios")}
-        >
-          Mis casos
-        </button>
+      {/* Mientras estás conectado, los clientes te ven en la lista con este
+          margen ya aplicado sobre el precio base de cada caso — por eso no
+          hace falta declarar honorario caso por caso, como antes. */}
+      <div
+        style={{
+          border: "1px solid rgba(64,53,47,0.15)",
+          borderRadius: 14,
+          padding: "12px 16px",
+          marginBottom: 24,
+          background: "#fff",
+        }}
+      >
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Tu margen sobre el precio base</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            className="va-input"
+            type="number"
+            inputMode="numeric"
+            value={margenTexto}
+            onChange={(e) => setMargenTexto(e.target.value)}
+            min={MARGEN_PORCENTAJE_MIN}
+            max={MARGEN_PORCENTAJE_MAX}
+            style={{ flex: 1 }}
+          />
+          <span style={{ fontSize: 14, opacity: 0.6 }}>%</span>
+          <button
+            type="button"
+            className="va-boton"
+            style={{ width: "auto", padding: "0 16px" }}
+            onClick={guardarMargen}
+            disabled={guardandoMargen || Number(margenTexto) === sesion.margenPorcentaje}
+          >
+            {guardandoMargen ? "…" : "Guardar"}
+          </button>
+        </div>
+        <p style={{ fontSize: 11, opacity: 0.55, margin: "6px 0 0" }}>
+          Entre {MARGEN_PORCENTAJE_MIN}% y {MARGEN_PORCENTAJE_MAX}% sobre la base de cada caso — el cliente ve el
+          total ya calculado con esto antes de elegirte.
+        </p>
+        {errorMargen && (
+          <p style={{ color: "var(--terracota)", fontSize: 12, marginTop: 6 }} role="alert">
+            {errorMargen}
+          </p>
+        )}
       </div>
+
+      <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginBottom: 10 }}>Mis casos</h2>
 
       {cargandoCasos && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
       {errorCasos && (
@@ -233,22 +271,16 @@ export default function PanelVeterinarioPage() {
           {errorCasos}
         </p>
       )}
-      {errorTomar && (
+      {errorIniciar && (
         <p style={{ color: "var(--terracota)", fontSize: 13 }} role="alert">
-          {errorTomar}
+          {errorIniciar}
         </p>
       )}
-
-      {vista === "disponibles" && !sesion.disponible ? (
-        <p style={{ fontSize: 14, opacity: 0.6 }}>Conectate para ver los casos que están esperando.</p>
-      ) : (
-        !cargandoCasos &&
-        casos &&
-        casos.length === 0 && (
-          <p style={{ fontSize: 14, opacity: 0.6 }}>
-            {vista === "disponibles" ? "No hay casos esperando ahora mismo." : "Todavía no tomaste ningún caso."}
-          </p>
-        )
+      {!cargandoCasos && casos && casos.length === 0 && (
+        <p style={{ fontSize: 14, opacity: 0.6 }}>
+          Todavía nadie te eligió. Mientras estés conectado, vas a aparecer en la lista que ve el cliente al
+          terminar su consulta.
+        </p>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -287,32 +319,20 @@ export default function PanelVeterinarioPage() {
             <p style={{ fontSize: 14, margin: "0 0 10px", opacity: 0.85 }}>{caso.intake.motivoConsulta}</p>
 
             <p style={{ fontSize: 12, opacity: 0.6, margin: "0 0 10px" }}>
-              {ETIQUETA_ESTADO[caso.estado] ?? caso.estado} · Franja {caso.franjaHoraria.toLowerCase()} · Cargo
-              plataforma ${caso.cargoPlataforma}
+              {ETIQUETA_ESTADO[caso.estado] ?? caso.estado} · Franja {caso.franjaHoraria.toLowerCase()}
               {caso.honorarioDeclarado != null && <> · Tu honorario: ${caso.honorarioDeclarado}</>}
             </p>
 
-            {vista === "disponibles" && (
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  className="va-input"
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="Tu honorario ($)"
-                  value={honorarioPorCaso[caso.id] ?? ""}
-                  onChange={(e) => setHonorarioPorCaso((prev) => ({ ...prev, [caso.id]: e.target.value }))}
-                  style={{ flex: 1 }}
-                />
-                <button
-                  type="button"
-                  className="va-boton"
-                  style={{ width: "auto", padding: "0 18px" }}
-                  onClick={() => tomarCaso(caso.id)}
-                  disabled={tomando === caso.id}
-                >
-                  {tomando === caso.id ? "Tomando…" : "Tomar caso"}
-                </button>
-              </div>
+            {caso.estado === "ASIGNADO" && (
+              <button
+                type="button"
+                className="va-boton"
+                style={{ width: "auto", padding: "0 18px" }}
+                onClick={() => iniciarCaso(caso.id)}
+                disabled={iniciando === caso.id}
+              >
+                {iniciando === caso.id ? "Iniciando…" : "Iniciar videollamada"}
+              </button>
             )}
           </div>
         ))}

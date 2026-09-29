@@ -33,24 +33,24 @@ const PANTALLA_FINAL_CLIENTE = {
   boton: "Empezar mi primera consulta",
 };
 
-// Fase 1: dispatch manual, sin matching automático (ver README) — el copy
-// es honesto sobre eso, no promete un "te asignamos casos" que todavía no
-// existe.
+// Decisión de Sergio (2026-09-29): el cliente elige veterinario viendo
+// costo total y rating — el copy refleja eso, no un "tomá el que quieras"
+// que ya no describe el flujo.
 const PANTALLAS_VETERINARIO = [
   {
     titulo: "Hola, colega.",
-    texto: "Acá vas a ver los casos que están esperando un veterinario y vas a poder tomar los que quieras.",
+    texto: "Mientras estés conectado, los clientes te ven en una lista y te eligen directamente a vos.",
   },
   {
-    titulo: "Vos ponés el precio",
-    texto: "Cuando tomás un caso, declarás tu propio honorario — la plataforma no te lo fija.",
+    titulo: "Vos ajustás tu margen",
+    texto: "La plataforma calcula un precio base por caso; vos le aplicás tu propio margen, dentro de un rango.",
   },
 ];
 
 const PANTALLA_FINAL_VETERINARIO = {
   titulo: "Ya estás listo.",
-  texto: "Mirá los casos disponibles y tomá el primero cuando quieras.",
-  boton: "Ver casos disponibles",
+  texto: "Conectate para empezar a aparecer en la lista que ven los clientes.",
+  boton: "Ir a mi panel",
 };
 
 export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props) {

@@ -50,6 +50,14 @@ model Veterinario {
   latitud           Float?
   longitud          Float?
 
+  // Precio (decisión de Sergio, 2026-09-29): el veterinario ya no declara
+  // un honorario libre — ajusta, en %, el honorarioBase que calcula la
+  // plataforma por franja horaria + urgencia (ver honorarioBaseDe() en
+  // packages/types). Acotado a [MARGEN_PORCENTAJE_MIN, MARGEN_PORCENTAJE_MAX]
+  // en VeterinariosService.ajustarMargen — nunca confiar en un valor que
+  // llegue ya fuera de rango.
+  margenPorcentaje  Int      @default(0)
+
   // Cobro (Sección 5 del contrato)
   medioDeCobro      MedioDeCobroVeterinario @default(MERCADO_PAGO)
   // Split de Pagos 1:1 (doc de proveedores) — credenciales OAuth propias del
@@ -151,10 +159,20 @@ model Caso {
 
   // Franja horaria y montos (Sección 4 del contrato)
   franjaHoraria   FranjaHoraria
-  // Lo fija el veterinario, libremente, cuando toma el caso (ver
-  // CasosService.iniciarSesion) — no existe todavía al crear el caso, por
-  // eso es nullable: nace en null en el intake y se completa recién en
-  // PATCH /casos/:id/iniciar.
+  // Precio de referencia que calcula LA PLATAFORMA al crear el caso, según
+  // franja horaria + si el intake disparó alguna bandera roja (ver
+  // honorarioBaseDe() en packages/types) — es la base sobre la que cada
+  // veterinario conectado aplica su margenPorcentaje en la pantalla de
+  // "elegí veterinario". Nullable por el mismo motivo histórico que
+  // honorarioDeclarado: nace en null hasta que CasosService.crear() lo
+  // completa, un instante después.
+  honorarioBase      Decimal?  @db.Decimal(10, 2)
+  // Decisión de Sergio (2026-09-29): el cliente tiene que saber el costo
+  // total ANTES de contratar, así que esto ya no lo declara el veterinario
+  // libremente al tomar el caso — se calcula una sola vez, cuando el
+  // cliente ELIGE veterinario (ver CasosService.asignar), como
+  // honorarioBase × (1 + veterinario.margenPorcentaje/100), y queda
+  // congelado desde ahí (no se vuelve a tocar en PATCH /casos/:id/iniciar).
   honorarioDeclarado Decimal?  @db.Decimal(10, 2)
   cargoPlataforma    Decimal   @db.Decimal(10, 2) // $3.500 diurno / $4.000 nocturno al momento del caso
 

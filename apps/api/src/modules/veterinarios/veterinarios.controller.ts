@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Query, UseGuards } from "@nestjs/common";
 import { VeterinariosService } from "./veterinarios.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
@@ -36,5 +36,15 @@ export class VeterinariosController {
   @Roles("VETERINARIO")
   desconectar(@CurrentUser() usuario: UsuarioAutenticado) {
     return this.veterinarios.desconectar(usuario.id);
+  }
+
+  @Patch("margen")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  ajustarMargen(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body("margenPorcentaje") margenPorcentaje: number,
+  ) {
+    return this.veterinarios.ajustarMargen(usuario.id, margenPorcentaje);
   }
 }

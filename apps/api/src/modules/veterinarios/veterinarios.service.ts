@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
+import { MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
 
 @Injectable()
 export class VeterinariosService {
@@ -46,6 +47,26 @@ export class VeterinariosService {
 
   async desconectar(veterinarioId: string) {
     return this.prisma.veterinario.update({ where: { id: veterinarioId }, data: { disponible: false } });
+  }
+
+  // Sergio, 2026-09-29: el margen es un % sobre el honorarioBase que
+  // calcula la plataforma, igual para todos en cuanto al mecanismo — el
+  // rango en sí (MARGEN_PORCENTAJE_MIN/MAX) es una constante compartida, no
+  // algo que un veterinario pueda pisar mandando cualquier número. Nunca
+  // confiar en el body sin clampear acá.
+  async ajustarMargen(veterinarioId: string, margenPorcentaje: number) {
+    if (!Number.isFinite(margenPorcentaje)) {
+      throw new BadRequestException("Margen inválido");
+    }
+    if (margenPorcentaje < MARGEN_PORCENTAJE_MIN || margenPorcentaje > MARGEN_PORCENTAJE_MAX) {
+      throw new BadRequestException(
+        `El margen tiene que estar entre ${MARGEN_PORCENTAJE_MIN}% y ${MARGEN_PORCENTAJE_MAX}%`,
+      );
+    }
+    return this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { margenPorcentaje: Math.round(margenPorcentaje) },
+    });
   }
 
   // Corre periódicamente (cron) — Sección 2: la suspensión por vencimiento

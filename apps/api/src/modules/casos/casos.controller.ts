@@ -22,13 +22,28 @@ export class CasosController {
     return this.casos.crear({ ...body, clienteId: usuario.id });
   }
 
-  // Casos sin veterinario asignado — lo que un veterinario ve al entrar a
-  // buscar trabajo (Fase 1: dispatch manual, no hay matching automático).
-  @Get("disponibles")
+  // Veterinarios conectados con el precio YA calculado para este caso
+  // puntual (base del caso × margen de cada uno) y su rating — lo que el
+  // CLIENTE ve para elegir, con costo total conocido antes de contratar.
+  // El clienteId sale del JWT, no de un param, para que no pueda pedir la
+  // lista de un caso ajeno.
+  @Get(":id/para-elegir")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("VETERINARIO")
-  disponibles(@CurrentUser() usuario: UsuarioAutenticado) {
-    return this.casos.disponibles(usuario.id);
+  @Roles("CLIENTE")
+  paraElegir(@Param("id") id: string, @CurrentUser() usuario: UsuarioAutenticado) {
+    return this.casos.paraElegir(id, usuario.id);
+  }
+
+  // El cliente elige — acá se congela el precio y se asigna el caso.
+  @Patch(":id/asignar")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("CLIENTE")
+  asignar(
+    @Param("id") id: string,
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body("veterinarioId") veterinarioId: string,
+  ) {
+    return this.casos.asignar(id, usuario.id, veterinarioId);
   }
 
   // Casos de ESTE veterinario — el id sale del JWT, nunca de un query
@@ -40,19 +55,13 @@ export class CasosController {
     return this.casos.misCasos(usuario.id);
   }
 
-  // Igual criterio: el veterinarioId que toma el caso es el que está
-  // autenticado, no uno que el cliente (u otro vet) elija por él en el body.
-  // honorarioDeclarado lo declara el veterinario acá mismo, al tomar el
-  // caso (Sección 4: "lo fija el veterinario, libremente").
+  // El veterinario confirma el inicio de un caso que el cliente ya le
+  // asignó — el veterinarioId sale del JWT, nunca del body.
   @Patch(":id/iniciar")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")
-  iniciar(
-    @Param("id") id: string,
-    @CurrentUser() usuario: UsuarioAutenticado,
-    @Body("honorarioDeclarado") honorarioDeclarado: number,
-  ) {
-    return this.casos.iniciarSesion(id, usuario.id, honorarioDeclarado);
+  iniciar(@Param("id") id: string, @CurrentUser() usuario: UsuarioAutenticado) {
+    return this.casos.iniciarSesion(id, usuario.id);
   }
 
   @Patch(":id/cerrar")

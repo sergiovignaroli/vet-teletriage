@@ -17,6 +17,42 @@ export function franjaHorariaDe(fecha: Date): FranjaHoraria {
   return minutos >= inicioDiurna && minutos <= finDiurna ? "DIURNA" : "NOCTURNA";
 }
 
+// -----------------------------------------------------------------------
+// Precio (decisión de Sergio, 2026-09-29): el cliente tiene que ver el
+// costo total ANTES de contratar y poder elegir veterinario — el honorario
+// ya no lo declara el veterinario libremente. La plataforma calcula un
+// honorarioBase por franja horaria + urgencia (banderas rojas del intake,
+// señal que ya existe, no hace falta pedir nada nuevo); cada veterinario
+// conectado aplica su propio margenPorcentaje sobre esa base.
+//
+// VALORES PLACEHOLDER — Sergio los tiene que reemplazar por precio de
+// mercado real antes de ir a producción; están acá para que el cálculo
+// funcione de punta a punta mientras tanto, igual que CARGO_PLATAFORMA
+// cuando se armó por primera vez.
+export const HONORARIO_BASE: Record<FranjaHoraria, number> = {
+  DIURNA: 3500,
+  NOCTURNA: 4000,
+};
+
+// % que se suma al honorario base cuando el intake disparó alguna bandera
+// roja (más urgencia). Placeholder — ajustar.
+export const RECARGO_URGENCIA_PORCENTAJE = 20;
+
+// Rango dentro del cual cada veterinario puede mover su honorario final
+// respecto del honorarioBase (Sergio, 2026-09-29: por porcentaje, igual
+// para todos — no por monto fijo ni por tope individual por veterinario).
+export const MARGEN_PORCENTAJE_MIN = -20;
+export const MARGEN_PORCENTAJE_MAX = 20;
+
+export function honorarioBaseDe(franjaHoraria: FranjaHoraria, hayUrgencia: boolean): number {
+  const base = HONORARIO_BASE[franjaHoraria];
+  return hayUrgencia ? Math.round(base * (1 + RECARGO_URGENCIA_PORCENTAJE / 100)) : base;
+}
+
+export function honorarioFinalDe(honorarioBase: number, margenPorcentaje: number): number {
+  return Math.round(honorarioBase * (1 + margenPorcentaje / 100));
+}
+
 export type ClasificacionCierre =
   | "RESUELTO_POR_ORIENTACION"
   | "DERIVADO_A_EMERGENCIA"
@@ -82,10 +118,28 @@ export interface CasoResumen {
     | "CERRADO"
     | "CANCELADO_FALLA_PLATAFORMA";
   franjaHoraria: FranjaHoraria;
-  // null hasta que un veterinario toma el caso — lo declara él, libremente,
-  // recién en PATCH /casos/:id/iniciar (ver comentario en schema.prisma).
+  // Precio de referencia calculado por la plataforma al crear el caso (ver
+  // honorarioBaseDe) — la base sobre la que cada veterinario aplica su
+  // margen en la pantalla de "elegí veterinario".
+  honorarioBase: number | null;
+  // Se completa recién cuando el cliente ELIGE veterinario (PATCH
+  // /casos/:id/asignar) — honorarioBase × margen del elegido, congelado
+  // desde ese momento.
   honorarioDeclarado: number | null;
   cargoPlataforma: number;
+}
+
+// Lo que devuelve GET /casos/:id/para-elegir — un veterinario conectado y
+// habilitado, con el precio YA calculado para este caso puntual (para que
+// el cliente compare costo total, no un margen abstracto) y su rating.
+export interface VeterinarioParaElegir {
+  id: string;
+  nombre: string;
+  apellido: string;
+  honorarioFinal: number;
+  costoTotal: number; // honorarioFinal + cargoPlataforma del caso
+  ratingPromedio: number | null; // null si todavía no tiene calificaciones
+  cantidadCalificaciones: number;
 }
 
 // Contexto clínico que ve el veterinario al mirar un caso — Capa 2 del

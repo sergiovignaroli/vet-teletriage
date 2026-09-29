@@ -13,6 +13,7 @@ interface RespuestaLoginVeterinario {
   apellido: string;
   estado: string;
   disponible: boolean;
+  margenPorcentaje: number;
   onboardingCompletado: boolean;
 }
 
@@ -40,6 +41,7 @@ export default function IngresarVeterinarioPage() {
         apellido: respuesta.apellido,
         estado: respuesta.estado,
         disponible: respuesta.disponible,
+        margenPorcentaje: respuesta.margenPorcentaje,
         onboardingCompletado: respuesta.onboardingCompletado,
       });
       router.push("/panel-veterinario");
