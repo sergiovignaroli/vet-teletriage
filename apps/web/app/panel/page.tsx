@@ -160,6 +160,23 @@ export default function PanelPage() {
               </Link>
             )}
 
+            {caso.estado === "EN_SESION" &&
+              (caso.salaVideoUrl ? (
+                <a
+                  href={caso.salaVideoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="va-boton"
+                  style={{ width: "auto", padding: "6px 14px", fontSize: 13, textDecoration: "none", display: "inline-block" }}
+                >
+                  Entrar a la videollamada
+                </a>
+              ) : (
+                <span style={{ fontSize: 12, opacity: 0.55 }}>
+                  Tu veterinario te va a contactar por WhatsApp para la videollamada.
+                </span>
+              ))}
+
             {caso.estado === "CERRADO" && (
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
                 {!caso.yaCalificado ? (

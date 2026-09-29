@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CasoParaVeterinario } from "@vet-teletriage/types";
+import type { CasoParaVeterinario, ClasificacionCierre } from "@vet-teletriage/types";
 import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
 import { apiGet, apiPatch, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
@@ -24,6 +24,16 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   EN_SESION: "En sesión",
   CERRADO: "Cerrado",
   CANCELADO_FALLA_PLATAFORMA: "Cancelado",
+};
+
+// Copy en español de ClasificacionCierre (packages/types) — Sergio,
+// 2026-09-29: sin esto no había ninguna pantalla que llamara a
+// PATCH /casos/:id/cerrar, así que un caso EN_SESION se quedaba ahí para
+// siempre y el circuito de calificación/reporte nunca se activaba.
+const ETIQUETAS_CIERRE: Record<ClasificacionCierre, string> = {
+  RESUELTO_POR_ORIENTACION: "Resuelto con orientación",
+  DERIVADO_A_EMERGENCIA: "Derivé a una guardia de emergencia",
+  NO_COMPLETADO: "No se pudo completar la consulta",
 };
 
 export default function PanelVeterinarioPage() {
@@ -133,14 +143,21 @@ export default function PanelVeterinarioPage() {
     setIniciando(casoId);
     try {
       await apiPatch(`/casos/${casoId}/iniciar`, sesion.accessToken);
-      setCasos(
-        (prev) => prev?.map((c) => (c.id === casoId ? { ...c, estado: "EN_SESION" as const } : c)) ?? prev,
-      );
+      // Se recarga la lista entera (en vez de parchear el estado a mano)
+      // porque acá es donde se crea salaVideoUrl del lado del servidor —
+      // parchear localmente dejaría esa URL desactualizada.
+      await cargarCasos();
     } catch (e) {
       setErrorIniciar(e instanceof ApiError ? e.message : "No pudimos iniciar el caso. Probá de nuevo.");
     } finally {
       setIniciando(null);
     }
+  }
+
+  async function cerrarCaso(casoId: string, clasificacion: ClasificacionCierre, notas: string) {
+    if (!sesion) return;
+    await apiPatch(`/casos/${casoId}/cerrar`, sesion.accessToken, { clasificacion, notas: notas || undefined });
+    await cargarCasos();
   }
 
   if (!sesion) {
@@ -346,11 +363,101 @@ export default function PanelVeterinarioPage() {
                 {iniciando === caso.id ? "Iniciando…" : "Iniciar videollamada"}
               </button>
             )}
+
+            {caso.estado === "EN_SESION" && <SesionEnCurso caso={caso} onCerrar={cerrarCaso} />}
           </div>
         ))}
       </div>
 
       <LegalFooter />
     </main>
+  );
+}
+
+// Sala de video (si hay una conectada) + formulario de cierre — mismo
+// bloque porque ambos solo tienen sentido en EN_SESION (Sergio,
+// 2026-09-29). Componente aparte para que el estado del formulario
+// (clasificación, notas) sea propio de cada tarjeta, no compartido entre
+// todos los casos de la lista.
+function SesionEnCurso({
+  caso,
+  onCerrar,
+}: {
+  caso: CasoParaVeterinario;
+  onCerrar: (casoId: string, clasificacion: ClasificacionCierre, notas: string) => Promise<void>;
+}) {
+  const [clasificacion, setClasificacion] = useState<ClasificacionCierre | "">("");
+  const [notas, setNotas] = useState("");
+  const [cerrando, setCerrando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function cerrar() {
+    if (!clasificacion) return;
+    setCerrando(true);
+    setError(null);
+    try {
+      await onCerrar(caso.id, clasificacion, notas);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No pudimos cerrar el caso. Probá de nuevo.");
+    } finally {
+      setCerrando(false);
+    }
+  }
+
+  return (
+    <div style={{ borderTop: "1px solid rgba(64,53,47,0.1)", marginTop: 4, paddingTop: 12 }}>
+      {caso.salaVideoUrl ? (
+        <a
+          href={caso.salaVideoUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="va-boton"
+          style={{ width: "auto", padding: "0 18px", textDecoration: "none", display: "inline-block", marginBottom: 12 }}
+        >
+          Abrir videollamada
+        </a>
+      ) : (
+        <p style={{ fontSize: 12, opacity: 0.6, marginTop: 0, marginBottom: 12 }}>
+          Todavía no hay una sala de video conectada — coordiná la consulta por WhatsApp mientras tanto.
+        </p>
+      )}
+
+      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Cerrar consulta</div>
+      <select
+        className="va-input"
+        value={clasificacion}
+        onChange={(e) => setClasificacion(e.target.value as ClasificacionCierre)}
+        style={{ marginBottom: 8 }}
+      >
+        <option value="">Elegí cómo terminó</option>
+        {(Object.keys(ETIQUETAS_CIERRE) as ClasificacionCierre[]).map((c) => (
+          <option key={c} value={c}>
+            {ETIQUETAS_CIERRE[c]}
+          </option>
+        ))}
+      </select>
+      <textarea
+        className="va-input"
+        placeholder="Notas (opcional)"
+        value={notas}
+        onChange={(e) => setNotas(e.target.value)}
+        rows={2}
+        style={{ marginBottom: 8, resize: "vertical" }}
+      />
+      {error && (
+        <p style={{ color: "var(--terracota)", fontSize: 12, marginBottom: 8 }} role="alert">
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        className="va-boton"
+        style={{ width: "auto", padding: "0 18px" }}
+        onClick={cerrar}
+        disabled={cerrando || !clasificacion}
+      >
+        {cerrando ? "Cerrando…" : "Cerrar consulta"}
+      </button>
+    </div>
   );
 }

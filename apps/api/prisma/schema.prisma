@@ -186,6 +186,12 @@ model Caso {
   grabacionUrl    String?
   grabacionExpiraEl DateTime?
 
+  // Sala de video de ESTE caso (Sergio, 2026-09-29) — se completa recién al
+  // pasar a EN_SESION (ver CasosService.iniciarSesion / VideoService).
+  // Nullable a propósito: sigue null mientras no haya un proveedor real
+  // conectado (ver módulo `video`), no es un dato que falte cargar.
+  salaVideoUrl    String?
+
   pago            Pago?
   disputaCalidad  DisputaCalidad?
 

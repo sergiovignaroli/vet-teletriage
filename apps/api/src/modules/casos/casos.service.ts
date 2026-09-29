@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
+import { VideoService } from "../video/video.service";
 import {
   BanderasRojasIntake,
   CARGO_PLATAFORMA,
@@ -31,7 +32,10 @@ interface CrearCasoInput {
 
 @Injectable()
 export class CasosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly video: VideoService,
+  ) {}
 
   // Sección 4 del contrato: el cargo de plataforma se fija según la franja
   // horaria al crear el caso. honorarioBase se calcula acá mismo (franja +
@@ -201,6 +205,13 @@ export class CasosService {
   // monto acá: el precio quedó congelado en el momento en que el cliente
   // eligió, precisamente para que sea el total que le prometimos, no uno
   // que cambie según cuándo el veterinario efectivamente se conecte.
+  //
+  // Acá mismo se crea la sala de video (Sergio, 2026-09-29) — tiene sentido
+  // recién ahora, no antes: no hace falta sala mientras el caso solo está
+  // ASIGNADO y nadie se conectó todavía. VideoService.crearSala() puede
+  // devolver null (sin proveedor real conectado, ver módulo `video`) — eso
+  // NUNCA bloquea el paso a EN_SESION, la sala es un detalle de cómo se
+  // hace la consulta, no una condición para que empiece.
   async iniciarSesion(casoId: string, veterinarioId: string) {
     const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
     if (!caso) throw new BadRequestException("Caso no encontrado");
@@ -211,9 +222,11 @@ export class CasosService {
       throw new BadRequestException("Este caso no está en condiciones de iniciarse");
     }
 
+    const salaVideoUrl = await this.video.crearSala(casoId);
+
     return this.prisma.caso.update({
       where: { id: casoId },
-      data: { estado: "EN_SESION", iniciadoEl: new Date() },
+      data: { estado: "EN_SESION", iniciadoEl: new Date(), salaVideoUrl },
     });
   }
 

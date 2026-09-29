@@ -147,6 +147,12 @@ export interface CasoResumen {
   // desde ese momento.
   honorarioDeclarado: number | null;
   cargoPlataforma: number;
+  // Se completa al pasar a EN_SESION (ver CasosService.iniciarSesion) —
+  // null hasta entonces, y también null si todavía no hay un proveedor de
+  // video real conectado (Sergio, 2026-09-29: interfaz agnóstica lista,
+  // proveedor pendiente de una prueba de carga). Nunca asumir que null acá
+  // significa "sesión no arrancó" sin mirar `estado` primero.
+  salaVideoUrl: string | null;
 }
 
 // Lo que devuelve GET /casos/:id/para-elegir — un veterinario conectado y

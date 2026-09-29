@@ -175,6 +175,19 @@ conviene volver a separarla en `preDeployCommand`.
   `include` normal (a diferencia de `Calificacion`, que se cruza a mano). Dejar clara la frontera de
   Sección 10 en el propio texto de la pantalla: como mucho reembolsa el cargo de plataforma, nunca afecta al
   veterinario más allá de la revisión.
+- **Sala de video (interfaz agnóstica) + cierre de caso desde la app (Sergio, 2026-09-29: "armá la interfaz
+  ahora")**: dos huecos reales encontrados juntos — ningún caso llegaba nunca a `CERRADO` porque
+  `apps/web` no tenía ningún botón para `PATCH /casos/:id/cerrar` (aunque el backend ya lo soportaba desde
+  antes), así que el circuito de calificación/reporte de arriba no tenía cómo activarse en la práctica; y
+  "Iniciar videollamada" no creaba ninguna sala real. Se resolvieron juntos porque viven en la misma tarjeta
+  de UI. Nuevo módulo `video` en `apps/api` con una interfaz `ProveedorVideo` (`crearSala(casoId)`) e
+  implementación `PlaceholderVideoProvider` que devuelve `null` — nunca una URL inventada que parezca
+  funcionar sin funcionar. `CasosService.iniciarSesion()` llama a `VideoService.crearSala()` al pasar a
+  `EN_SESION` y guarda el resultado en `Caso.salaVideoUrl` (nuevo campo, migración
+  `20260929130000_sala_video_url`). En `panel-veterinario`, un caso `EN_SESION` muestra el link a la sala (o
+  "coordiná por WhatsApp" si `salaVideoUrl` es `null`) y un formulario de cierre (clasificación +
+  notas → `PATCH /casos/:id/cerrar`); en `/panel` (cliente) se ve el mismo link o el mismo aviso, sin
+  formulario de cierre — cerrar el caso es una decisión del veterinario, no del cliente.
 - **Guards de autorización aplicados a todo lo que quedaba abierto**: crear un caso, iniciar/cerrar una
   sesión, calificar y liquidar un pago ahora exigen el rol correcto Y que quien llama sea efectivamente el
   cliente o veterinario dueño de ese caso — el id nunca sale del body, sale del JWT. Antes de este cambio,
@@ -265,20 +278,21 @@ conviene volver a separarla en `preDeployCommand`.
 - **No hay alta pública de admins, a propósito**: la primera cuenta de staff (y cualquier otra) se crea con
   `POST /auth/admin/registrar` detrás de `ADMIN_API_KEY` — no hay ninguna pantalla para eso ni la va a haber,
   es deliberado (ver sección de disputas arriba).
-- **Ningún flujo real de videollamada todavía**: "Iniciar videollamada" (panel del veterinario) solo mueve
-  el estado del caso a `EN_SESION` — no abre ninguna sala de video real, porque el proveedor (Twilio /
-  Daily.co / Zoom Video SDK) sigue pendiente de la prueba de carga de Sergio (ver abajo). El circuito de
-  calificación de arriba asume que ese paso ya se resolvió de alguna forma (por ahora, probablemente
-  telefónica/manual) antes de que el veterinario cierre el caso.
+- **Todavía sin proveedor de video real conectado**: la interfaz ya está (ver arriba), pero
+  `PlaceholderVideoProvider` devuelve `null` siempre — hasta que Sergio corra la prueba de carga y elija
+  Twilio / Daily.co / Zoom Video SDK, `salaVideoUrl` va a seguir vacío y las pantallas van a seguir mostrando
+  "coordiná por WhatsApp". Conectar el proveedor real es escribir una clase nueva que implemente
+  `ProveedorVideo` y cambiar un `useClass` en `video.module.ts` — no tocar `casos.service.ts` ni ninguna
+  pantalla.
 
 ## Próximo paso sugerido
 
 Con los tres flujos (paciente, veterinario, admin) conectados de punta a punta — matching por elección de
 precio+rating, calificación y reporte de problemas ya alimentando el sistema, habilitación automática de
-veterinarios — el único hueco que impide que una consulta real se complete de principio a fin es el
-**proveedor de video** (Sergio, 2026-09-29: siguiente en la lista después de esto). Hoy "Iniciar
-videollamada" solo cambia el estado del caso; no hay ninguna sala real. El resto es menos código y más
-decisiones/infraestructura: que Sergio reemplace los valores placeholder de
+veterinarios, y ahora el caso cerrándose de verdad (con o sin sala de video real) — lo que queda es menos
+código y más decisiones/infraestructura: elegir el **proveedor de video** (la interfaz ya está armada y
+lista para recibirlo — ver arriba — solo falta la prueba de carga de Sergio y escribir una clase que
+implemente `ProveedorVideo`), que Sergio reemplace los valores placeholder de
 `HONORARIO_BASE`/`RECARGO_URGENCIA_PORCENTAJE` por precio de mercado real, cargue credenciales reales de
 Truora para que la habilitación automática funcione de punta a punta (hoy el código está listo pero sin
 credenciales todo cae en la cola manual), que re-suba `landing-full.html` a Wix para que el link a
