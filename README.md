@@ -73,8 +73,14 @@ Sin acceso a un Render real desde este entorno, lo de arriba se verificó localm
 en sí: `npm install`, `npx prisma generate --schema=apps/api/prisma/schema.prisma`, `npm run build
 --workspace=@vet-teletriage/api`, `npm run build --workspace=@vet-teletriage/web` y `npm run start
 --workspace=@vet-teletriage/web` (bindea a `$PORT`, probado) corren limpios — lo único no probado en este
-entorno es `preDeployCommand` (`prisma migrate deploy`) contra una base real, y el wireo cruzado
-`RENDER_EXTERNAL_URL` entre los dos servicios, que es comportamiento de Render y no se puede simular acá.
+entorno es `prisma migrate deploy` contra una base real, y el wireo cruzado `RENDER_EXTERNAL_URL` entre los
+dos servicios, que es comportamiento de Render y no se puede simular acá.
+
+**Nota de la primera corrida real (2026-09-28):** el plan free de Render no soporta `preDeployCommand` —
+Render lo rechazó al crear el Blueprint. La migración (`prisma migrate deploy`) quedó movida al final de
+`buildCommand` del servicio `api` en vez de en `preDeployCommand`; es seguro porque `migrate deploy` no
+hace nada si no hay migraciones pendientes. Si en algún momento se pasa `api` a un plan pago, ahí sí
+conviene volver a separarla en `preDeployCommand`.
 
 ## Lo que ya está implementado (compilado y buildeado, no solo escrito)
 

@@ -30,10 +30,11 @@ services:
     name: vet-teletriage-api
     plan: free
     region: virginia
-    buildCommand: npm install && npx prisma generate --schema=apps/api/prisma/schema.prisma && npm run build --workspace=@vet-teletriage/api
-    # Corre después del build pero antes de arrancar el servidor nuevo — el
-    # lugar recomendado por Render para migraciones (no en buildCommand).
-    preDeployCommand: npm run prisma:deploy --workspace=@vet-teletriage/api
+    # `preDeployCommand` (el lugar recomendado por Render para migraciones)
+    # no está disponible en el plan free, así que la migración va acá, al
+    # final del build. `prisma migrate deploy` es seguro de correr de nuevo
+    # aunque no haya nada pendiente — no hace nada, no falla.
+    buildCommand: npm install && npx prisma generate --schema=apps/api/prisma/schema.prisma && npm run build --workspace=@vet-teletriage/api && npm run prisma:deploy --workspace=@vet-teletriage/api
     startCommand: npm run start --workspace=@vet-teletriage/api
     envVars:
       - key: NODE_VERSION
