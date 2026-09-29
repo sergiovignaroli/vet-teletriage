@@ -25,18 +25,17 @@ export function franjaHorariaDe(fecha: Date): FranjaHoraria {
 // señal que ya existe, no hace falta pedir nada nuevo); cada veterinario
 // conectado aplica su propio margenPorcentaje sobre esa base.
 //
-// VALORES PLACEHOLDER — Sergio los tiene que reemplazar por precio de
-// mercado real antes de ir a producción; están acá para que el cálculo
-// funcione de punta a punta mientras tanto, igual que CARGO_PLATAFORMA
-// cuando se armó por primera vez.
+// Precio de mercado real, definido por Sergio el 2026-09-29 (reemplaza a
+// los valores placeholder $3.500/$4.000 con los que se armó el cálculo).
 export const HONORARIO_BASE: Record<FranjaHoraria, number> = {
-  DIURNA: 3500,
-  NOCTURNA: 4000,
+  DIURNA: 30000,
+  NOCTURNA: 40000,
 };
 
 // % que se suma al honorario base cuando el intake disparó alguna bandera
-// roja (más urgencia). Placeholder — ajustar.
-export const RECARGO_URGENCIA_PORCENTAJE = 20;
+// roja (más urgencia). Definido por Sergio el 2026-09-29 (reemplaza el 20%
+// placeholder).
+export const RECARGO_URGENCIA_PORCENTAJE = 5;
 
 // Rango dentro del cual cada veterinario puede mover su honorario final
 // respecto del honorarioBase (Sergio, 2026-09-29: por porcentaje, igual
