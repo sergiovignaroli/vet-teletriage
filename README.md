@@ -157,6 +157,15 @@ conviene volver a separarla en `preDeployCommand`.
   navegador puro (sin `globals.css`) desde que se armó el wiring del intake — ahora usa el mismo logo,
   tipografías y `.va-boton` que `/ingresar`, con enlaces a iniciar consulta, ingresar como cliente e ingresar
   como veterinario.
+- **Circuito de calificación (estrellitas), cerrado de punta a punta (Sergio, 2026-09-29)**: `POST
+  /calificaciones` ya existía en el backend desde hace tiempo, pero ninguna pantalla de `apps/web` lo
+  llamaba nunca — el sistema de calificación que sostiene el piso de calidad del matching y los
+  puntos-premio no tenía forma real de alimentarse. Ahora `/panel` tiene una sección "Mis consultas"
+  (`GET /casos/mios-cliente`, nuevo — historial del cliente con el veterinario asignado y si ya calificó
+  cada caso) y, para un caso `CERRADO` sin calificar, un link a `/calificar/[casoId]` (selector de 1 a 5
+  estrellas + comentario opcional). No se agregó un `GET /casos/:id` nuevo solo para esta pantalla: reutiliza
+  la misma lista de `mios-cliente` y busca el caso puntual ahí, mismo criterio de no multiplicar endpoints
+  por pantalla que ya se usa en el resto de la app.
 - **Guards de autorización aplicados a todo lo que quedaba abierto**: crear un caso, iniciar/cerrar una
   sesión, calificar y liquidar un pago ahora exigen el rol correcto Y que quien llama sea efectivamente el
   cliente o veterinario dueño de ese caso — el id nunca sale del body, sale del JWT. Antes de este cambio,
@@ -247,6 +256,15 @@ conviene volver a separarla en `preDeployCommand`.
 - **No hay alta pública de admins, a propósito**: la primera cuenta de staff (y cualquier otra) se crea con
   `POST /auth/admin/registrar` detrás de `ADMIN_API_KEY` — no hay ninguna pantalla para eso ni la va a haber,
   es deliberado (ver sección de disputas arriba).
+- **El cliente todavía no puede abrir una disputa de calidad desde la app**: `POST /disputas/calidad`
+  (`@Roles("CLIENTE")`) existe en el backend y ya resuelve reembolso del cargo de plataforma cuando
+  corresponde, pero no hay ningún botón en `apps/web` que lo llame — hoy solo se puede abrir a mano contra
+  la API. Candidato natural para la próxima pasada de pantallas.
+- **Ningún flujo real de videollamada todavía**: "Iniciar videollamada" (panel del veterinario) solo mueve
+  el estado del caso a `EN_SESION` — no abre ninguna sala de video real, porque el proveedor (Twilio /
+  Daily.co / Zoom Video SDK) sigue pendiente de la prueba de carga de Sergio (ver abajo). El circuito de
+  calificación de arriba asume que ese paso ya se resolvió de alguna forma (por ahora, probablemente
+  telefónica/manual) antes de que el veterinario cierre el caso.
 
 ## Próximo paso sugerido
 

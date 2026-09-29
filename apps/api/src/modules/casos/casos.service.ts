@@ -164,6 +164,34 @@ export class CasosService {
     });
   }
 
+  // Historial del CLIENTE — sin esto no había ninguna forma de que el
+  // cliente volviera a ver un caso una vez que salía de la pantalla de
+  // "elegí veterinario", ni de saber que terminó, ni de calificarlo
+  // (Sergio, 2026-09-29: el sistema de estrellitas es el corazón del
+  // producto y no tenía por dónde alimentarse desde la app).
+  //
+  // Calificacion.casoId es un campo único pero no una relación de Prisma
+  // (no hay @relation hacia Caso en el schema), así que no se puede
+  // resolver con un include anidado — se consulta aparte y se cruza acá.
+  async misCasosCliente(clienteId: string) {
+    const casos = await this.prisma.caso.findMany({
+      where: { clienteId },
+      include: {
+        intake: true,
+        veterinario: { select: { id: true, nombre: true, apellido: true } },
+      },
+      orderBy: { creadoEl: "desc" },
+    });
+
+    const calificaciones = await this.prisma.calificacion.findMany({
+      where: { casoId: { in: casos.map((c) => c.id) } },
+      select: { casoId: true },
+    });
+    const calificados = new Set(calificaciones.map((c) => c.casoId));
+
+    return casos.map((caso) => ({ ...caso, yaCalificado: calificados.has(caso.id) }));
+  }
+
   // El veterinario confirma que arranca la videollamada de un caso que el
   // CLIENTE ya le asignó (ver asignar()) — ya no fija ni recalcula ningún
   // monto acá: el precio quedó congelado en el momento en que el cliente

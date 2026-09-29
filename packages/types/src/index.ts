@@ -176,12 +176,23 @@ export interface IntakeResumen extends BanderasRojasIntake {
   antecedentes?: string;
 }
 
-// Lo que devuelven GET /casos/disponibles y GET /casos/mios — un CasoResumen
-// con el intake adentro, para que el veterinario decida si lo toma sin tener
-// que abrir el caso primero. creadoEl llega como string ISO (JSON no tiene
-// tipo Date), no como Date.
+// Lo que devuelve GET /casos/mios (veterinario) — un CasoResumen con el
+// intake adentro, para que el veterinario decida/revise sin tener que abrir
+// el caso primero. creadoEl llega como string ISO (JSON no tiene tipo
+// Date), no como Date.
 export interface CasoParaVeterinario extends CasoResumen {
   creadoEl: string;
   intake: IntakeResumen;
   cierre?: { clasificacion: ClasificacionCierre; notas?: string | null } | null;
+}
+
+// Lo que devuelve GET /casos/mios-cliente — el historial del cliente, con
+// el veterinario asignado (si ya eligió uno) y si ese caso ya fue
+// calificado, para que la pantalla sepa cuándo mostrar el CTA de calificar
+// sin tener que pegarle a /calificaciones aparte por cada caso.
+export interface CasoParaCliente extends CasoResumen {
+  creadoEl: string;
+  intake: IntakeResumen;
+  veterinario: { id: string; nombre: string; apellido: string } | null;
+  yaCalificado: boolean;
 }

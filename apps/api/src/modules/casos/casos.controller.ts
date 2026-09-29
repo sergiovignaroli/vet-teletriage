@@ -55,6 +55,17 @@ export class CasosController {
     return this.casos.misCasos(usuario.id);
   }
 
+  // Historial del CLIENTE — ruta separada de "mios" (no la misma con rol
+  // distinto) porque la forma de la respuesta es otra: acá interesa el
+  // veterinario asignado y si ya se calificó, no el intake para decidir si
+  // tomarlo.
+  @Get("mios-cliente")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("CLIENTE")
+  misCasosCliente(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.casos.misCasosCliente(usuario.id);
+  }
+
   // El veterinario confirma el inicio de un caso que el cliente ya le
   // asignó — el veterinarioId sale del JWT, nunca del body.
   @Patch(":id/iniciar")
