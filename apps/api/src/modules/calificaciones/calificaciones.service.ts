@@ -30,6 +30,15 @@ export class CalificacionesService {
     if (caso.veterinarioId !== veterinarioId) {
       throw new BadRequestException("Ese veterinario no atendió este caso");
     }
+    // Situación probable (encontrada 2026-09-29, no pedida puntualmente): el
+    // frontend solo ofrece calificar un caso CERRADO, pero nada acá lo
+    // exigía — con la URL de un caso propio todavía ASIGNADO o EN_SESION
+    // (el veterinarioId ya está seteado en ambos) se podía calificar una
+    // consulta que ni siquiera terminó, ensuciando el promedio real del
+    // veterinario y sus puntos-premio.
+    if (caso.estado !== "CERRADO") {
+      throw new BadRequestException("Todavía no se puede calificar — la consulta no terminó");
+    }
 
     const calificacion = await this.prisma.calificacion.create({
       data: { veterinarioId, casoId, estrellas, comentario },

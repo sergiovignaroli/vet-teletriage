@@ -107,6 +107,17 @@ export class DisputasService {
     if (caso.clienteId !== clienteId) {
       throw new ForbiddenException("No podés abrir una disputa sobre un caso que no es tuyo");
     }
+    // Situación probable (encontrada 2026-09-29, no pedida puntualmente): el
+    // frontend solo muestra el link de "reportar un problema" para un caso
+    // CERRADO, pero nada acá lo exigía — cualquier cliente que adivinara o
+    // guardara la URL con el casoId de una consulta todavía en INTAKE,
+    // ASIGNADO o EN_SESION podía abrir una disputa sobre algo que ni
+    // siquiera terminó. Además, resolverDisputaCalidad() con hacerLugar
+    // asume un Pago ya capturado para reembolsar — un caso que nunca llegó
+    // a CERRADO puede no tener Pago todavía.
+    if (caso.estado !== "CERRADO") {
+      throw new BadRequestException("Todavía no se puede reportar un problema — la consulta no terminó");
+    }
 
     return this.prisma.disputaCalidad.create({ data: { casoId, motivo } });
   }

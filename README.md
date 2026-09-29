@@ -263,6 +263,15 @@ conviene volver a separarla en `preDeployCommand`.
   contratar". De paso, un comentario en `intake/page.tsx` (no visible para el usuario, pero engañoso para
   quien lea el código) seguía describiendo el flujo viejo de `iniciar()`; actualizado para reflejar que el
   precio se calcula en `asignar()`, no en `iniciar()`.
+- **Calificar o reportar un problema sobre un caso que todavía no terminó (situación probable, 2026-09-29)**:
+  tanto `CalificacionesService.registrar()` como `DisputasService.abrirDisputaCalidad()` solo validaban
+  dueño del caso (y, para calificar, que el veterinario coincida) — ninguno de los dos exigía
+  `caso.estado === "CERRADO"`. El frontend solo ofrece esos links para un caso `CERRADO`, pero con la URL de
+  un caso propio todavía `ASIGNADO` o `EN_SESION` (el veterinario ya está asignado en ambos estados) se podía
+  calificar o abrir una disputa sobre una consulta que ni siquiera terminó — ensuciando el promedio real del
+  veterinario y sus puntos-premio, y dejando una disputa de calidad sin `Pago` capturado para reembolsar si
+  un admin le hacía lugar. Ahora los dos métodos rechazan explícitamente cualquier caso que no esté
+  `CERRADO`.
 
 ## Lo que falta (a propósito, no por error)
 
