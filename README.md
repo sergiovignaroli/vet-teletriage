@@ -65,9 +65,12 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   puntos-premio con regla placeholder (10 puntos si estrellas ≥ 4) — el mecanismo funciona, el umbral y el
   valor exacto son decisiones de negocio pendientes de Sergio, aisladas en un solo lugar del código para
   ajustarlas sin tocar el resto.
-- **Formulario de intake en `apps/web/app/intake`**: las 8 banderas rojas de la Sección 9, con el aviso de
-  emergencia calculado en el cliente en tiempo real y sin bloquear el flujo — tal como lo describe el
-  contrato.
+- **Formulario de intake en `apps/web/app/intake`, conectado de punta a punta**: las 8 banderas rojas de la
+  Sección 9, con el aviso de emergencia calculado en el cliente en tiempo real y sin bloquear el flujo, y el
+  botón "Buscar veterinario disponible" ya llama de verdad a `POST /casos` con el token del cliente logueado
+  (antes era cosmético, sin `onClick`). Si no hay sesión, redirige a `/ingresar`. Al crear el caso muestra una
+  confirmación honesta sobre lo que pasa hoy (dispatch manual, contacto por WhatsApp), no una pantalla de
+  "buscando veterinario" en vivo que todavía no existe.
 - **Módulo `auth`**: login de veterinarios con email + contraseña (bcrypt, JWT de 12 h) y login de
   clientes sin contraseña vía código OTP enviado por WhatsApp Cloud API (el teléfono es el identificador,
   no el email — no pide nombre/email para no meter fricción en un flujo de emergencia). Probado de punta a
@@ -107,6 +110,12 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 
 ## Lo que falta (a propósito, no por error)
 
+- **`honorarioDeclarado` sale en 0 desde el intake — esto es un placeholder, no una decisión de precios**:
+  hoy no hay motor de precios ni selección de veterinario (Fase 2), así que `apps/web/app/intake/page.tsx`
+  manda `HONORARIO_DECLARADO_PLACEHOLDER = 0` en vez de inventar un número. Antes de un lanzamiento real hay
+  que decidir con Sergio cómo se fija este valor (¿lo declara el cliente? ¿lo fija el dispatcher al asignar
+  el caso a mano? ¿un precio fijo por ahora, estilo Uber, como plantea el proyecto?) — todo caso creado desde
+  el intake hoy queda con honorario 0 hasta que se resuelva esto.
 - **Creación de la preferencia de pago con split**: la conexión OAuth del veterinario ya guarda su
   `access_token`, pero falta el código que arma el checkout con `marketplace_fee` usando ese token —
   necesita al menos un veterinario conectado de verdad para poder probarlo contra la API real.
@@ -132,6 +141,8 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 
 ## Próximo paso sugerido
 
-Elegir el proveedor de video (Sergio es el único que puede correr la prueba de carga) — es la única pieza
-del frontend que cambia de forma significativa según cuál se elija, y ya no hay nada más bloqueando el
-arranque técnico del lado del backend.
+Dos cosas quedaron abiertas del lado del producto, sin que una bloquee a la otra: decidir cómo se fija el
+`honorarioDeclarado` (ver arriba — hoy es un placeholder en 0), y construir el lado del veterinario
+(login, dashboard, onboarding). Del lado técnico puro, elegir el proveedor de video (Sergio es el único que
+puede correr la prueba de carga) sigue siendo la única pieza del frontend que cambia de forma significativa
+según cuál se elija.

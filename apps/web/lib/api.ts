@@ -36,6 +36,17 @@ export function apiPost<T>(path: string, body?: unknown) {
   return pedido<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
 }
 
+// Variante autenticada — mismo criterio que apiPatch: el token va en el
+// header, nunca en el body, para que no haya forma de "armar" un caso a
+// nombre de otro cliente desde el cliente HTTP.
+export function apiPostAuth<T>(path: string, token: string, body?: unknown) {
+  return pedido<T>(path, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
 export function apiPatch<T>(path: string, token: string, body?: unknown) {
   return pedido<T>(path, {
     method: "PATCH",
