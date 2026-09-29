@@ -329,6 +329,14 @@ conviene volver a separarla en `preDeployCommand`.
   iniciada. Nuevo endpoint público `GET /veterinarios/directorio` (sin guard — es contenido de
   marketing/confianza, nunca expone email/teléfono/matrícula) y nueva pantalla pública `/veterinarios`, con
   link agregado desde la home.
+- **Caso urgente (bandera roja) sin botón para elegir veterinario en `/panel` (bug encontrado al cerrar el
+  barrido completo de las 14 pantallas, 2026-09-29)**: `panel/page.tsx` mostraba la etiqueta "Elegí un
+  veterinario para continuar" para el estado `BANDERA_ROJA_MOSTRADA` (igual que para `INTAKE`), pero el botón
+  "Elegir veterinario" solo se renderizaba cuando `caso.estado === "INTAKE"` — un caso urgente nunca entra en
+  ese `if`. En el flujo normal no se nota (`intake/page.tsx` redirige directo a `/elegir-veterinario/:id` al
+  crear el caso, sin pasar por `/panel`), pero un cliente que cierra la pestaña antes de elegir y vuelve
+  después a `/panel` para retomarlo se quedaba con el texto pero sin ninguna forma de actuar. Corregido para
+  que el botón también se muestre en `BANDERA_ROJA_MOSTRADA`.
 
 ## Lo que falta (a propósito, no por error)
 

@@ -150,7 +150,7 @@ export default function PanelPage() {
               )}
             </p>
 
-            {caso.estado === "INTAKE" && (
+            {(caso.estado === "INTAKE" || caso.estado === "BANDERA_ROJA_MOSTRADA") && (
               <Link
                 href={`/elegir-veterinario/${caso.id}`}
                 className="va-boton"
