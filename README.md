@@ -117,6 +117,11 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   tarea de cuando se construya el matching real.
 - **Refresh token**: el JWT actual no tiene renovación automática — vence a las 12 h y hay que loguearse de
   nuevo (aceptable para el MVP). La revocación anticipada (logout forzado) sí está resuelta, ver arriba.
+- **Onboarding de producto sin dashboard que lo muestre**: `Cliente.onboardingCompletado` y
+  `Veterinario.onboardingCompletado` ya existen en el schema, el login/registro ya devuelve el valor, y
+  `PATCH auth/onboarding-completado` ya lo marca. Falta el otro lado: `apps/web` hoy no tiene login, sesión
+  ni dashboard — son 3 páginas sueltas (landing vieja, intake público, layout base) sin nada que leer ese
+  flag. Construir esa base y el onboarding de 3 pantallas sobre ella es la próxima tarea de frontend.
 
 ## Próximo paso sugerido
 

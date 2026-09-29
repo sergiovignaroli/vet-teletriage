@@ -61,6 +61,7 @@ export class AuthService {
 
     return this.emitirToken(veterinario.id, "VETERINARIO", veterinario.tokenVersion, {
       estado: veterinario.estado,
+      onboardingCompletado: veterinario.onboardingCompletado,
     });
   }
 
@@ -75,6 +76,7 @@ export class AuthService {
 
     return this.emitirToken(veterinario.id, "VETERINARIO", veterinario.tokenVersion, {
       estado: veterinario.estado,
+      onboardingCompletado: veterinario.onboardingCompletado,
     });
   }
 
@@ -147,7 +149,38 @@ export class AuthService {
       data: { otpCodeHash: null, otpExpiraEl: null, otpIntentos: 0 },
     });
 
-    return this.emitirToken(cliente.id, "CLIENTE", actualizado.tokenVersion, { clienteId: cliente.id });
+    return this.emitirToken(cliente.id, "CLIENTE", actualizado.tokenVersion, {
+      clienteId: cliente.id,
+      onboardingCompletado: actualizado.onboardingCompletado,
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Onboarding de producto — recorrido guiado de 3 pantallas la primera vez
+  // que se entra a la app (landing/marketing es aparte, esto es dentro del
+  // producto). Un solo endpoint para ambos roles: cada uno pega a su propia
+  // tabla según el rol que ya viene autenticado en el JWT, nunca a criterio
+  // del body (mismo criterio que el resto de la app — ver current-user.decorator.ts).
+  // -------------------------------------------------------------------------
+  async marcarOnboardingCompletado(usuario: { id: string; rol: "VETERINARIO" | "CLIENTE" | "ADMIN" }) {
+    // RolesGuard ya restringe este endpoint a CLIENTE/VETERINARIO (ver
+    // auth.controller.ts) — este chequeo es defensivo, no el único filtro.
+    if (usuario.rol === "ADMIN") {
+      throw new BadRequestException("El onboarding de producto no aplica a cuentas de staff");
+    }
+
+    if (usuario.rol === "CLIENTE") {
+      await this.prisma.cliente.update({
+        where: { id: usuario.id },
+        data: { onboardingCompletado: true },
+      });
+    } else {
+      await this.prisma.veterinario.update({
+        where: { id: usuario.id },
+        data: { onboardingCompletado: true },
+      });
+    }
+    return { onboardingCompletado: true };
   }
 
   // -------------------------------------------------------------------------

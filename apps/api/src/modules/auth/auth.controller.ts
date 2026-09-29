@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Patch, Post, UseGuards } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { RolesGuard } from "./roles.guard";
@@ -48,5 +48,15 @@ export class AuthController {
   @Post("admin/login")
   loginAdmin(@Body() body: { email: string; password: string }) {
     return this.auth.loginAdmin(body.email, body.password);
+  }
+
+  // Se llama al terminar (o saltar) el onboarding de 3 pantallas dentro de
+  // la app. El rol sale del JWT — nunca del body — así que un cliente no
+  // puede marcar el onboarding de otro ni tocar el de un veterinario.
+  @Patch("onboarding-completado")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("CLIENTE", "VETERINARIO")
+  marcarOnboardingCompletado(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.auth.marcarOnboardingCompletado(usuario);
   }
 }

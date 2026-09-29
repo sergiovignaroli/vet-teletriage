@@ -40,6 +40,12 @@ model Veterinario {
   estado            EstadoVeterinario @default(PENDIENTE_VERIFICACION)
   disponible        Boolean           @default(false)
 
+  // Onboarding de producto (no confundir con habilitación de la Sección 2):
+  // recorrido guiado de 3 pantallas la primera vez que entra a la app.
+  // false hasta que lo termine o lo salte — de ahí en más no se le vuelve
+  // a mostrar.
+  onboardingCompletado Boolean        @default(false)
+
   // Ubicación para matching por proximidad (Sección 11)
   latitud           Float?
   longitud          Float?
@@ -102,6 +108,9 @@ model Cliente {
   otpExpiraEl   DateTime?
   otpIntentos   Int      @default(0)
   tokenVersion  Int      @default(0) // ver comentario en Veterinario.tokenVersion
+
+  // Onboarding de producto — ver comentario en Veterinario.onboardingCompletado
+  onboardingCompletado Boolean @default(false)
 
   casos         Caso[]
   creadoEl      DateTime @default(now())
