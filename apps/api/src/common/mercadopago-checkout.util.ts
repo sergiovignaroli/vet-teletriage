@@ -16,21 +16,40 @@
 //   cerrar la consulta — y lo que corresponda se reembolsa después según la
 //   clasificación de cierre (ver CARGO_NO_COMPLETADO en @vet-teletriage/types).
 //
-// [Probable] — a diferencia de lo anterior, esto NO está verificado contra
-// un pago real de prueba (no hay credenciales de Mercado Pago cargadas en
-// este entorno, y sandbox no está accesible desde acá): (1) qué access_token
-// corresponde usar para leer de vuelta el detalle de un pago split desde el
-// webhook — la documentación no lo especifica, así que se usa acá el
+// [Seguro, corrección 2026-09-29] — un reembolso sobre un pago con split se
+// reparte SIEMPRE de forma proporcional entre vendedor y marketplace, según
+// lo que cada uno cobró originalmente — verificado contra la documentación
+// oficial:
+// https://www.mercadopago.com.br/developers/en/docs/split-payments/split-1-1/integration-configuration/integrate-marketplace
+// ("the amount due to the final customer will be divided and subtracted
+// from the seller's account and the Marketplace's account, in a
+// PROPORTIONAL way"). El body del refund es solo {"amount": <número>} — no
+// existe ningún campo para pedir "sacale 100% a uno, una porción distinta
+// al otro". Esto descarta el diseño anterior de este archivo (dos llamadas
+// independientes, una contra cada cuenta, para lograr un reembolso
+// asimétrico) — dos llamadas no logran ese resultado, porque cada una
+// individualmente ya reparte proporcional entre ambas cuentas.
+//
+// La consecuencia concreta está en pagos.service.ts (liquidarSegunCierre /
+// reembolsarCargoPlataforma): solo se automatiza UNA llamada de reembolso
+// parcial cuando el resultado que le importa al tutor (cuánto le vuelve) se
+// puede lograr con una sola llamada sin arriesgar de más; el reparto
+// interno entre vet y plataforma que quede imperfecto por la
+// proporcionalidad se anota para acción manual, nunca se intenta forzar con
+// una segunda llamada.
+//
+// [Probable] — esto sigue sin verificarse contra un pago real (no hay
+// credenciales de Mercado Pago cargadas en este entorno, y sandbox no está
+// accesible desde acá): (1) qué access_token corresponde usar para leer de
+// vuelta el detalle de un pago split desde el webhook — se usa el
 // access_token PROPIO de la plataforma (MERCADOPAGO_ACCESS_TOKEN), asumiendo
-// que, al ser la app marketplace registrada, tiene visibilidad sobre los
-// pagos hechos a través de sus vendedores conectados; y (2) si un reembolso
-// parcial de un pago con marketplace_fee necesita UNA llamada o DOS (una
-// contra la cuenta del vendedor por el honorario, otra contra la cuenta de
-// la plataforma por su parte del cargo) — acá se implementa como DOS
-// llamadas explícitas, una por cada cuenta, porque es el único diseño que
-// permite controlar los montos exactos que pidió Sergio (reembolso total al
-// tutor menos CARGO_NO_COMPLETADO). Antes de ir a producción con plata real,
-// esto se tiene que probar contra el sandbox real de Mercado Pago.
+// que la app marketplace registrada tiene visibilidad sobre los pagos de
+// sus vendedores conectados; y (2) que el reembolso parcial automatizado en
+// liquidarSegunCierre() se pueda pedir con el access_token del VENDEDOR
+// (colector del pago) — si Mercado Pago lo rechaza, probablemente haga
+// falta el token de la plataforma en su lugar. Antes de ir a producción con
+// plata real, esto se tiene que probar contra el sandbox real de Mercado
+// Pago.
 
 const MP_API_URL = "https://api.mercadopago.com";
 
@@ -119,8 +138,10 @@ export async function obtenerPagoMercadoPago(
   return respuesta.json();
 }
 
-// Reembolso parcial — se llama una vez por cuenta a reembolsar (ver nota
-// [Probable] arriba: el access_token determina de qué cuenta sale la plata).
+// Reembolso (total o parcial, según `monto`) — UNA sola llamada, nunca dos
+// para simular un reparto asimétrico (ver nota arriba: el reparto entre
+// vendedor y marketplace lo decide Mercado Pago, proporcional, no esta
+// llamada).
 export async function reembolsarPagoMercadoPago(
   paymentId: string,
   accessToken: string,

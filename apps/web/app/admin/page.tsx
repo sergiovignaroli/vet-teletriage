@@ -43,6 +43,27 @@ interface DisputaCalidadAbierta {
   };
 }
 
+interface PagoAccionManual {
+  id: string;
+  casoId: string;
+  estado: string;
+  montoTotal: string;
+  montoPendienteAccionManual: string;
+  notaAccionManual: string | null;
+  reembolsadoEl: string | null;
+  caso: {
+    cliente: { nombre: string | null; email: string | null; telefono: string } | null;
+    veterinario: { nombre: string; apellido: string; email: string } | null;
+  };
+}
+
+interface ResultadoReconciliar {
+  revisados: number;
+  liquidados: number;
+  fallidos: number;
+  errores: { casoId: string; error: string }[];
+}
+
 // Tarjeta base — mismo look en las tres secciones, para no repetir estilos.
 function Tarjeta({ children }: { children: React.ReactNode }) {
   return (
@@ -76,8 +97,12 @@ export default function AdminPage() {
   const [pendientes, setPendientes] = useState<VeterinarioPendiente[] | null>(null);
   const [disputasIdentidad, setDisputasIdentidad] = useState<DisputaIdentidadAbierta[] | null>(null);
   const [disputasCalidad, setDisputasCalidad] = useState<DisputaCalidadAbierta[] | null>(null);
+  const [pagosAccionManual, setPagosAccionManual] = useState<PagoAccionManual[] | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reconciliando, setReconciliando] = useState(false);
+  const [resultadoReconciliar, setResultadoReconciliar] = useState<ResultadoReconciliar | null>(null);
+  const [errorReconciliar, setErrorReconciliar] = useState<string | null>(null);
 
   useEffect(() => {
     if (sesion === null) router.replace("/admin/ingresar");
@@ -88,20 +113,48 @@ export default function AdminPage() {
     setCargando(true);
     setError(null);
     try {
-      const [pend, dispIdentidad, dispCalidad] = await Promise.all([
+      const [pend, dispIdentidad, dispCalidad, accionManual] = await Promise.all([
         apiGet<VeterinarioPendiente[]>("/veterinarios/pendientes", sesion.accessToken),
         apiGet<DisputaIdentidadAbierta[]>("/disputas/identidad/abiertas", sesion.accessToken),
         apiGet<DisputaCalidadAbierta[]>("/disputas/calidad/abiertas", sesion.accessToken),
+        apiGet<PagoAccionManual[]>("/pagos/accion-manual-pendiente", sesion.accessToken),
       ]);
       setPendientes(pend);
       setDisputasIdentidad(dispIdentidad);
       setDisputasCalidad(dispCalidad);
+      setPagosAccionManual(accionManual);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "No pudimos cargar el panel. Probá de nuevo.");
     } finally {
       setCargando(false);
     }
   }, [sesion]);
+
+  // Botón manual (Sergio, 2026-09-29 — "resolvé con criterio" el punto de
+  // "no hay reintento si falla la liquidación automática" de cerrar()): no
+  // hay cron in-process acá a propósito (ver comentario en
+  // PagosService.reconciliarPagosPendientes sobre por qué, en el free tier
+  // de Render, un cron in-process no es confiable). Un admin lo dispara a
+  // mano, o Sergio le puede enganchar después un pinger externo al mismo
+  // endpoint.
+  async function reconciliar() {
+    if (!sesion) return;
+    setReconciliando(true);
+    setErrorReconciliar(null);
+    try {
+      const resultado = await apiPostAuth<ResultadoReconciliar>("/pagos/reconciliar", sesion.accessToken);
+      setResultadoReconciliar(resultado);
+      // La reconciliación puede haber generado nuevos pendientes de acción
+      // manual (ej. un NO_COMPLETADO que recién ahora se pudo liquidar) —
+      // recargamos esa lista puntual en vez de todo el panel.
+      const accionManual = await apiGet<PagoAccionManual[]>("/pagos/accion-manual-pendiente", sesion.accessToken);
+      setPagosAccionManual(accionManual);
+    } catch (e) {
+      setErrorReconciliar(e instanceof ApiError ? e.message : "No pudimos reconciliar. Probá de nuevo.");
+    } finally {
+      setReconciliando(false);
+    }
+  }
 
   useEffect(() => {
     cargarTodo();
@@ -211,6 +264,66 @@ export default function AdminPage() {
       )}
       {disputasCalidad?.map((d) => (
         <DisputaCalidadItem key={d.id} disputa={d} onResolver={resolverCalidad} />
+      ))}
+
+      <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 28, marginBottom: 10 }}>
+        Mantenimiento de pagos
+      </h2>
+      <Tarjeta>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Reconciliar pagos pendientes</div>
+        <p style={{ fontSize: 12, opacity: 0.6, margin: "0 0 10px" }}>
+          Un caso cerrado normalmente liquida su pago solo. Si esa liquidación automática falló (Mercado Pago no
+          respondió, el pago todavía no estaba confirmado, etc.), queda colgado — este botón reintenta todos los
+          casos cerrados con un pago sin liquidar.
+        </p>
+        <button
+          type="button"
+          className="va-boton"
+          style={{ width: "auto", padding: "0 16px" }}
+          onClick={reconciliar}
+          disabled={reconciliando}
+        >
+          {reconciliando ? "Reconciliando…" : "Reconciliar pagos pendientes"}
+        </button>
+        {errorReconciliar && (
+          <p style={{ color: "var(--terracota)", fontSize: 12, marginTop: 8 }} role="alert">
+            {errorReconciliar}
+          </p>
+        )}
+        {resultadoReconciliar && (
+          <p style={{ fontSize: 12, marginTop: 8 }}>
+            Revisados: {resultadoReconciliar.revisados} · Liquidados: {resultadoReconciliar.liquidados} · Fallidos:{" "}
+            {resultadoReconciliar.fallidos}
+            {resultadoReconciliar.errores.length > 0 && (
+              <span style={{ display: "block", opacity: 0.7, marginTop: 4 }}>
+                {resultadoReconciliar.errores.map((e) => `${e.casoId.slice(0, 8)}…: ${e.error}`).join(" · ")}
+              </span>
+            )}
+          </p>
+        )}
+      </Tarjeta>
+
+      <h3 style={{ fontSize: 13, opacity: 0.7, fontWeight: 700, marginTop: 18, marginBottom: 8 }}>
+        Pendientes de acción manual {pagosAccionManual && `(${pagosAccionManual.length})`}
+      </h3>
+      <p style={{ fontSize: 12, opacity: 0.55, marginTop: 0, marginBottom: 10 }}>
+        Reembolsos que no se pudieron automatizar sin arriesgar tocarle de más al vet o de menos al tutor — ver el
+        detalle de cada uno.
+      </p>
+      {pagosAccionManual && pagosAccionManual.length === 0 && (
+        <p style={{ fontSize: 13, opacity: 0.55, marginBottom: 20 }}>Ninguno pendiente.</p>
+      )}
+      {pagosAccionManual?.map((p) => (
+        <Tarjeta key={p.id}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>
+            ${p.montoPendienteAccionManual}{" "}
+            <span style={{ fontWeight: 400, opacity: 0.6 }}>
+              ({p.caso.veterinario ? `${p.caso.veterinario.nombre} ${p.caso.veterinario.apellido}` : "vet"} · caso{" "}
+              {p.casoId.slice(0, 8)}…)
+            </span>
+          </div>
+          {p.notaAccionManual && <p style={{ fontSize: 12, opacity: 0.7, margin: "6px 0 0" }}>{p.notaAccionManual}</p>}
+        </Tarjeta>
       ))}
 
       <LegalFooter />

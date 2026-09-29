@@ -68,6 +68,27 @@ export class PagosController {
     return this.pagos.liquidarSegunCierre(casoId, usuario.id);
   }
 
+  // Botón "Reconciliar pagos pendientes" en /admin — reintenta la
+  // liquidación de todo caso CERRADO cuyo pago haya quedado colgado en
+  // AUTORIZADO (ver comentario en PagosService.reconciliarPagosPendientes
+  // sobre por qué esto es un botón manual y no un cron in-process).
+  @Post("reconciliar")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  reconciliar() {
+    return this.pagos.reconciliarPagosPendientes();
+  }
+
+  // Lista de pagos con un monto pendiente de acción manual (NO_COMPLETADO o
+  // disputa de calidad con lugar) — ver comentarios en
+  // PagosService.liquidarSegunCierre / reembolsarCargoPlataforma.
+  @Get("accion-manual-pendiente")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  accionManualPendiente() {
+    return this.pagos.listarConAccionManualPendiente();
+  }
+
   // El propio veterinario inicia la conexión de su cuenta de Mercado Pago
   // (Split 1:1) — requiere estar logueado, nunca un state adivinable.
   @Get("mercadopago/oauth/iniciar")

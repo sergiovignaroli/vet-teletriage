@@ -325,11 +325,39 @@ model Pago {
   creadoEl              DateTime      @default(now())
   pagadoEl              DateTime?     // cuando el webhook confirmó el pago aprobado
   capturadoEl           DateTime?     // solo bookkeeping: el cobro ya ocurrió en pagadoEl, acá se marca que no corresponde reembolso
-  reembolsadoEl         DateTime?
-  // NO_COMPLETADO (Sergio, 2026-09-29): reembolso total al tutor —
-  // honorario del veterinario incluido — MENOS CARGO_NO_COMPLETADO, que
-  // retiene la plataforma. Acá se guarda el total efectivamente devuelto.
+  reembolsadoEl         DateTime?     // cuando se ejecutó (vía API) el reembolso automático
+  // Monto efectivamente devuelto al tutor vía la API de Mercado Pago. En
+  // NO_COMPLETADO es (montoTotal - CARGO_NO_COMPLETADO), una única llamada
+  // de reembolso parcial — no el total. Ver el comentario de
+  // `montoPendienteAccionManual` para por qué no es el 100%.
   montoReembolsado      Decimal?      @db.Decimal(10, 2)
+
+  // [Seguro, verificado contra la documentación oficial de Mercado Pago]: un
+  // reembolso sobre un pago con split (marketplace_fee) se reparte de forma
+  // PROPORCIONAL entre vendedor y marketplace según la proporción original
+  // de cada uno en el cobro — no existe en la API un campo para pedir
+  // "sacale 100% al vendedor y una porción distinta a la mía". Esto tiene
+  // dos consecuencias distintas según el flujo:
+  //
+  // 1) NO_COMPLETADO (liquidarSegunCierre): automatizamos UN solo reembolso
+  //    parcial de (montoTotal - CARGO_NO_COMPLETADO) al tutor — eso sí es
+  //    seguro, porque cumple exactamente lo que el tutor ve ("te
+  //    devolvemos todo menos $X") sin arriesgar de más. Lo que queda
+  //    imperfecto es el reparto INTERNO de esos $X retenidos entre vet y
+  //    plataforma: Mercado Pago los reparte proporcional a lo que cada uno
+  //    cobró, no 100% a la plataforma como pide el contrato. Acá queda
+  //    anotado cuánto le quedó de más al vet de esos $X, para
+  //    descontárselo a mano en su próxima liquidación.
+  //
+  // 2) Disputa de calidad — "solo se reembolsa el cargo de plataforma,
+  //    nunca el honorario del vet" (Sección 8, ver disputas.service.ts):
+  //    acá NO se automatiza ninguna llamada a la API, ni siquiera parcial,
+  //    porque cualquier monto que se pida reembolsar sale proporcional del
+  //    vet también — violaría la regla de "nunca tocar el honorario del
+  //    veterinario". Todo el monto queda anotado para ejecución 100% manual
+  //    (coordinado directamente con el vet, fuera de la API de reembolsos).
+  montoPendienteAccionManual Decimal? @db.Decimal(10, 2)
+  notaAccionManual      String?
 }
 
 enum MedioDeCobroCliente {
@@ -342,7 +370,8 @@ enum EstadoPago {
   PENDIENTE            // preferencia creada, cliente todavía no completó el pago
   AUTORIZADO           // pago aprobado por Mercado Pago, sesión aún no cerrada
   CAPTURADO            // caso resuelto por orientación o derivado — cobro completo
-  REEMBOLSADO_PARCIAL  // solo el cargo de plataforma, por falla de plataforma (Sección 8)
+  REEMBOLSADO_TOTAL    // NO_COMPLETADO — reembolso 100% ejecutado vía API (ver montoPendienteAccionManual)
+  REEMBOLSADO_PARCIAL  // solo el cargo de plataforma, por falla de plataforma (Sección 8) — hoy vía acción manual, ver notaAccionManual
   CANCELADO            // no llegó a capturarse
 }
 

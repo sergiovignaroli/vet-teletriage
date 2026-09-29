@@ -295,9 +295,9 @@ export class CasosService {
     // segundo paso manual. Si falla (ej. el webhook de Mercado Pago todavía
     // no confirmó el pago, o la API de Mercado Pago no responde), NO se
     // bloquea el cierre del caso — el vet ya prestó o no el servicio, eso ya
-    // pasó — pero queda sin liquidar y hoy no hay ningún reintento
-    // automático ni pantalla de admin para forzarlo a mano. Anotado como
-    // pendiente.
+    // pasó. Queda sin liquidar, pero ya no es un callejón sin salida: un
+    // admin puede reintentarlo desde /admin (PagosService.reconciliarPagosPendientes,
+    // POST /pagos/reconciliar) sin necesitar acceso a la base de datos.
     try {
       await this.pagos.liquidarSegunCierre(casoId, veterinarioId);
     } catch (e) {

@@ -115,11 +115,13 @@ conviene volver a separarla en `preDeployCommand`.
     calificaciones todavía no se excluye — no hay señal para juzgarlo). Esto era justamente lo que el
     comentario de `calificaciones.service.ts` marcaba como "Fase 2, todavía no implementado" — dejó de serlo.
   - `GET /casos/mios` (casos del veterinario que llama, por JWT) sigue igual.
-- **Módulo `pagos`**: la regla de reembolso de la Sección 8, codificada — solo `NO_COMPLETADO` habilita
-  reembolso, y ese reembolso alcanza únicamente al cargo de plataforma, nunca al honorario. El webhook de
-  Mercado Pago verifica la firma HMAC-SHA256 (`x-signature` + `x-request-id` + `data.id`, comparación en
-  tiempo constante) antes de procesar cualquier notificación — un payload con firma inválida o ausente
-  devuelve 401, no se confía en el body sin verificar.
+- **Módulo `pagos`**: cobro inmediato vía Checkout Pro con split (el tutor paga el total al elegir
+  veterinario), reembolso según la Sección 8 al cerrar el caso — `NO_COMPLETADO` es la única clasificación
+  que habilita reembolso, y alcanza a todo menos `CARGO_NO_COMPLETADO` (ver el detalle completo, con la
+  corrección del 2026-09-29 sobre el reparto proporcional de Mercado Pago, más abajo en "Lo que se hizo" /
+  "Lo que falta"). El webhook de Mercado Pago verifica la firma HMAC-SHA256 (`x-signature` + `x-request-id` +
+  `data.id`, comparación en tiempo constante) antes de procesar cualquier notificación — un payload con firma
+  inválida o ausente devuelve 401, no se confía en el body sin verificar.
 - **Módulo `disputas`**: los dos circuitos de la Sección 10. Identidad → abre disputa y suspende
   cautelarmente al veterinario de inmediato; al resolver, se revalida vigencia de matrícula/seguro antes de
   restituir el estado `HABILITADO`. Calidad → abre disputa y, si se hace lugar, dispara
@@ -363,32 +365,52 @@ conviene volver a separarla en `preDeployCommand`.
   - `liquidarSegunCierre()` **tampoco lo llamaba nadie nunca** — se conecta automáticamente al final de
     `casos.service.cerrar()`, así el veterinario no tiene que acordarse de un paso manual aparte. Si cerrar y
     liquidar el pago del mismo caso, en la misma llamada, falla la parte del pago (ej. el webhook de Mercado
-    Pago todavía no confirmó, o su API no responde), el cierre del caso NO se bloquea — pero hoy no hay
-    ningún reintento automático ni pantalla de admin para forzarlo a mano si eso pasa; queda anotado como
-    pendiente más abajo.
-  - **Reembolso de `NO_COMPLETADO` (decisión explícita de Sergio, 2026-09-29)**: reembolso TOTAL al tutor,
-    honorario del veterinario incluido (se le retira vía refund, aunque ya estaba depositado en su cuenta) —
-    MENOS `CARGO_NO_COMPLETADO` (`packages/types`, hoy $2500, ajustable cada 3 meses según disponga la
-    plataforma), que se lo queda la plataforma. Dos llamadas a la API de reembolsos de Mercado Pago, una por
-    cuenta (la del veterinario por el honorario, la de la plataforma por su parte del cargo) — es el único
-    diseño que permite controlar los montos exactos que pidió Sergio, en vez de confiar en que Mercado Pago
-    reparta un reembolso parcial de un pago con split de forma automática (comportamiento que no se pudo
-    verificar contra la documentación disponible).
-  - **[Probable] — sin verificar contra un pago real**: dos puntos concretos de esta integración no se
-    pudieron confirmar contra la documentación oficial (no hay credenciales de Mercado Pago cargadas en este
+    Pago todavía no confirmó, o su API no responde), el cierre del caso NO se bloquea — queda anotado en el
+    log y el pago sin liquidar, pero ya no es un callejón sin salida (ver "Reconciliación manual", debajo).
+  - **Reembolso de `NO_COMPLETADO` (decisión explícita de Sergio, 2026-09-29) — corregido 2026-09-29**: el
+    tutor recupera todo MENOS `CARGO_NO_COMPLETADO` (`packages/types`, hoy $2500, ajustable cada 3 meses
+    según disponga la plataforma), que se lo queda la plataforma. El primer diseño implementado hacía DOS
+    llamadas de reembolso independientes (una contra la cuenta del vet, otra contra la de la plataforma) para
+    intentar un resultado asimétrico — se verificó después, contra la documentación oficial de Mercado Pago
+    ([Split de Pagos 1:1](https://www.mercadopago.com.br/developers/en/docs/split-payments/split-1-1/integration-configuration/integrate-marketplace)),
+    que **un reembolso sobre un pago con split siempre se reparte proporcional entre vendedor y marketplace**
+    — no existe forma de pedirle a la API "sacale todo a uno, una porción distinta al otro" — así que ese
+    diseño no lograba lo que pedía el contrato. Ahora se automatiza **una sola llamada** de reembolso parcial
+    de `(total − CARGO_NO_COMPLETADO)` al tutor — eso sí es seguro, porque el tutor termina con el monto
+    exacto que se le prometió. Lo que ese reembolso deja imperfecto es el reparto *interno* de los
+    `CARGO_NO_COMPLETADO` retenidos entre vet y plataforma (proporcional, no 100% a la plataforma como pide
+    el contrato) — esa diferencia se calcula y se anota (`Pago.montoPendienteAccionManual` /
+    `notaAccionManual`) para que un admin la corrija a mano con el vet, en vez de intentar forzarla con una
+    segunda llamada no verificable. El mismo problema de fondo hace que **el reembolso de disputas de
+    calidad** (Sección 10 — "solo el cargo de plataforma, nunca el honorario del vet") ya no automatice
+    ninguna llamada a la API: cualquier monto que se le pida reembolsar a Mercado Pago sobre este pago le
+    descuenta proporcionalmente también al vet, violando esa regla — así que ahora queda 100% anotado para
+    resolución manual.
+  - **[Probable] — sin verificar contra un pago real**: dos puntos de esta integración siguen sin poder
+    confirmarse contra la documentación oficial (no hay credenciales de Mercado Pago cargadas en este
     entorno, y no hay forma de probar contra su sandbox desde acá): (1) qué access_token corresponde usar
     para leer de vuelta el detalle de un pago split desde el webhook — se usa el de la plataforma
     (`MERCADOPAGO_ACCESS_TOKEN`), asumiendo que la app marketplace tiene visibilidad sobre los pagos de sus
-    vendedores conectados; y (2) si un reembolso parcial de un pago con `marketplace_fee` funciona con dos
-    llamadas independientes (una por cuenta) tal como se implementó acá, o si Mercado Pago espera algo
-    distinto. **Antes de ir a producción con plata real, esto se tiene que probar contra el sandbox real de
-    Mercado Pago** — ver `apps/api/src/common/mercadopago-checkout.util.ts` para el detalle completo.
-- **Sin reintento si falla la liquidación automática del pago al cerrar un caso**: `casos.service.cerrar()`
-  llama a `liquidarSegunCierre()` automáticamente, pero si esa llamada falla (webhook de Mercado Pago
-  todavía no confirmó el pago, la API no responde, etc.) el caso igual queda `CERRADO` — el error solo se
-  loguea. Hoy no hay ningún job que reintente esa liquidación después, ni una pantalla de admin para forzarla
-  a mano sobre un caso puntual. Mientras el volumen sea bajo, Sergio puede notarlo por el log; antes de
-  escalar convendría un mecanismo real (cron de reintento, o un botón en `/admin`).
+    vendedores conectados; y (2) que el reembolso parcial automatizado (arriba) se pueda pedir con el
+    access_token del VENDEDOR, colector del pago — si Mercado Pago lo rechaza, probablemente haga falta el
+    token de la plataforma en su lugar. **Antes de ir a producción con plata real, esto se tiene que probar
+    contra el sandbox real de Mercado Pago** — ver `apps/api/src/common/mercadopago-checkout.util.ts` para el
+    detalle completo.
+  - **Reconciliación manual (2026-09-29)**: si `liquidarSegunCierre()` falla al cerrar un caso, el pago queda
+    colgado en `AUTORIZADO`. `PagosService.reconciliarPagosPendientes()` (`POST /pagos/reconciliar`, ADMIN)
+    reintenta la liquidación de todo caso `CERRADO` con un pago sin liquidar, y hay un botón "Reconciliar
+    pagos pendientes" en `/admin` que lo dispara. Se descartó a propósito un cron in-process
+    (`@nestjs/schedule`): el plan free de Render suspende el web service tras inactividad, y un scheduler
+    in-process no corre mientras está dormido ni tiene cola de alcance al despertar — daría una falsa
+    sensación de cobertura. Si el volumen lo justifica, Sergio puede engancharle un pinger externo (un
+    cron-job.io, un GitHub Action con `schedule`) al mismo endpoint — eso sí sería confiable, porque vive
+    afuera de Render. `/admin` también lista los pagos con `montoPendienteAccionManual` pendiente (los dos
+    casos de arriba), con el detalle de cuánto y por qué, para que se resuelvan a mano.
+  - **Hallazgo de paso, mismo tipo de bug, fuera de alcance**: `revisarVencimientos()` en
+    `veterinarios.service.ts` tiene un comentario que dice "corre periódicamente (cron)", pero no hay
+    `@nestjs/schedule`, ningún `@Cron`, ni ningún endpoint o llamada que lo dispare — las suspensiones
+    automáticas por matrícula/seguro vencidos no ocurren en la práctica. No se tocó en este trabajo (no era
+    parte de lo pedido), queda anotado para cuando se lo priorice.
 - **Sin pantalla dedicada de "gracias por tu pago"**: los `back_urls` (éxito/pendiente/fallo) de la
   preferencia de Mercado Pago apuntan los tres a `/panel` por ahora — el cliente vuelve ahí después de pagar
   y ve el estado actualizado del caso una vez que el webhook procesó (puede haber unos segundos de desfase
