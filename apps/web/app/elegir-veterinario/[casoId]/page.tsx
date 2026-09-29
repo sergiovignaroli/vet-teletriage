@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { VeterinarioParaElegir } from "@vet-teletriage/types";
-import { apiGet, apiPatch, ApiError } from "../../../lib/api";
+import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
 import { Logo } from "../../../components/Logo";
 import { LegalFooter } from "../../../components/LegalFooter";
@@ -22,7 +22,12 @@ export default function ElegirVeterinarioPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [eligiendo, setEligiendo] = useState<string | null>(null);
-  const [asignado, setAsignado] = useState(false);
+  // Ya NO es "listo, esperá que te contacten" — ahora hay un paso más antes
+  // de terminar: pagar. "redirigiendo" cubre el instante entre que se creó
+  // la preferencia de Mercado Pago y que el navegador efectivamente navega
+  // a init_point (Sergio, 2026-09-29: cobro inmediato, no al cerrar el
+  // caso — ver pagos.service.ts).
+  const [redirigiendo, setRedirigiendo] = useState(false);
 
   useEffect(() => {
     if (sesion === null) router.replace("/ingresar");
@@ -53,13 +58,21 @@ export default function ElegirVeterinarioPage() {
     };
   }, [sesion, casoId]);
 
+  // Caso ya tiene veterinario asignado, pero todavía no se completó el pago
+  // (Sergio, 2026-09-29: cobro inmediato acá, no al cerrar el caso). Estado
+  // separado de "eligiendo" porque una falla accá NO debe obligar a volver a
+  // elegir veterinario — el caso ya lo tiene asignado, solo falta pagar.
+  const [casoAsignado, setCasoAsignado] = useState(false);
+  const [errorCheckout, setErrorCheckout] = useState<string | null>(null);
+
   async function elegir(veterinarioId: string) {
     if (!sesion) return;
     setError(null);
     setEligiendo(veterinarioId);
     try {
       await apiPatch(`/casos/${casoId}/asignar`, sesion.accessToken, { veterinarioId });
-      setAsignado(true);
+      setCasoAsignado(true);
+      await irAPagar();
     } catch (e) {
       setError(
         e instanceof ApiError
@@ -78,21 +91,46 @@ export default function ElegirVeterinarioPage() {
     }
   }
 
+  async function irAPagar() {
+    if (!sesion) return;
+    setErrorCheckout(null);
+    setRedirigiendo(true);
+    try {
+      const { initPoint } = await apiPostAuth<{ initPoint: string }>(`/pagos/${casoId}/checkout`, sesion.accessToken);
+      window.location.href = initPoint;
+      // No hay "finally" que baje redirigiendo: el navegador está a punto de
+      // salir de esta página. Si algo interrumpe la navegación, se queda
+      // mostrando "Redirigiendo…" — aceptable, es un caso raro.
+    } catch (e) {
+      setErrorCheckout(e instanceof ApiError ? e.message : "No pudimos iniciar el pago. Probá de nuevo.");
+      setRedirigiendo(false);
+    }
+  }
+
   if (!sesion) return null;
 
-  if (asignado) {
+  if (casoAsignado) {
     return (
       <main style={{ maxWidth: 420, margin: "0 auto", padding: "48px 22px", textAlign: "center" }}>
         <Logo size="md" marginBottom={28} />
         <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }}>
-          Listo, ya está asignado
+          {errorCheckout ? "Falta un paso más" : "Te llevamos a pagar…"}
         </h1>
         <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 24 }}>
-          Te vamos a avisar por WhatsApp apenas el veterinario inicie la videollamada.
+          {errorCheckout
+            ? "Ya elegiste veterinario — solo falta completar el pago para confirmar la consulta."
+            : "Ya elegiste veterinario. Te estamos redirigiendo a Mercado Pago para completar el pago."}
         </p>
-        <a href="/panel" className="va-boton" style={{ textDecoration: "none" }}>
-          Volver al inicio
-        </a>
+        {errorCheckout && (
+          <>
+            <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 16 }} role="alert">
+              {errorCheckout}
+            </p>
+            <button type="button" className="va-boton" onClick={irAPagar} disabled={redirigiendo}>
+              {redirigiendo ? "Un momento…" : "Reintentar pago"}
+            </button>
+          </>
+        )}
 
         <LegalFooter />
       </main>

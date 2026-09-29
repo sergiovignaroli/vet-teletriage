@@ -23,12 +23,16 @@ import { CurrentUser, UsuarioAutenticado } from "../auth/current-user.decorator"
 export class PagosController {
   constructor(private readonly pagos: PagosService) {}
 
+  // Cuerpo real que manda Mercado Pago: {type, data:{id}} — nunca
+  // {casoId, mercadoPagoPaymentId} (eso era un stub viejo). El casoId sale
+  // recién de pedirle el detalle del pago a la API con ese id, adentro del
+  // service (ver nota [Probable] en mercadopago-checkout.util.ts).
   @Post("webhooks/mercado-pago")
   webhookMercadoPago(
     @Headers("x-signature") xSignature: string,
     @Headers("x-request-id") xRequestId: string,
     @Query("data.id") dataId: string,
-    @Body() body: { casoId: string; mercadoPagoPaymentId: string },
+    @Body() body: { type?: string; action?: string; data?: { id?: string } },
   ) {
     const firmaValida = verificarFirmaMercadoPago({
       xSignatureHeader: xSignature,
@@ -41,7 +45,20 @@ export class PagosController {
       // Mercado Pago, y no hay que confiar en su payload.
       throw new UnauthorizedException("Firma de webhook inválida");
     }
-    return this.pagos.manejarWebhookMercadoPago(body);
+    const tipo = body.type ?? "";
+    const paymentId = dataId || body.data?.id || "";
+    if (!paymentId) throw new BadRequestException("Falta data.id en la notificación");
+    return this.pagos.manejarWebhookMercadoPago(tipo, paymentId);
+  }
+
+  // El cliente ya eligió veterinario (asignar() dejó el caso ASIGNADO) —
+  // acá se crea la preferencia de Mercado Pago y se le devuelve la URL de
+  // checkout para redirigir su navegador.
+  @Post(":casoId/checkout")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("CLIENTE")
+  crearCheckout(@Param("casoId") casoId: string, @CurrentUser() usuario: UsuarioAutenticado) {
+    return this.pagos.crearCheckout(casoId, usuario.id);
   }
 
   @Post(":casoId/liquidar")

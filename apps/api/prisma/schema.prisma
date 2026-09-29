@@ -308,17 +308,28 @@ model Pago {
   montoHonorarioVet     Decimal       @db.Decimal(10, 2)
   montoCargoPlataforma  Decimal       @db.Decimal(10, 2)
 
-  estado                EstadoPago    @default(AUTORIZADO)
+  // PENDIENTE al crear la preferencia (cliente todavía no completó el
+  // checkout) → AUTORIZADO cuando el webhook confirma el pago aprobado
+  // (Sergio, 2026-09-29: cobro inmediato vía Checkout Pro, split automático
+  // al momento del pago — NO es un hold de captura diferida, esa función
+  // solo existe en la Checkout API/Orders API, no en preferencias hosteadas
+  // — verificado contra la documentación oficial de Mercado Pago).
+  estado                EstadoPago    @default(PENDIENTE)
 
   // Referencias externas para reconciliación
+  mercadoPagoPreferenciaId String?
   mercadoPagoPaymentId  String?
   paypalOrderId         String?       // cuando el split es en dos pasos (PayPal Payouts), ver doc de proveedores
   paypalPayoutId        String?
 
-  autorizadoEl          DateTime      @default(now())
-  capturadoEl           DateTime?
+  creadoEl              DateTime      @default(now())
+  pagadoEl              DateTime?     // cuando el webhook confirmó el pago aprobado
+  capturadoEl           DateTime?     // solo bookkeeping: el cobro ya ocurrió en pagadoEl, acá se marca que no corresponde reembolso
   reembolsadoEl         DateTime?
-  montoReembolsado      Decimal?      @db.Decimal(10, 2) // Sección 8: solo puede ser el cargo de plataforma
+  // NO_COMPLETADO (Sergio, 2026-09-29): reembolso total al tutor —
+  // honorario del veterinario incluido — MENOS CARGO_NO_COMPLETADO, que
+  // retiene la plataforma. Acá se guarda el total efectivamente devuelto.
+  montoReembolsado      Decimal?      @db.Decimal(10, 2)
 }
 
 enum MedioDeCobroCliente {
@@ -328,7 +339,8 @@ enum MedioDeCobroCliente {
 }
 
 enum EstadoPago {
-  AUTORIZADO           // hold, sesión aún no terminó
+  PENDIENTE            // preferencia creada, cliente todavía no completó el pago
+  AUTORIZADO           // pago aprobado por Mercado Pago, sesión aún no cerrada
   CAPTURADO            // caso resuelto por orientación o derivado — cobro completo
   REEMBOLSADO_PARCIAL  // solo el cargo de plataforma, por falla de plataforma (Sección 8)
   CANCELADO            // no llegó a capturarse

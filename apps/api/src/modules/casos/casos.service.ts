@@ -1,6 +1,7 @@
-import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { VideoService } from "../video/video.service";
+import { PagosService } from "../pagos/pagos.service";
 import {
   BanderasRojasIntake,
   CARGO_PLATAFORMA,
@@ -32,9 +33,12 @@ interface CrearCasoInput {
 
 @Injectable()
 export class CasosService {
+  private readonly logger = new Logger(CasosService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly video: VideoService,
+    private readonly pagos: PagosService,
   ) {}
 
   // Sección 4 del contrato: el cargo de plataforma se fija según la franja
@@ -273,7 +277,7 @@ export class CasosService {
       throw new ForbiddenException("No sos el veterinario asignado a este caso");
     }
 
-    return this.prisma.caso.update({
+    const cerrado = await this.prisma.caso.update({
       where: { id: casoId },
       data: {
         estado: "CERRADO",
@@ -282,5 +286,26 @@ export class CasosService {
       },
       include: { cierre: true },
     });
+
+    // Situación probable (encontrada 2026-09-29): POST /pagos/:id/liquidar
+    // existía desde antes pero ninguna pantalla ni ningún otro service lo
+    // llamaba nunca — sin esto, cerrar un caso jamás liquidaba ni reembolsaba
+    // el pago, quedaba en AUTORIZADO para siempre. Se llama automáticamente
+    // acá, apenas se cierra, para que el vet no tenga que acordarse de un
+    // segundo paso manual. Si falla (ej. el webhook de Mercado Pago todavía
+    // no confirmó el pago, o la API de Mercado Pago no responde), NO se
+    // bloquea el cierre del caso — el vet ya prestó o no el servicio, eso ya
+    // pasó — pero queda sin liquidar y hoy no hay ningún reintento
+    // automático ni pantalla de admin para forzarlo a mano. Anotado como
+    // pendiente.
+    try {
+      await this.pagos.liquidarSegunCierre(casoId, veterinarioId);
+    } catch (e) {
+      this.logger.error(
+        `No se pudo liquidar el pago del caso ${casoId} al cerrarlo: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+
+    return cerrado;
   }
 }

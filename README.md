@@ -337,12 +337,63 @@ conviene volver a separarla en `preDeployCommand`.
   crear el caso, sin pasar por `/panel`), pero un cliente que cierra la pestaña antes de elegir y vuelve
   después a `/panel` para retomarlo se quedaba con el texto pero sin ninguna forma de actuar. Corregido para
   que el botón también se muestre en `BANDERA_ROJA_MOSTRADA`.
-
-## Lo que falta (a propósito, no por error)
-
-- **Creación de la preferencia de pago con split**: la conexión OAuth del veterinario ya guarda su
-  `access_token`, pero falta el código que arma el checkout con `marketplace_fee` usando ese token —
-  necesita al menos un veterinario conectado de verdad para poder probarlo contra la API real.
+- **El cliente nunca pagaba nada — el hueco más grande encontrado en toda la revisión (2026-09-29)**: ni un
+  solo lugar de `apps/api` creaba nunca un registro `Pago`. `liquidarSegunCierre()`, el webhook de Mercado
+  Pago y el reembolso de disputas de calidad hacían `update` sobre `where: { casoId }` asumiendo una fila que
+  ninguna pantalla llegaba a crear — de punta a punta, el flujo cortaba en "elegí veterinario" y ahí quedaba.
+  Se escribió el checkout completo:
+  - `POST /pagos/:casoId/checkout` (llamado automáticamente por `/elegir-veterinario/:id` apenas se asigna
+    veterinario) crea la preferencia de Mercado Pago **con el access_token del veterinario elegido** (no el
+    de la plataforma — verificado contra la documentación oficial: en Checkout Pro con split, quien crea la
+    preferencia determina el `collector_id`) con `marketplace_fee` = cargo de plataforma, y devuelve
+    `init_point` para redirigir el navegador del cliente a pagar. Si falla (ej. el vet todavía no conectó
+    Mercado Pago), la pantalla no obliga a volver a elegir veterinario — el caso ya lo tiene asignado, solo
+    ofrece reintentar el pago.
+  - **Cobro inmediato, no hold** (decisión tomada después de verificar contra la documentación oficial de
+    Mercado Pago que Checkout Pro — la preferencia hosteada, el camino que ya usa el OAuth del vet — NO
+    soporta captura diferida; eso es una función de la Checkout API/Orders API, que exige tokenizar la
+    tarjeta directamente y entra en alcance PCI). El schema original de `Pago` asumía un hold
+    (`AUTORIZADO` → `CAPTURADO`); se ajustó: ahora se cobra el total en el momento de elegir veterinario, y
+    lo que corresponda se reembolsa después según cómo cierre el caso.
+  - Webhook de Mercado Pago reescrito de punta a punta: el stub anterior esperaba un body
+    `{casoId, mercadoPagoPaymentId}` que Mercado Pago **nunca manda** — el payload real es
+    `{type, data: {id}}`, y hay que pedirle el detalle del pago a la API (`GET /v1/payments/:id`) para recién
+    ahí conseguir el `external_reference` (el `casoId`). La verificación de firma (`x-signature`,
+    HMAC-SHA256) ya estaba bien escrita desde antes; lo que le faltaba era leer el payload correcto.
+  - `liquidarSegunCierre()` **tampoco lo llamaba nadie nunca** — se conecta automáticamente al final de
+    `casos.service.cerrar()`, así el veterinario no tiene que acordarse de un paso manual aparte. Si cerrar y
+    liquidar el pago del mismo caso, en la misma llamada, falla la parte del pago (ej. el webhook de Mercado
+    Pago todavía no confirmó, o su API no responde), el cierre del caso NO se bloquea — pero hoy no hay
+    ningún reintento automático ni pantalla de admin para forzarlo a mano si eso pasa; queda anotado como
+    pendiente más abajo.
+  - **Reembolso de `NO_COMPLETADO` (decisión explícita de Sergio, 2026-09-29)**: reembolso TOTAL al tutor,
+    honorario del veterinario incluido (se le retira vía refund, aunque ya estaba depositado en su cuenta) —
+    MENOS `CARGO_NO_COMPLETADO` (`packages/types`, hoy $2500, ajustable cada 3 meses según disponga la
+    plataforma), que se lo queda la plataforma. Dos llamadas a la API de reembolsos de Mercado Pago, una por
+    cuenta (la del veterinario por el honorario, la de la plataforma por su parte del cargo) — es el único
+    diseño que permite controlar los montos exactos que pidió Sergio, en vez de confiar en que Mercado Pago
+    reparta un reembolso parcial de un pago con split de forma automática (comportamiento que no se pudo
+    verificar contra la documentación disponible).
+  - **[Probable] — sin verificar contra un pago real**: dos puntos concretos de esta integración no se
+    pudieron confirmar contra la documentación oficial (no hay credenciales de Mercado Pago cargadas en este
+    entorno, y no hay forma de probar contra su sandbox desde acá): (1) qué access_token corresponde usar
+    para leer de vuelta el detalle de un pago split desde el webhook — se usa el de la plataforma
+    (`MERCADOPAGO_ACCESS_TOKEN`), asumiendo que la app marketplace tiene visibilidad sobre los pagos de sus
+    vendedores conectados; y (2) si un reembolso parcial de un pago con `marketplace_fee` funciona con dos
+    llamadas independientes (una por cuenta) tal como se implementó acá, o si Mercado Pago espera algo
+    distinto. **Antes de ir a producción con plata real, esto se tiene que probar contra el sandbox real de
+    Mercado Pago** — ver `apps/api/src/common/mercadopago-checkout.util.ts` para el detalle completo.
+- **Sin reintento si falla la liquidación automática del pago al cerrar un caso**: `casos.service.cerrar()`
+  llama a `liquidarSegunCierre()` automáticamente, pero si esa llamada falla (webhook de Mercado Pago
+  todavía no confirmó el pago, la API no responde, etc.) el caso igual queda `CERRADO` — el error solo se
+  loguea. Hoy no hay ningún job que reintente esa liquidación después, ni una pantalla de admin para forzarla
+  a mano sobre un caso puntual. Mientras el volumen sea bajo, Sergio puede notarlo por el log; antes de
+  escalar convendría un mecanismo real (cron de reintento, o un botón en `/admin`).
+- **Sin pantalla dedicada de "gracias por tu pago"**: los `back_urls` (éxito/pendiente/fallo) de la
+  preferencia de Mercado Pago apuntan los tres a `/panel` por ahora — el cliente vuelve ahí después de pagar
+  y ve el estado actualizado del caso una vez que el webhook procesó (puede haber unos segundos de desfase
+  entre el redirect y que `/panel` ya refleje el pago). Una pantalla propia por resultado es una mejora, no
+  un bloqueante.
 - **Proveedor de video**: sigue pendiente de la prueba de carga de Sergio (Twilio/Daily.co/Zoom Video SDK).
 - **`GET /veterinarios/disponibles` (búsqueda por proximidad) sigue sin consumidor**: quedó explícitamente
   a propósito (Sergio, 2026-09-29) como opción futura para una consulta a domicilio separada de la

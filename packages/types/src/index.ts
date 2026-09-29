@@ -53,6 +53,16 @@ export function honorarioFinalDe(honorarioBase: number, margenPorcentaje: number
   return Math.round(honorarioBase * (1 + margenPorcentaje / 100));
 }
 
+// Penalización de NO_COMPLETADO (decisión de Sergio, 2026-09-29): si el
+// veterinario cierra un caso como "no se pudo completar la consulta", se le
+// reembolsa TODO al tutor — incluido el honorario que ya estaba depositado
+// en la cuenta del veterinario (se le retira vía refund) — MENOS este monto
+// fijo, que se lo queda la plataforma. No es un % del cargo de plataforma:
+// es un número fijo en pesos, ajustable "cada 3 meses de acuerdo lo
+// disponga la plataforma" (palabras de Sergio) — cuando lo cambie, un solo
+// lugar para tocar.
+export const CARGO_NO_COMPLETADO = 2500;
+
 export type ClasificacionCierre =
   | "RESUELTO_POR_ORIENTACION"
   | "DERIVADO_A_EMERGENCIA"
