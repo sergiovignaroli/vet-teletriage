@@ -289,6 +289,20 @@ conviene volver a separarla en `preDeployCommand`.
   credenciales reales sería peor que dejarlo en `PENDIENTE_VERIFICACION`, visible como excepción en el panel
   admin. Conectar Truora de verdad también va a necesitar una pantalla nueva para la captura en sí (redirect
   u SDK embebido) — no es solo cargar las credenciales.
+- **`/veterinario/cobros` — el segundo hueco más grande de la revisión (2026-09-29)**: `pagos.service.ts` ya
+  tenía toda la conexión OAuth de Mercado Pago (Split 1:1) escrita y verificada línea por línea contra la
+  documentación oficial, pero ningún botón de `apps/web` la llamaba nunca — y peor, el callback del backend
+  ya redirige codificado a `${WEB_APP_URL}/veterinario/cobros?mercadopago=conectado`, así que sin esta
+  pantalla ese redirect caía en un 404. Sin esto, NINGÚN veterinario tenía forma de conectar su cuenta y
+  cobrar, aunque el resto de la plataforma funcionara perfecto — es el paso que además bloqueaba el próximo
+  paso ya anotado más abajo ("cuando haya al menos un veterinario conectado de verdad a Mercado Pago").
+  Nueva pantalla con estado (conectado/sin conectar, leído de `GET /veterinarios/mi-cobro`, endpoint nuevo
+  y mínimo — nunca expone el `access_token`) y botón que llama a `GET /pagos/mercadopago/oauth/iniciar` y
+  redirige el navegador a la URL de autorización real de Mercado Pago. Link agregado desde
+  `/panel-veterinario`. Si `MERCADOPAGO_APP_ID`/`CLIENT_SECRET`/`OAUTH_REDIRECT_URI` todavía no están
+  cargados en Render, el botón muestra un mensaje propio en vez del `Internal server error` genérico que
+  devolvería el backend (esa llamada tira un `Error` crudo sin excepción curada — único lugar de toda la
+  app donde no convenía mostrar `e.message` directo).
 
 ## Lo que falta (a propósito, no por error)
 
@@ -358,16 +372,19 @@ conviene volver a separarla en `preDeployCommand`.
 Con los tres flujos (paciente, veterinario, admin) conectados de punta a punta — matching por elección de
 precio+rating, calificación y reporte de problemas ya alimentando el sistema, habilitación automática de
 veterinarios, el caso cerrándose de verdad (con o sin sala de video real), y ahora también el alta de
-veterinarios (`/registrar-veterinario`, el hueco más grande que apareció en la revisión pantalla por
-pantalla) — lo que queda es menos código y más decisiones/infraestructura: elegir el **proveedor de video**
-(la interfaz ya está armada y lista para recibirlo — ver arriba — solo falta la prueba de carga de Sergio y
-escribir una clase que implemente `ProveedorVideo`), que Sergio reemplace los valores placeholder de
+veterinarios (`/registrar-veterinario`) y la conexión de cobros (`/veterinario/cobros`) — los dos huecos más
+grandes que aparecieron en la revisión pantalla por pantalla — lo que queda es menos código y más
+decisiones/infraestructura: elegir el **proveedor de video** (la interfaz ya está armada y lista para
+recibirlo — ver arriba — solo falta la prueba de carga de Sergio y escribir una clase que implemente
+`ProveedorVideo`), que Sergio reemplace los valores placeholder de
 `HONORARIO_BASE`/`RECARGO_URGENCIA_PORCENTAJE` por precio de mercado real, cargue credenciales reales de
 Truora para que la habilitación automática funcione de punta a punta (hoy el código está listo pero sin
 credenciales todo cae en la cola manual — y además va a hacer falta construir la pantalla de captura de
 documento/selfie que hoy tampoco existe), que re-suba `landing-full.html` a Wix para que el link a
-`/ingresar-veterinario` salga a producción, y — cuando haya al menos un veterinario conectado de verdad a
-Mercado Pago — probar el checkout con split contra la API real. También queda para el final elegir un
+`/ingresar-veterinario` salga a producción, y que cargue `MERCADOPAGO_APP_ID`/`CLIENT_SECRET`/
+`OAUTH_REDIRECT_URI` en Render — recién ahí un veterinario real puede conectar su cuenta desde
+`/veterinario/cobros` (la pantalla ya está lista para recibirlo) y se puede probar el checkout con split
+contra la API real. También queda para el final elegir un
 proveedor de email y cargar su API key, para poder armar el recupero de contraseña de veterinarios que hoy
 no existe (Sergio, 2026-09-29: confirmado que va al final, junto con el resto de las credenciales). El
 registro de marca ante el INPI queda para el final, cuando toda la plataforma esté terminada y probada

@@ -57,6 +57,13 @@ export class VeterinariosController {
     return this.veterinarios.habilitarManualmente(id);
   }
 
+  @Get("mi-cobro")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  miEstadoDeCobro(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.veterinarios.miEstadoDeCobro(usuario.id);
+  }
+
   @Patch("margen")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")

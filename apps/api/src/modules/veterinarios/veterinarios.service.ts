@@ -101,6 +101,24 @@ export class VeterinariosService {
     });
   }
 
+  // Situación probable (encontrada 2026-09-29, no pedida puntualmente): la
+  // conexión OAuth de Mercado Pago (pagos.service.ts) ya existía del lado
+  // del backend, pero no había ningún endpoint para que el propio
+  // veterinario supiera si su cuenta ya está conectada o no — sin esto, la
+  // pantalla /veterinario/cobros no tiene cómo mostrar el estado real, solo
+  // el botón para conectar. Expone lo mínimo (nunca el access_token).
+  async miEstadoDeCobro(veterinarioId: string) {
+    const veterinario = await this.prisma.veterinario.findUnique({
+      where: { id: veterinarioId },
+      select: { medioDeCobro: true, mercadoPagoOAuthId: true },
+    });
+    if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
+    return {
+      medioDeCobro: veterinario.medioDeCobro,
+      mercadoPagoConectado: veterinario.mercadoPagoOAuthId != null,
+    };
+  }
+
   private evaluarHabilitable(veterinario: {
     matriculaVenceEl: Date;
     seguroVenceEl: Date;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CasoParaVeterinario, ClasificacionCierre } from "@vet-teletriage/types";
@@ -291,6 +292,13 @@ export default function PanelVeterinarioPage() {
           </p>
         )}
       </div>
+
+      <Link
+        href="/veterinario/cobros"
+        style={{ fontSize: 13, opacity: 0.6, display: "block", marginBottom: 24, textDecoration: "underline" }}
+      >
+        Medios de cobro — conectá tu cuenta de Mercado Pago
+      </Link>
 
       <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginBottom: 10 }}>Mis casos</h2>
 
