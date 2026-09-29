@@ -231,6 +231,16 @@ conviene volver a separarla en `preDeployCommand`.
   (`GET /disputas/identidad/abiertas`) y disputas de calidad abiertas (`GET /disputas/calidad/abiertas`),
   cada una con su formulario de resolución. Si la habilitación automática funciona, estas listas deberían
   estar casi siempre vacías — eso es lo esperado, no un bug.
+- **Un veterinario ocupado ya no puede ser elegido para otro caso (situación probable, encontrada al revisar
+  `casos.service.ts` sin que nadie la pidiera puntualmente, 2026-09-29)**: `Veterinario.disponible` es un
+  toggle 100% manual — "Conectarme/Desconectarme" — que nada apaga solo cuando el veterinario se pone a
+  atender a alguien. Sin este fix, un veterinario con un caso `ASIGNADO` o `EN_SESION` seguía apareciendo en
+  `GET /casos/:id/para-elegir` para cualquier otro cliente, así que el más barato o mejor puntuado de la
+  lista podía terminar acumulando varias consultas al mismo tiempo — justo el escenario que Sergio dijo que
+  quiere evitar cuando haya mucho flujo. Ahora `paraElegir()` excluye a quien ya tiene un caso activo
+  (`casos: { none: { estado: { in: ["ASIGNADO", "EN_SESION"] } } }`), y `asignar()` repite el mismo chequeo
+  justo antes de escribir — porque puede pasar tiempo entre que el cliente VE la lista y hace click, y para
+  entonces otro cliente ya lo pudo haber elegido para otro caso.
 
 ## Lo que falta (a propósito, no por error)
 

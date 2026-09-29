@@ -77,6 +77,16 @@ export class CasosService {
   // asignar() más abajo). El filtro de conexión sigue siendo el mismo
   // (Veterinario.disponible + estado HABILITADO), solo que ahora se aplica
   // del lado del cliente, no del veterinario.
+  //
+  // Situación probable (encontrada 2026-09-29, no pedida explícitamente):
+  // `disponible` es un toggle manual — "conectarme/desconectarme" — que
+  // NUNCA se apaga solo. Sin el filtro `casos: none` de acá abajo, un
+  // veterinario que ya tiene un caso ASIGNADO o EN_SESION seguía apareciendo
+  // en esta lista para TODOS los demás clientes, así que el más barato o
+  // mejor puntuado de la lista terminaba acumulando varias consultas
+  // simultáneas — justo lo que Sergio dijo que no quiere ("no quiero
+  // volverme loco" con mucho flujo). Un veterinario ocupado con un caso no
+  // debería poder ser elegido para otro hasta cerrar el que tiene.
   async paraElegir(casoId: string, clienteId: string): Promise<VeterinarioParaElegir[]> {
     const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
     if (!caso) throw new BadRequestException("Caso no encontrado");
@@ -95,7 +105,12 @@ export class CasosService {
     const cargoPlataforma = Number(caso.cargoPlataforma);
 
     const conectados = await this.prisma.veterinario.findMany({
-      where: { disponible: true, estado: "HABILITADO" },
+      where: {
+        disponible: true,
+        estado: "HABILITADO",
+        // Excluye a quien ya tiene un caso en curso — ver comentario arriba.
+        casos: { none: { estado: { in: ["ASIGNADO", "EN_SESION"] } } },
+      },
       include: { calificaciones: { select: { estrellas: true } } },
     });
 
@@ -144,9 +159,21 @@ export class CasosService {
       throw new BadRequestException("Este caso todavía no tiene un precio base calculado");
     }
 
-    const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
+    const veterinario = await this.prisma.veterinario.findUnique({
+      where: { id: veterinarioId },
+      include: {
+        // Mismo filtro de "ocupado" que paraElegir() — acá es el que
+        // importa de verdad: entre que el cliente VIO la lista y hace
+        // click puede pasar tiempo suficiente para que otro cliente ya lo
+        // haya elegido para otro caso.
+        casos: { where: { estado: { in: ["ASIGNADO", "EN_SESION"] } }, select: { id: true } },
+      },
+    });
     if (!veterinario || !veterinario.disponible || veterinario.estado !== "HABILITADO") {
       throw new BadRequestException("Ese veterinario ya no está disponible — elegí otro de la lista");
+    }
+    if (veterinario.casos.length > 0) {
+      throw new BadRequestException("Ese veterinario ya está atendiendo otra consulta — elegí otro de la lista");
     }
 
     const honorarioDeclarado = honorarioFinalDe(Number(caso.honorarioBase), veterinario.margenPorcentaje);
