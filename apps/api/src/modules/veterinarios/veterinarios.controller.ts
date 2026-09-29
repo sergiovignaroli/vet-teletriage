@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Query, UseGuards } from "@nestjs/common";
 import { VeterinariosService } from "./veterinarios.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
@@ -36,6 +36,16 @@ export class VeterinariosController {
   @Roles("VETERINARIO")
   desconectar(@CurrentUser() usuario: UsuarioAutenticado) {
     return this.veterinarios.desconectar(usuario.id);
+  }
+
+  // Blast radius alto (deja conectar y tomar casos reales) — solo ADMIN,
+  // nunca el propio veterinario. El id va por param, no por JWT, porque
+  // acá quien actúa (el admin) no es el mismo que el afectado.
+  @Patch(":id/habilitar")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  habilitar(@Param("id") id: string) {
+    return this.veterinarios.habilitarManualmente(id);
   }
 
   @Patch("margen")

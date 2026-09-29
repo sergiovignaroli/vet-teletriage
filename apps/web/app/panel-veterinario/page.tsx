@@ -7,6 +7,8 @@ import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@v
 import { apiGet, apiPatch, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { Onboarding } from "../../components/Onboarding";
+import { Logo } from "../../components/Logo";
+import { LegalFooter } from "../../components/LegalFooter";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-AR", {
   day: "2-digit",
@@ -152,23 +154,33 @@ export default function PanelVeterinarioPage() {
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 22px 60px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div className="va-logo" style={{ fontSize: 16 }}>
-          Videollamada Animal
-        </div>
+      {/* La marca siempre centrada (pedido explícito de Sergio, 2026-09-29),
+          aunque este panel necesite además un link de "Cerrar sesión" —
+          por eso va en una esquina, no compitiendo por el centro con el logo. */}
+      <div style={{ position: "relative", marginBottom: 20 }}>
         <button
           type="button"
           onClick={cerrarSesion}
-          style={{ background: "none", border: "none", opacity: 0.5, fontSize: 13, cursor: "pointer" }}
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            background: "none",
+            border: "none",
+            opacity: 0.5,
+            fontSize: 13,
+            cursor: "pointer",
+          }}
         >
           Cerrar sesión
         </button>
+        <Logo size="sm" marginBottom={0} />
       </div>
 
-      <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
+      <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>
         Hola, {sesion.nombre}
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 16 }}>
+      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 16, textAlign: "center" }}>
         Estado de tu cuenta: {sesion.estado}
       </p>
 
@@ -337,6 +349,8 @@ export default function PanelVeterinarioPage() {
           </div>
         ))}
       </div>
+
+      <LegalFooter />
     </main>
   );
 }

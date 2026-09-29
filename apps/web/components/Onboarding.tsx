@@ -6,6 +6,8 @@
 // diseño visual de referencia.
 
 import { useState } from "react";
+import { Logo } from "./Logo";
+import { LegalFooter } from "./LegalFooter";
 
 interface Props {
   onTerminar: () => void;
@@ -73,16 +75,30 @@ export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props
         zIndex: 50,
       }}
     >
-      {!esUltimoPaso && (
-        <button
-          type="button"
-          onClick={onTerminar}
-          disabled={enviando}
-          style={{ alignSelf: "flex-end", background: "none", border: "none", opacity: 0.5, fontSize: 13, cursor: "pointer" }}
-        >
-          Saltar
-        </button>
-      )}
+      {/* Logo siempre centrado (Sergio, 2026-09-29) — "Saltar" va en la
+          esquina para no competir por el centro con la marca. */}
+      <div style={{ position: "relative", width: "100%", maxWidth: 340 }}>
+        {!esUltimoPaso && (
+          <button
+            type="button"
+            onClick={onTerminar}
+            disabled={enviando}
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              background: "none",
+              border: "none",
+              opacity: 0.5,
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            Saltar
+          </button>
+        )}
+        <Logo size="sm" marginBottom={0} />
+      </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 340 }}>
         {!esUltimoPaso ? (
@@ -138,6 +154,8 @@ export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props
           </>
         )}
       </div>
+
+      <LegalFooter />
     </div>
   );
 }

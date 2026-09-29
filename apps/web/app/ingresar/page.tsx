@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../lib/api";
 import { useSesionCliente } from "../../lib/sesion";
+import { Logo } from "../../components/Logo";
+import { LegalFooter } from "../../components/LegalFooter";
 
 type Etapa = "telefono" | "codigo";
 
@@ -61,12 +63,7 @@ export default function IngresarPage() {
 
   return (
     <main style={{ maxWidth: 380, margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 22px", textAlign: "center" }}>
-      <div className="va-logo" style={{ fontSize: 20, marginBottom: 6 }}>
-        Videollamada Animal
-      </div>
-      <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--accent)", fontWeight: 800, marginBottom: 40 }}>
-        Teleasesoramiento veterinario
-      </div>
+      <Logo tagline="Teleasesoramiento veterinario" />
 
       {etapa === "telefono" ? (
         <>
@@ -126,6 +123,8 @@ export default function IngresarPage() {
       >
         ¿Sos veterinario? Ingresá acá
       </Link>
+
+      <LegalFooter />
     </main>
   );
 }

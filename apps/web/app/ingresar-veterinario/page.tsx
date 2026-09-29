@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
+import { Logo } from "../../components/Logo";
+import { LegalFooter } from "../../components/LegalFooter";
 
 interface RespuestaLoginVeterinario {
   accessToken: string;
@@ -65,21 +67,7 @@ export default function IngresarVeterinarioPage() {
         textAlign: "center",
       }}
     >
-      <div className="va-logo" style={{ fontSize: 20, marginBottom: 6 }}>
-        Videollamada Animal
-      </div>
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "var(--accent)",
-          fontWeight: 800,
-          marginBottom: 40,
-        }}
-      >
-        Panel de veterinarios
-      </div>
+      <Logo tagline="Panel de veterinarios" />
 
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 8 }}>
         Ingresá a tu cuenta
@@ -128,6 +116,8 @@ export default function IngresarVeterinarioPage() {
       >
         ¿Sos dueño de una mascota? Ingresá acá
       </Link>
+
+      <LegalFooter />
     </main>
   );
 }

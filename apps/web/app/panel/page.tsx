@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { apiPatch, ApiError } from "../../lib/api";
 import { useSesionCliente } from "../../lib/sesion";
 import { Onboarding } from "../../components/Onboarding";
+import { Logo } from "../../components/Logo";
+import { LegalFooter } from "../../components/LegalFooter";
 
 export default function PanelPage() {
   const router = useRouter();
@@ -45,9 +47,7 @@ export default function PanelPage() {
 
   return (
     <main style={{ maxWidth: 420, margin: "0 auto", padding: "40px 22px", textAlign: "center" }}>
-      <div className="va-logo" style={{ fontSize: 18, marginBottom: 28 }}>
-        Videollamada Animal
-      </div>
+      <Logo size="md" marginBottom={28} />
 
       <h1 className="va-titular" style={{ fontSize: 24, marginBottom: 10 }}>
         ¿Qué necesitás hoy?
@@ -67,6 +67,8 @@ export default function PanelPage() {
       >
         Cerrar sesión
       </button>
+
+      <LegalFooter />
     </main>
   );
 }

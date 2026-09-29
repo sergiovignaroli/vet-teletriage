@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import type { VeterinarioParaElegir } from "@vet-teletriage/types";
 import { apiGet, apiPatch, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
+import { Logo } from "../../../components/Logo";
+import { LegalFooter } from "../../../components/LegalFooter";
 
 // Pantalla que reemplaza al viejo "te vamos a contactar por WhatsApp"
 // (2026-09-28): ahora el cliente ve el costo total de cada veterinario
@@ -81,9 +83,7 @@ export default function ElegirVeterinarioPage() {
   if (asignado) {
     return (
       <main style={{ maxWidth: 420, margin: "0 auto", padding: "48px 22px", textAlign: "center" }}>
-        <div className="va-logo" style={{ fontSize: 18, marginBottom: 28 }}>
-          Videollamada Animal
-        </div>
+        <Logo size="md" marginBottom={28} />
         <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }}>
           Listo, ya está asignado
         </h1>
@@ -93,15 +93,15 @@ export default function ElegirVeterinarioPage() {
         <a href="/panel" className="va-boton" style={{ textDecoration: "none" }}>
           Volver al inicio
         </a>
+
+        <LegalFooter />
       </main>
     );
   }
 
   return (
     <main style={{ maxWidth: 480, margin: "0 auto", padding: "40px 22px 60px" }}>
-      <div className="va-logo" style={{ fontSize: 16, marginBottom: 20, textAlign: "center" }}>
-        Videollamada Animal
-      </div>
+      <Logo size="sm" marginBottom={20} />
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Elegí quién te atiende
       </h1>
@@ -167,6 +167,8 @@ export default function ElegirVeterinarioPage() {
           </div>
         ))}
       </div>
+
+      <LegalFooter />
     </main>
   );
 }

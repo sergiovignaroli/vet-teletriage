@@ -49,6 +49,34 @@ export class VeterinariosService {
     return this.prisma.veterinario.update({ where: { id: veterinarioId }, data: { disponible: false } });
   }
 
+  // Habilitación manual por admin (Sergio, 2026-09-29). Hueco real que
+  // encontramos recién hoy: el circuito de Truora (identidad.service.ts)
+  // marca la VerificacionIdentidad como APROBADA pero nunca tocaba
+  // Veterinario.estado — no existía NINGÚN camino para que alguien llegara
+  // a HABILITADO por primera vez (disputas.service.ts solo restituye a
+  // quien ya lo estaba antes de una disputa). Esto no es un parche
+  // descartable: hasta que Truora esté conectado con credenciales reales,
+  // esta es la forma real de habilitar — un admin revisa matrícula y
+  // seguro a mano y aprueba, mismo criterio de "Fase 1 manual" que ya se
+  // usa para el dispatch de casos.
+  async habilitarManualmente(veterinarioId: string) {
+    const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
+    if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
+
+    const hoy = new Date();
+    if (veterinario.matriculaVenceEl < hoy) {
+      throw new BadRequestException("La matrícula cargada ya está vencida — no se puede habilitar así");
+    }
+    if (veterinario.seguroVenceEl < hoy) {
+      throw new BadRequestException("El seguro cargado ya está vencido — no se puede habilitar así");
+    }
+
+    return this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { estado: "HABILITADO" },
+    });
+  }
+
   // Sergio, 2026-09-29: el margen es un % sobre el honorarioBase que
   // calcula la plataforma, igual para todos en cuanto al mecanismo — el
   // rango en sí (MARGEN_PORCENTAJE_MIN/MAX) es una constante compartida, no

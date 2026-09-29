@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { franjaHorariaDe, CARGO_PLATAFORMA } from "@vet-teletriage/types";
+import { Logo } from "../components/Logo";
+import { LegalFooter } from "../components/LegalFooter";
 
 export default function HomePage() {
   const franja = franjaHorariaDe(new Date());
@@ -17,21 +19,7 @@ export default function HomePage() {
         textAlign: "center",
       }}
     >
-      <div className="va-logo" style={{ fontSize: 24, marginBottom: 6 }}>
-        Videollamada Animal
-      </div>
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "var(--accent)",
-          fontWeight: 800,
-          marginBottom: 40,
-        }}
-      >
-        Teleasesoramiento veterinario
-      </div>
+      <Logo tagline="Teleasesoramiento veterinario" size="lg" marginBottom={36} />
 
       <h1 className="va-titular" style={{ fontSize: 24, marginBottom: 12, lineHeight: 1.15 }}>
         Un veterinario matriculado, por video, cuando el tuyo no está
@@ -70,6 +58,8 @@ export default function HomePage() {
       >
         ¿Sos veterinario? Ingresá acá
       </Link>
+
+      <LegalFooter />
     </main>
   );
 }
