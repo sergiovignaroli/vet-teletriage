@@ -168,17 +168,21 @@ export class CasosService {
   // cliente volviera a ver un caso una vez que salía de la pantalla de
   // "elegí veterinario", ni de saber que terminó, ni de calificarlo
   // (Sergio, 2026-09-29: el sistema de estrellitas es el corazón del
-  // producto y no tenía por dónde alimentarse desde la app).
+  // producto y no tenía por dónde alimentarse desde la app), ni de
+  // reportar un problema (disputa de calidad — mismo día, siguiente hueco).
   //
-  // Calificacion.casoId es un campo único pero no una relación de Prisma
-  // (no hay @relation hacia Caso en el schema), así que no se puede
-  // resolver con un include anidado — se consulta aparte y se cruza acá.
+  // disputaCalidad SÍ es una relación real (Caso.disputaCalidad en el
+  // schema), así que se resuelve con include anidado. Calificacion.casoId,
+  // en cambio, es un campo único pero NO una relación de Prisma — no hay
+  // @relation hacia Caso — así que esa parte se consulta aparte y se cruza
+  // acá a mano.
   async misCasosCliente(clienteId: string) {
     const casos = await this.prisma.caso.findMany({
       where: { clienteId },
       include: {
         intake: true,
         veterinario: { select: { id: true, nombre: true, apellido: true } },
+        disputaCalidad: { select: { id: true, estado: true, resolucion: true } },
       },
       orderBy: { creadoEl: "desc" },
     });

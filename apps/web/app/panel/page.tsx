@@ -160,17 +160,30 @@ export default function PanelPage() {
               </Link>
             )}
 
-            {caso.estado === "CERRADO" && !caso.yaCalificado && (
-              <Link
-                href={`/calificar/${caso.id}`}
-                className="va-boton"
-                style={{ width: "auto", padding: "6px 14px", fontSize: 13, textDecoration: "none", display: "inline-block" }}
-              >
-                Calificar consulta
-              </Link>
-            )}
-            {caso.estado === "CERRADO" && caso.yaCalificado && (
-              <span style={{ fontSize: 12, opacity: 0.55 }}>Ya la calificaste — gracias</span>
+            {caso.estado === "CERRADO" && (
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+                {!caso.yaCalificado ? (
+                  <Link
+                    href={`/calificar/${caso.id}`}
+                    className="va-boton"
+                    style={{ width: "auto", padding: "6px 14px", fontSize: 13, textDecoration: "none", display: "inline-block" }}
+                  >
+                    Calificar consulta
+                  </Link>
+                ) : (
+                  <span style={{ fontSize: 12, opacity: 0.55 }}>Ya la calificaste — gracias</span>
+                )}
+
+                {!caso.disputaCalidad ? (
+                  <Link href={`/reportar-problema/${caso.id}`} style={{ fontSize: 12, opacity: 0.55, textDecoration: "underline" }}>
+                    ¿Hubo un problema? Reportalo
+                  </Link>
+                ) : (
+                  <span style={{ fontSize: 12, opacity: 0.55 }}>
+                    {caso.disputaCalidad.estado === "RESUELTA" ? "Reporte resuelto" : "Reporte en revisión"}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         ))}

@@ -166,6 +166,15 @@ conviene volver a separarla en `preDeployCommand`.
   estrellas + comentario opcional). No se agregó un `GET /casos/:id` nuevo solo para esta pantalla: reutiliza
   la misma lista de `mios-cliente` y busca el caso puntual ahí, mismo criterio de no multiplicar endpoints
   por pantalla que ya se usa en el resto de la app.
+- **Reportar un problema (disputa de calidad), desde la app (Sergio, 2026-09-29)**: mismo hueco que la
+  calificación — `POST /disputas/calidad` existía en el backend, nada en `apps/web` lo llamaba. Para un caso
+  `CERRADO`, "Mis consultas" ahora ofrece `/reportar-problema/[casoId]` (motivo en texto libre; de cara al
+  cliente nunca se usa la jerga interna "disputa", solo "reportar un problema") y, una vez enviado, muestra
+  el estado (en revisión / resuelta, con la resolución si la hay) en vez de dejar reportar dos veces el mismo
+  caso — `Caso.disputaCalidad` es una relación real de Prisma, así que `misCasosCliente()` la trae con un
+  `include` normal (a diferencia de `Calificacion`, que se cruza a mano). Dejar clara la frontera de
+  Sección 10 en el propio texto de la pantalla: como mucho reembolsa el cargo de plataforma, nunca afecta al
+  veterinario más allá de la revisión.
 - **Guards de autorización aplicados a todo lo que quedaba abierto**: crear un caso, iniciar/cerrar una
   sesión, calificar y liquidar un pago ahora exigen el rol correcto Y que quien llama sea efectivamente el
   cliente o veterinario dueño de ese caso — el id nunca sale del body, sale del JWT. Antes de este cambio,
@@ -256,10 +265,6 @@ conviene volver a separarla en `preDeployCommand`.
 - **No hay alta pública de admins, a propósito**: la primera cuenta de staff (y cualquier otra) se crea con
   `POST /auth/admin/registrar` detrás de `ADMIN_API_KEY` — no hay ninguna pantalla para eso ni la va a haber,
   es deliberado (ver sección de disputas arriba).
-- **El cliente todavía no puede abrir una disputa de calidad desde la app**: `POST /disputas/calidad`
-  (`@Roles("CLIENTE")`) existe en el backend y ya resuelve reembolso del cargo de plataforma cuando
-  corresponde, pero no hay ningún botón en `apps/web` que lo llame — hoy solo se puede abrir a mano contra
-  la API. Candidato natural para la próxima pasada de pantallas.
 - **Ningún flujo real de videollamada todavía**: "Iniciar videollamada" (panel del veterinario) solo mueve
   el estado del caso a `EN_SESION` — no abre ninguna sala de video real, porque el proveedor (Twilio /
   Daily.co / Zoom Video SDK) sigue pendiente de la prueba de carga de Sergio (ver abajo). El circuito de
@@ -268,13 +273,16 @@ conviene volver a separarla en `preDeployCommand`.
 
 ## Próximo paso sugerido
 
-Con los dos lados del producto conectados de punta a punta, el matching por elección de precio+rating
-armado, y ahora un tercer flujo (admin) mínimo y con habilitación automática, lo que queda es menos código y
-más decisiones/infraestructura: que Sergio reemplace los valores placeholder de
+Con los tres flujos (paciente, veterinario, admin) conectados de punta a punta — matching por elección de
+precio+rating, calificación y reporte de problemas ya alimentando el sistema, habilitación automática de
+veterinarios — el único hueco que impide que una consulta real se complete de principio a fin es el
+**proveedor de video** (Sergio, 2026-09-29: siguiente en la lista después de esto). Hoy "Iniciar
+videollamada" solo cambia el estado del caso; no hay ninguna sala real. El resto es menos código y más
+decisiones/infraestructura: que Sergio reemplace los valores placeholder de
 `HONORARIO_BASE`/`RECARGO_URGENCIA_PORCENTAJE` por precio de mercado real, cargue credenciales reales de
 Truora para que la habilitación automática funcione de punta a punta (hoy el código está listo pero sin
 credenciales todo cae en la cola manual), que re-suba `landing-full.html` a Wix para que el link a
-`/ingresar-veterinario` salga a producción, elegir el proveedor de video (Sergio es el único que puede
-correr la prueba de carga), y — cuando haya al menos un veterinario conectado de verdad a Mercado Pago —
-probar el checkout con split contra la API real. El registro de marca ante el INPI queda para el final,
-cuando toda la plataforma esté terminada y probada (decisión explícita de Sergio, 2026-09-29).
+`/ingresar-veterinario` salga a producción, y — cuando haya al menos un veterinario conectado de verdad a
+Mercado Pago — probar el checkout con split contra la API real. El registro de marca ante el INPI queda
+para el final, cuando toda la plataforma esté terminada y probada (decisión explícita de Sergio,
+2026-09-29).

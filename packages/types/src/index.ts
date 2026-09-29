@@ -187,12 +187,14 @@ export interface CasoParaVeterinario extends CasoResumen {
 }
 
 // Lo que devuelve GET /casos/mios-cliente — el historial del cliente, con
-// el veterinario asignado (si ya eligió uno) y si ese caso ya fue
-// calificado, para que la pantalla sepa cuándo mostrar el CTA de calificar
-// sin tener que pegarle a /calificaciones aparte por cada caso.
+// el veterinario asignado (si ya eligió uno), si ese caso ya fue
+// calificado, y si tiene una disputa de calidad abierta/resuelta — para
+// que la pantalla sepa cuándo mostrar cada CTA sin tener que pegarle a
+// /calificaciones ni a /disputas aparte por cada caso.
 export interface CasoParaCliente extends CasoResumen {
   creadoEl: string;
   intake: IntakeResumen;
   veterinario: { id: string; nombre: string; apellido: string } | null;
   yaCalificado: boolean;
+  disputaCalidad: { id: string; estado: "ABIERTA" | "EN_REVISION" | "RESUELTA"; resolucion: string | null } | null;
 }
