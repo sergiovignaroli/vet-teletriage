@@ -165,7 +165,7 @@ export default function IntakePage() {
         disabled={!especie || !motivoConsulta || enviando}
         style={{ marginTop: 20 }}
       >
-        {enviando ? "Enviando…" : "Buscar veterinario disponible"}
+        {enviando ? "Enviando…" : "Ver veterinarios disponibles"}
       </button>
     </main>
   );
