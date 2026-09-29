@@ -64,6 +64,7 @@ export class AuthService {
       nombre: veterinario.nombre,
       apellido: veterinario.apellido,
       estado: veterinario.estado,
+      disponible: veterinario.disponible,
       onboardingCompletado: veterinario.onboardingCompletado,
     });
   }
@@ -86,6 +87,7 @@ export class AuthService {
       nombre: veterinario.nombre,
       apellido: veterinario.apellido,
       estado: veterinario.estado,
+      disponible: veterinario.disponible,
       onboardingCompletado: veterinario.onboardingCompletado,
     });
   }

@@ -64,7 +64,17 @@ export class CasosService {
   // dispatcher avisa por fuera de la app, esto es lo que el veterinario ve
   // al entrar a mirar). Solo estados pre-asignación: uno ya EN_SESION o
   // CERRADO no tiene sentido "disponible".
-  async disponibles() {
+  //
+  // Decisión de Sergio (2026-09-28): el filtro NO es geográfico ni por
+  // especialidad — cualquier veterinario matriculado en el país puede verlo
+  // todo, de punta a punta. El único filtro es que se haya conectado
+  // (Veterinario.disponible, ver VeterinariosService.conectar/desconectar).
+  async disponibles(veterinarioId: string) {
+    const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
+    if (!veterinario?.disponible) {
+      throw new ForbiddenException("Tenés que conectarte para ver los casos disponibles");
+    }
+
     return this.prisma.caso.findMany({
       where: { veterinarioId: null, estado: { in: ["INTAKE", "BANDERA_ROJA_MOSTRADA"] } },
       include: { intake: true },

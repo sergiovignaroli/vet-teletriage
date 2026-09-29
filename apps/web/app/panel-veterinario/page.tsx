@@ -28,8 +28,10 @@ const ETIQUETA_ESTADO: Record<string, string> = {
 
 export default function PanelVeterinarioPage() {
   const router = useRouter();
-  const { sesion, actualizarOnboarding, cerrarSesion } = useSesionVeterinario();
+  const { sesion, actualizarOnboarding, actualizarDisponible, cerrarSesion } = useSesionVeterinario();
   const [enviandoOnboarding, setEnviandoOnboarding] = useState(false);
+  const [cambiandoConexion, setCambiandoConexion] = useState(false);
+  const [errorConexion, setErrorConexion] = useState<string | null>(null);
 
   const [vista, setVista] = useState<Vista>("disponibles");
   const [casos, setCasos] = useState<CasoParaVeterinario[] | null>(null);
@@ -67,8 +69,31 @@ export default function PanelVeterinarioPage() {
   );
 
   useEffect(() => {
-    if (sesion && sesion.onboardingCompletado) cargarCasos(vista);
+    if (!sesion || !sesion.onboardingCompletado) return;
+    // "Casos disponibles" solo se pide si el veterinario está conectado — el
+    // backend lo rechaza igual, pero evitamos el pedido (y el error) cuando
+    // ya sabemos de antemano que va a fallar.
+    if (vista === "disponibles" && !sesion.disponible) {
+      setCasos(null);
+      return;
+    }
+    cargarCasos(vista);
   }, [sesion, vista, cargarCasos]);
+
+  async function alternarConexion() {
+    if (!sesion) return;
+    setErrorConexion(null);
+    setCambiandoConexion(true);
+    const conectando = !sesion.disponible;
+    try {
+      await apiPatch(conectando ? "/veterinarios/conectar" : "/veterinarios/desconectar", sesion.accessToken);
+      actualizarDisponible(conectando);
+    } catch (e) {
+      setErrorConexion(e instanceof ApiError ? e.message : "No pudimos cambiar tu estado. Probá de nuevo.");
+    } finally {
+      setCambiandoConexion(false);
+    }
+  }
 
   async function terminarOnboarding() {
     if (!sesion) return;
@@ -134,9 +159,54 @@ export default function PanelVeterinarioPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Hola, {sesion.nombre}
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 24 }}>
+      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 16 }}>
         Estado de tu cuenta: {sesion.estado}
       </p>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          border: "1px solid rgba(64,53,47,0.15)",
+          borderRadius: 14,
+          padding: "12px 16px",
+          marginBottom: 20,
+          background: "#fff",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              width: 9,
+              height: 9,
+              borderRadius: "50%",
+              background: sesion.disponible ? "var(--oliva)" : "rgba(64,53,47,0.3)",
+              display: "inline-block",
+            }}
+          />
+          <span style={{ fontSize: 14, fontWeight: 700 }}>{sesion.disponible ? "Conectado" : "Desconectado"}</span>
+        </div>
+        <button
+          type="button"
+          className={sesion.disponible ? "va-boton va-boton-ghost" : "va-boton"}
+          style={{ width: "auto", padding: "8px 16px", fontSize: 13 }}
+          onClick={alternarConexion}
+          disabled={cambiandoConexion || (!sesion.disponible && sesion.estado !== "HABILITADO")}
+        >
+          {cambiandoConexion ? "Un momento…" : sesion.disponible ? "Desconectarme" : "Conectarme"}
+        </button>
+      </div>
+      {!sesion.disponible && sesion.estado !== "HABILITADO" && (
+        <p style={{ fontSize: 12, color: "var(--terracota)", marginTop: -14, marginBottom: 20 }}>
+          Todavía no podés conectarte — tu cuenta no está habilitada.
+        </p>
+      )}
+      {errorConexion && (
+        <p style={{ color: "var(--terracota)", fontSize: 13 }} role="alert">
+          {errorConexion}
+        </p>
+      )}
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         <button
@@ -169,10 +239,16 @@ export default function PanelVeterinarioPage() {
         </p>
       )}
 
-      {!cargandoCasos && casos && casos.length === 0 && (
-        <p style={{ fontSize: 14, opacity: 0.6 }}>
-          {vista === "disponibles" ? "No hay casos esperando ahora mismo." : "Todavía no tomaste ningún caso."}
-        </p>
+      {vista === "disponibles" && !sesion.disponible ? (
+        <p style={{ fontSize: 14, opacity: 0.6 }}>Conectate para ver los casos que están esperando.</p>
+      ) : (
+        !cargandoCasos &&
+        casos &&
+        casos.length === 0 && (
+          <p style={{ fontSize: 14, opacity: 0.6 }}>
+            {vista === "disponibles" ? "No hay casos esperando ahora mismo." : "Todavía no tomaste ningún caso."}
+          </p>
+        )
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 
 @Injectable()
@@ -24,6 +24,28 @@ export class VeterinariosService {
       }))
       .filter((v) => v.distanciaKm <= params.radioKm)
       .sort((a, b) => a.distanciaKm - b.distanciaKm);
+  }
+
+  // Filtro real de "casos disponibles" (decisión de Sergio, 2026-09-28): NO
+  // es por cercanía ni por especialidad — cualquier veterinario matriculado
+  // en el país puede darse de alta y atender, de punta a punta. El único
+  // filtro es que el veterinario se haya conectado explícitamente. Antes de
+  // esto no existía ningún endpoint para prender/apagar `disponible` — solo
+  // se tocaba automáticamente por vencimiento o disputa de identidad.
+  async conectar(veterinarioId: string) {
+    const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
+    if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
+    // Sección 2: solo puede aparecer disponible quien está HABILITADO
+    // (matrícula y seguro vigentes, identidad verificada) — un
+    // PENDIENTE_VERIFICACION o un SUSPENDIDO_* no puede conectarse.
+    if (veterinario.estado !== "HABILITADO") {
+      throw new ForbiddenException("Tu cuenta todavía no está habilitada — no podés conectarte a tomar casos");
+    }
+    return this.prisma.veterinario.update({ where: { id: veterinarioId }, data: { disponible: true } });
+  }
+
+  async desconectar(veterinarioId: string) {
+    return this.prisma.veterinario.update({ where: { id: veterinarioId }, data: { disponible: false } });
   }
 
   // Corre periódicamente (cron) — Sección 2: la suspensión por vencimiento

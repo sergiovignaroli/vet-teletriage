@@ -47,15 +47,21 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 
 - **Schema de Prisma completo**: Veterinario, Cliente, Caso, IntakeFormulario, CierreCaso,
   VerificacionIdentidad, Pago, DisputaIdentidad, DisputaCalidad, Calificacion, PuntoPremio.
-- **Módulo `veterinarios`**: búsqueda por proximidad y la suspensión automática (no disciplinaria) por
-  vencimiento de matrícula o seguro — Sección 2 del contrato.
+- **Módulo `veterinarios`**: búsqueda por proximidad (para uso futuro — hoy nada del flujo online la llama,
+  ver más abajo) y la suspensión automática (no disciplinaria) por vencimiento de matrícula o seguro —
+  Sección 2 del contrato. `PATCH /veterinarios/conectar` / `PATCH /veterinarios/desconectar` prenden y
+  apagan `Veterinario.disponible` — antes ese campo solo lo tocaba el sistema (vencimientos, disputas),
+  nunca el propio veterinario. `conectar` exige `estado === "HABILITADO"`.
 - **Módulo `casos`**: creación de caso con intake de dos capas, cálculo del cargo de plataforma según
   franja horaria en el momento real de inicio de sesión (no el de la reserva) — Sección 4 — y cierre de
   caso con el checklist estructurado — Sección 9. `honorarioDeclarado` es nullable en el schema y nace en
   null: lo declara el veterinario, libremente, recién en `PATCH /casos/:id/iniciar` (el cliente nunca lo
   fija). `GET /casos/disponibles` (casos sin veterinario asignado) y `GET /casos/mios` (casos de quien
   llama, por JWT) son las dos listas que necesita el panel del veterinario — antes no existía ninguna forma
-  de listar casos.
+  de listar casos. **Decisión de Sergio (2026-09-28): el filtro de "disponibles" no es geográfico ni por
+  especialidad** — el alta de veterinario está abierta a cualquier matriculado del país (o de otro), sin
+  restricción territorial; el único filtro real es que el veterinario se haya conectado explícitamente
+  (`disponible = true`). `GET /casos/disponibles` devuelve 403 si el que llama no está conectado.
 - **Módulo `pagos`**: la regla de reembolso de la Sección 8, codificada — solo `NO_COMPLETADO` habilita
   reembolso, y ese reembolso alcanza únicamente al cargo de plataforma, nunca al honorario. El webhook de
   Mercado Pago verifica la firma HMAC-SHA256 (`x-signature` + `x-request-id` + `data.id`, comparación en
@@ -85,11 +91,15 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 - **Lado del veterinario en `apps/web`, completo y conectado**: `/ingresar-veterinario` (login por
   email+contraseña), sesión en localStorage (`lib/sesion-veterinario.ts`, misma clave de diseño que la del
   cliente pero en un storage key distinto — un mismo navegador podría tener las dos sesiones abiertas),
-  `/panel-veterinario` con dos vistas reales contra la API (`Casos disponibles` / `Mis casos`, con el aviso
-  de posible emergencia si el intake tiene alguna bandera roja) y el gate de onboarding con copy propio del
-  veterinario (`<Onboarding variante="veterinario">`, mismo componente que el del cliente, mismo endpoint
-  `PATCH auth/onboarding-completado`). Tomar un caso pide el honorario ahí mismo, en el mismo click que
-  `PATCH /casos/:id/iniciar` — no hay un paso separado de "aceptar" y otro de "poner precio".
+  `/panel-veterinario` con un interruptor real de "Conectado / Desconectado" (`PATCH
+  /veterinarios/conectar|desconectar`, deshabilitado si la cuenta no está `HABILITADO`) y dos vistas contra
+  la API (`Casos disponibles` — solo visible si está conectado, si no muestra "Conectate para ver los casos
+  que están esperando" en vez de pedirle algo al backend que ya sabemos que va a rechazar — / `Mis casos`,
+  con el aviso de posible emergencia si el intake tiene alguna bandera roja) y el gate de onboarding con
+  copy propio del veterinario (`<Onboarding variante="veterinario">`, mismo componente que el del cliente,
+  mismo endpoint `PATCH auth/onboarding-completado`). Tomar un caso pide el honorario ahí mismo, en el mismo
+  click que `PATCH /casos/:id/iniciar` — no hay un paso separado de "aceptar" y otro de "poner precio".
+  `/ingresar` y `/ingresar-veterinario` se linkean entre sí para quien entra por la puerta equivocada.
 - **Guards de autorización aplicados a todo lo que quedaba abierto**: crear un caso, iniciar/cerrar una
   sesión, calificar y liquidar un pago ahora exigen el rol correcto Y que quien llama sea efectivamente el
   cliente o veterinario dueño de ese caso — el id nunca sale del body, sale del JWT. Antes de este cambio,
@@ -143,10 +153,6 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   ningún lado** (no hay `render.yaml`, ni Vercel, ni ninguna URL pública en `.env.example` más que
   `localhost`). Sin una URL real, un link desde Wix no tendría a dónde apuntar. Esto es lo que bloquea
   terminar el punto 1 de verdad, no una decisión de diseño pendiente.
-- **`GET /casos/disponibles` no filtra por cercanía ni por especialidad**: devuelve TODOS los casos sin
-  asignar, a cualquier veterinario habilitado que entre — para el volumen de la Fase 1 (dispatch
-  manual, pocos veterinarios) alcanza, pero no escala. El matching real con distancia/score es la Fase 2 ya
-  documentada más abajo (piso de calidad).
 - **Sin estilos globales hasta ahora**: `apps/web/app/globals.css` es la primera vez que la paleta de marca
   (terracota/oliva/crema/rosa/marrón) y las tipografías (Big Shoulders Display, Bricolage Grotesque, Nunito
   Sans) entran al código — antes la app no tenía ningún estilo propio aplicado. La landing pública en sí va
@@ -156,6 +162,7 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 ## Próximo paso sugerido
 
 Con los dos lados del producto (cliente y veterinario) ya conectados de punta a punta, lo que queda es
-menos código y más decisiones/infraestructura: elegir el proveedor de video (Sergio es el único que puede
-correr la prueba de carga), decidir dónde va el link a `/ingresar-veterinario`, y — cuando haya al menos un
-veterinario conectado de verdad a Mercado Pago — probar el checkout con split contra la API real.
+menos código y más decisiones/infraestructura: **deployar `apps/web` en algún lado** (bloquea el link real
+desde la landing de Wix hacia `/ingresar-veterinario` — hoy no existe ninguna URL pública a la que apuntar),
+elegir el proveedor de video (Sergio es el único que puede correr la prueba de carga), y — cuando haya al
+menos un veterinario conectado de verdad a Mercado Pago — probar el checkout con split contra la API real.

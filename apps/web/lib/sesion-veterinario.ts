@@ -17,6 +17,7 @@ export interface SesionVeterinario {
   nombre: string;
   apellido: string;
   estado: string;
+  disponible: boolean;
   onboardingCompletado: boolean;
 }
 
@@ -66,10 +67,19 @@ export function useSesionVeterinario() {
     });
   }, []);
 
+  const actualizarDisponible = useCallback((disponible: boolean) => {
+    setSesion((prev) => {
+      if (!prev) return prev;
+      const actualizada = { ...prev, disponible };
+      escribirStorage(actualizada);
+      return actualizada;
+    });
+  }, []);
+
   const cerrarSesion = useCallback(() => {
     escribirStorage(null);
     setSesion(null);
   }, []);
 
-  return { sesion, guardar, actualizarOnboarding, cerrarSesion };
+  return { sesion, guardar, actualizarOnboarding, actualizarDisponible, cerrarSesion };
 }

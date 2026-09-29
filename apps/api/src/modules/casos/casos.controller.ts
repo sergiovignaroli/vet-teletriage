@@ -27,8 +27,8 @@ export class CasosController {
   @Get("disponibles")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")
-  disponibles() {
-    return this.casos.disponibles();
+  disponibles(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.casos.disponibles(usuario.id);
   }
 
   // Casos de ESTE veterinario — el id sale del JWT, nunca de un query
