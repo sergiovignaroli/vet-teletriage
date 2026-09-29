@@ -43,6 +43,39 @@ npm run dev             # desde la raíz, levanta api y web en paralelo (turbo)
 `JWT_SECRET`: generar con `openssl rand -base64 48`. `ADMIN_API_KEY`: cualquier string largo random —
 es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 
+## Deploy a Render
+
+`render.yaml` en la raíz es un Blueprint — describe los 3 recursos que hacen falta (base Postgres,
+`apps/api`, `apps/web`) para que Render los cree de una:
+
+1. Entrar a [render.com](https://render.com) → **New** → **Blueprint** → conectar este repo de GitHub
+   (`sergiovignaroli/vet-teletriage`). Render detecta `render.yaml` solo.
+2. Render va a pedir valores para las variables marcadas `sync: false` (WhatsApp, Mercado Pago, Truora,
+   etc.) — **se pueden dejar en blanco por ahora**. El código las lee recién cuando se usa esa función
+   puntual (mandar un OTP, iniciar el OAuth de Mercado Pago), así que no bloquean que el resto de la app
+   arranque. `JWT_SECRET` y `ADMIN_API_KEY` se generan solos (`generateValue: true`), y `DATABASE_URL`,
+   `WEB_APP_URL` y `NEXT_PUBLIC_API_URL` se completan solos entre los dos servicios — no hay URLs para
+   copiar y pegar a mano.
+3. **Apply**. Cuando termine, cada servicio tiene su URL pública en el dashboard de Render (algo como
+   `https://vet-teletriage-api.onrender.com`) — esa es la URL real que faltaba para el link desde la
+   landing de Wix hacia `/ingresar-veterinario`.
+
+Dos cosas a tener en cuenta, no son errores de configuración:
+
+- **La base Postgres free de Render expira a los 30 días** y hay que recrearla o pasarla a un plan pago
+  antes de eso — no sirve para algo que se vaya a usar más de un mes tal cual.
+- **Los servicios web free "duermen"** después de un rato sin tráfico — la primera visita después de eso
+  tarda unos segundos en responder mientras arranca de nuevo. Para una demo puntual no importa; para algo
+  que Sergio vaya a mostrarle a alguien en vivo sin avisar, conviene pasar el servicio de `apps/web` (o
+  los dos) a un plan pago antes.
+
+Sin acceso a un Render real desde este entorno, lo de arriba se verificó localmente pero no contra Render
+en sí: `npm install`, `npx prisma generate --schema=apps/api/prisma/schema.prisma`, `npm run build
+--workspace=@vet-teletriage/api`, `npm run build --workspace=@vet-teletriage/web` y `npm run start
+--workspace=@vet-teletriage/web` (bindea a `$PORT`, probado) corren limpios — lo único no probado en este
+entorno es `preDeployCommand` (`prisma migrate deploy`) contra una base real, y el wireo cruzado
+`RENDER_EXTERNAL_URL` entre los dos servicios, que es comportamiento de Render y no se puede simular acá.
+
 ## Lo que ya está implementado (compilado y buildeado, no solo escrito)
 
 - **Schema de Prisma completo**: Veterinario, Cliente, Caso, IntakeFormulario, CierreCaso,

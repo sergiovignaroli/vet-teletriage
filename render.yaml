@@ -1,0 +1,111 @@
+# Blueprint de Render para deployar este monorepo con un solo click:
+# Render → New → Blueprint → conectar este repo → Apply.
+#
+# Crea 3 recursos: una base Postgres, el servicio de apps/api (NestJS) y el
+# servicio de apps/web (Next.js). Los dos servicios se enteran de la URL
+# pública del otro solos (RENDER_EXTERNAL_URL, variable que Render inyecta
+# automáticamente en cada servicio) — no hace falta pegar URLs a mano.
+#
+# Los planes están en "free" a propósito, para levantar una demo sin costo:
+# la base Postgres free de Render EXPIRA A LOS 30 DÍAS y hay que recrearla
+# (o pasarla a un plan pago) antes de eso — no es un detalle menor para un
+# demo que se vaya a usar más de un mes. Los servicios web free "duermen"
+# tras un rato sin tráfico y tardan unos segundos en responder la primera
+# vez que alguien entra después de eso.
+#
+# Variables con `sync: false` no van en este archivo (nunca credenciales en
+# git) — Render las pide una sola vez, en el momento de crear el Blueprint,
+# y se pueden dejar en blanco por ahora: el código las lee recién cuando se
+# usa esa función puntual (login de WhatsApp, Mercado Pago, etc.), así que
+# no bloquean que el resto de la app arranque y funcione.
+
+databases:
+  - name: vet-teletriage-db
+    plan: free
+    region: virginia
+
+services:
+  - type: web
+    runtime: node
+    name: vet-teletriage-api
+    plan: free
+    region: virginia
+    buildCommand: npm install && npx prisma generate --schema=apps/api/prisma/schema.prisma && npm run build --workspace=@vet-teletriage/api
+    # Corre después del build pero antes de arrancar el servidor nuevo — el
+    # lugar recomendado por Render para migraciones (no en buildCommand).
+    preDeployCommand: npm run prisma:deploy --workspace=@vet-teletriage/api
+    startCommand: npm run start --workspace=@vet-teletriage/api
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vet-teletriage-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: WEB_APP_URL
+        fromService:
+          name: vet-teletriage-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+      # A completar en el dashboard de Render cuando existan — no bloquean
+      # el arranque, cada una solo se usa cuando se llama a esa función.
+      - key: WHATSAPP_CLOUD_API_TOKEN
+        sync: false
+      - key: WHATSAPP_CLOUD_API_PHONE_NUMBER_ID
+        sync: false
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
+      - key: MERCADOPAGO_WEBHOOK_SECRET
+        sync: false
+      - key: MERCADOPAGO_APP_ID
+        sync: false
+      - key: MERCADOPAGO_CLIENT_SECRET
+        sync: false
+      - key: MERCADOPAGO_OAUTH_REDIRECT_URI
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: TRUORA_API_KEY
+        sync: false
+      - key: TRUORA_FLOW_ID
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: DAILY_API_KEY
+        sync: false
+      - key: ZOOM_VIDEO_SDK_KEY
+        sync: false
+      - key: ZOOM_VIDEO_SDK_SECRET
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+
+  - type: web
+    runtime: node
+    name: vet-teletriage-web
+    plan: free
+    region: virginia
+    buildCommand: npm install && npm run build --workspace=@vet-teletriage/web
+    startCommand: npm run start --workspace=@vet-teletriage/web
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: vet-teletriage-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
