@@ -10,9 +10,13 @@ import { useState } from "react";
 interface Props {
   onTerminar: () => void;
   enviando: boolean;
+  // Mismo componente para los dos roles — cambia el copy, no la mecánica
+  // del stepper. Default "cliente" para no tocar el call site existente en
+  // /panel.
+  variante?: "cliente" | "veterinario";
 }
 
-const PANTALLAS = [
+const PANTALLAS_CLIENTE = [
   {
     titulo: "Hola. Acá siempre hay alguien.",
     texto: "Videollamada Animal conecta a tu mascota con un veterinario matriculado, las 24 horas.",
@@ -23,8 +27,36 @@ const PANTALLAS = [
   },
 ];
 
-export function Onboarding({ onTerminar, enviando }: Props) {
+const PANTALLA_FINAL_CLIENTE = {
+  titulo: "Ya estás listo.",
+  texto: "Contanos qué le pasa a tu mascota y te conectamos con un veterinario ahora.",
+  boton: "Empezar mi primera consulta",
+};
+
+// Fase 1: dispatch manual, sin matching automático (ver README) — el copy
+// es honesto sobre eso, no promete un "te asignamos casos" que todavía no
+// existe.
+const PANTALLAS_VETERINARIO = [
+  {
+    titulo: "Hola, colega.",
+    texto: "Acá vas a ver los casos que están esperando un veterinario y vas a poder tomar los que quieras.",
+  },
+  {
+    titulo: "Vos ponés el precio",
+    texto: "Cuando tomás un caso, declarás tu propio honorario — la plataforma no te lo fija.",
+  },
+];
+
+const PANTALLA_FINAL_VETERINARIO = {
+  titulo: "Ya estás listo.",
+  texto: "Mirá los casos disponibles y tomá el primero cuando quieras.",
+  boton: "Ver casos disponibles",
+};
+
+export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props) {
   const [paso, setPaso] = useState(0);
+  const PANTALLAS = variante === "veterinario" ? PANTALLAS_VETERINARIO : PANTALLAS_CLIENTE;
+  const pantallaFinal = variante === "veterinario" ? PANTALLA_FINAL_VETERINARIO : PANTALLA_FINAL_CLIENTE;
   const esUltimoPaso = paso === PANTALLAS.length; // la 3ra "pantalla" es el CTA final, no una card de PANTALLAS
 
   return (
@@ -63,11 +95,9 @@ export function Onboarding({ onTerminar, enviando }: Props) {
         ) : (
           <>
             <h1 className="va-titular" style={{ fontSize: 26, margin: "0 0 12px", lineHeight: 1.25 }}>
-              Ya estás listo.
+              {pantallaFinal.titulo}
             </h1>
-            <p style={{ fontSize: 15, opacity: 0.72, lineHeight: 1.55, margin: 0 }}>
-              Contanos qué le pasa a tu mascota y te conectamos con un veterinario ahora.
-            </p>
+            <p style={{ fontSize: 15, opacity: 0.72, lineHeight: 1.55, margin: 0 }}>{pantallaFinal.texto}</p>
           </>
         )}
       </div>
@@ -94,7 +124,7 @@ export function Onboarding({ onTerminar, enviando }: Props) {
         ) : (
           <>
             <button type="button" className="va-boton" onClick={onTerminar} disabled={enviando}>
-              {enviando ? "Un momento…" : "Empezar mi primera consulta"}
+              {enviando ? "Un momento…" : pantallaFinal.boton}
             </button>
             <button
               type="button"

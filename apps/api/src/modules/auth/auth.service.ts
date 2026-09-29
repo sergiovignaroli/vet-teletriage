@@ -60,6 +60,9 @@ export class AuthService {
     });
 
     return this.emitirToken(veterinario.id, "VETERINARIO", veterinario.tokenVersion, {
+      veterinarioId: veterinario.id,
+      nombre: veterinario.nombre,
+      apellido: veterinario.apellido,
       estado: veterinario.estado,
       onboardingCompletado: veterinario.onboardingCompletado,
     });
@@ -74,7 +77,14 @@ export class AuthService {
     const passwordValida = await bcrypt.compare(password, veterinario.passwordHash);
     if (!passwordValida) throw new UnauthorizedException("Credenciales inválidas");
 
+    // veterinarioId/nombre/apellido van acá explícitos por el mismo motivo
+    // que clienteId en verificarOtpCliente: el JWT no se decodifica en el
+    // front, así que si el front necesita el id o el nombre para mostrar
+    // algo, tiene que venir en la respuesta.
     return this.emitirToken(veterinario.id, "VETERINARIO", veterinario.tokenVersion, {
+      veterinarioId: veterinario.id,
+      nombre: veterinario.nombre,
+      apellido: veterinario.apellido,
       estado: veterinario.estado,
       onboardingCompletado: veterinario.onboardingCompletado,
     });

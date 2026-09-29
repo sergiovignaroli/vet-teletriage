@@ -151,7 +151,11 @@ model Caso {
 
   // Franja horaria y montos (Sección 4 del contrato)
   franjaHoraria   FranjaHoraria
-  honorarioDeclarado Decimal   @db.Decimal(10, 2) // lo fija el veterinario, libremente
+  // Lo fija el veterinario, libremente, cuando toma el caso (ver
+  // CasosService.iniciarSesion) — no existe todavía al crear el caso, por
+  // eso es nullable: nace en null en el intake y se completa recién en
+  // PATCH /casos/:id/iniciar.
+  honorarioDeclarado Decimal?  @db.Decimal(10, 2)
   cargoPlataforma    Decimal   @db.Decimal(10, 2) // $3.500 diurno / $4.000 nocturno al momento del caso
 
   // Cierre del caso (Sección 9): determina la Sección 8 (reembolso)

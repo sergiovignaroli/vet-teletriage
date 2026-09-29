@@ -31,16 +31,6 @@ const BANDERAS_INICIALES: BanderasRojasIntake = {
   traumatismoMayor: false,
 };
 
-// [Suposición] Fase 1: no hay motor de precios ni selección de veterinario
-// todavía (el dispatch es manual, ver README "Lo que falta"), así que no le
-// pedimos al cliente que declare un honorario en este formulario — sería un
-// número inventado por nosotros, no una decisión suya. Mandamos 0 como
-// placeholder explícito y el valor real de honorarioDeclarado queda pendiente
-// de la Fase 2 (matching + precios dinámicos por demanda/urgencia). Esto hay
-// que resolverlo con Sergio antes de un lanzamiento real: hoy ningún caso
-// creado desde acá tiene un honorario válido.
-const HONORARIO_DECLARADO_PLACEHOLDER = 0;
-
 export default function IntakePage() {
   const router = useRouter();
   const { sesion } = useSesionCliente();
@@ -68,8 +58,10 @@ export default function IntakePage() {
     setError(null);
     setEnviando(true);
     try {
+      // honorarioDeclarado no va acá: lo declara el veterinario, libremente,
+      // cuando toma el caso (ver PATCH /casos/:id/iniciar) — a esta altura
+      // todavía no hay veterinario asignado.
       const caso = await apiPostAuth<CasoResumen>("/casos", sesion.accessToken, {
-        honorarioDeclarado: HONORARIO_DECLARADO_PLACEHOLDER,
         banderas,
         contexto: { especie, motivoConsulta },
       });

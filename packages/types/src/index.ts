@@ -82,6 +82,32 @@ export interface CasoResumen {
     | "CERRADO"
     | "CANCELADO_FALLA_PLATAFORMA";
   franjaHoraria: FranjaHoraria;
-  honorarioDeclarado: number;
+  // null hasta que un veterinario toma el caso — lo declara él, libremente,
+  // recién en PATCH /casos/:id/iniciar (ver comentario en schema.prisma).
+  honorarioDeclarado: number | null;
   cargoPlataforma: number;
+}
+
+// Contexto clínico que ve el veterinario al mirar un caso — Capa 2 del
+// intake (Sección 9 del contrato). Las banderas rojas de Capa 1 están en
+// BanderasRojasIntake, arriba.
+export interface IntakeResumen extends BanderasRojasIntake {
+  especie: string;
+  raza?: string;
+  edadAproximada?: string;
+  pesoAproximadoKg?: number;
+  motivoConsulta: string;
+  tiempoEvolucion?: string;
+  medicacionActual?: string;
+  antecedentes?: string;
+}
+
+// Lo que devuelven GET /casos/disponibles y GET /casos/mios — un CasoResumen
+// con el intake adentro, para que el veterinario decida si lo toma sin tener
+// que abrir el caso primero. creadoEl llega como string ISO (JSON no tiene
+// tipo Date), no como Date.
+export interface CasoParaVeterinario extends CasoResumen {
+  creadoEl: string;
+  intake: IntakeResumen;
+  cierre?: { clasificacion: ClasificacionCierre; notas?: string | null } | null;
 }

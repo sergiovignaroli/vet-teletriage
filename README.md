@@ -51,7 +51,11 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   vencimiento de matrícula o seguro — Sección 2 del contrato.
 - **Módulo `casos`**: creación de caso con intake de dos capas, cálculo del cargo de plataforma según
   franja horaria en el momento real de inicio de sesión (no el de la reserva) — Sección 4 — y cierre de
-  caso con el checklist estructurado — Sección 9.
+  caso con el checklist estructurado — Sección 9. `honorarioDeclarado` es nullable en el schema y nace en
+  null: lo declara el veterinario, libremente, recién en `PATCH /casos/:id/iniciar` (el cliente nunca lo
+  fija). `GET /casos/disponibles` (casos sin veterinario asignado) y `GET /casos/mios` (casos de quien
+  llama, por JWT) son las dos listas que necesita el panel del veterinario — antes no existía ninguna forma
+  de listar casos.
 - **Módulo `pagos`**: la regla de reembolso de la Sección 8, codificada — solo `NO_COMPLETADO` habilita
   reembolso, y ese reembolso alcanza únicamente al cargo de plataforma, nunca al honorario. El webhook de
   Mercado Pago verifica la firma HMAC-SHA256 (`x-signature` + `x-request-id` + `data.id`, comparación en
@@ -76,7 +80,16 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   no el email — no pide nombre/email para no meter fricción en un flujo de emergencia). Probado de punta a
   punta contra una base Postgres real y contra la API real de WhatsApp Cloud (llegó un 401 real de Meta por
   no tener token válido — confirma que el endpoint/payload están bien armados, solo falta un token de
-  producción).
+  producción). El login/registro de veterinario devuelve `veterinarioId`, `nombre` y `apellido` explícitos
+  en el body (mismo criterio que `clienteId` en el login de cliente) porque el frontend no decodifica el JWT.
+- **Lado del veterinario en `apps/web`, completo y conectado**: `/ingresar-veterinario` (login por
+  email+contraseña), sesión en localStorage (`lib/sesion-veterinario.ts`, misma clave de diseño que la del
+  cliente pero en un storage key distinto — un mismo navegador podría tener las dos sesiones abiertas),
+  `/panel-veterinario` con dos vistas reales contra la API (`Casos disponibles` / `Mis casos`, con el aviso
+  de posible emergencia si el intake tiene alguna bandera roja) y el gate de onboarding con copy propio del
+  veterinario (`<Onboarding variante="veterinario">`, mismo componente que el del cliente, mismo endpoint
+  `PATCH auth/onboarding-completado`). Tomar un caso pide el honorario ahí mismo, en el mismo click que
+  `PATCH /casos/:id/iniciar` — no hay un paso separado de "aceptar" y otro de "poner precio".
 - **Guards de autorización aplicados a todo lo que quedaba abierto**: crear un caso, iniciar/cerrar una
   sesión, calificar y liquidar un pago ahora exigen el rol correcto Y que quien llama sea efectivamente el
   cliente o veterinario dueño de ese caso — el id nunca sale del body, sale del JWT. Antes de este cambio,
@@ -110,12 +123,6 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 
 ## Lo que falta (a propósito, no por error)
 
-- **`honorarioDeclarado` sale en 0 desde el intake — esto es un placeholder, no una decisión de precios**:
-  hoy no hay motor de precios ni selección de veterinario (Fase 2), así que `apps/web/app/intake/page.tsx`
-  manda `HONORARIO_DECLARADO_PLACEHOLDER = 0` en vez de inventar un número. Antes de un lanzamiento real hay
-  que decidir con Sergio cómo se fija este valor (¿lo declara el cliente? ¿lo fija el dispatcher al asignar
-  el caso a mano? ¿un precio fijo por ahora, estilo Uber, como plantea el proyecto?) — todo caso creado desde
-  el intake hoy queda con honorario 0 hasta que se resuelva esto.
 - **Creación de la preferencia de pago con split**: la conexión OAuth del veterinario ya guarda su
   `access_token`, pero falta el código que arma el checkout con `marketplace_fee` usando ese token —
   necesita al menos un veterinario conectado de verdad para poder probarlo contra la API real.
@@ -126,13 +133,17 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
   tarea de cuando se construya el matching real.
 - **Refresh token**: el JWT actual no tiene renovación automática — vence a las 12 h y hay que loguearse de
   nuevo (aceptable para el MVP). La revocación anticipada (logout forzado) sí está resuelta, ver arriba.
-- **Onboarding de producto — resuelto solo para el cliente (tutor)**: `apps/web` ya tiene `/ingresar` (login
-  por OTP), sesión en localStorage (`lib/sesion.ts`, sin refresh token — mismo criterio que el JWT de arriba),
-  `/panel` (dashboard mínimo) y el gate de onboarding de 3 pantallas (`components/Onboarding.tsx`) que llama a
-  `PATCH auth/onboarding-completado`. **Falta el lado del veterinario**: login por email+contraseña, su propio
-  dashboard, y decidir si ve el mismo onboarding o uno con copy distinto (el backend ya soporta ambos roles).
-  Sin Postgres corriendo en este entorno no se pudo probar el flujo end-to-end contra una base real — sí se
-  verificó `tsc --noEmit` y `next build` limpios en `apps/web`.
+- **Onboarding de producto, cliente y veterinario ya resueltos** — ver arriba, ambos lados de `apps/web`. Sin
+  Postgres corriendo en este entorno no se pudo probar ninguno de los dos flujos end-to-end contra una base
+  real — sí se verificó `tsc --noEmit`, `nest build` (api) y `next build` (web) limpios en cada cambio.
+- **No hay ningún link visible hacia `/ingresar-veterinario`**: ni la landing de Wix ni `/ingresar` (cliente)
+  apuntan ahí todavía — un veterinario ya registrado no tiene forma de encontrar la puerta de entrada sin que
+  alguien le pase la URL a mano. Hay que decidir dónde va ese link (¿en la landing de Wix, en un footer de la
+  app, ambos?) y agregarlo.
+- **`GET /casos/disponibles` no filtra por cercanía ni por especialidad**: devuelve TODOS los casos sin
+  asignar, a cualquier veterinario habilitado que entre — para el volumen de la Fase 1 (dispatch
+  manual, pocos veterinarios) alcanza, pero no escala. El matching real con distancia/score es la Fase 2 ya
+  documentada más abajo (piso de calidad).
 - **Sin estilos globales hasta ahora**: `apps/web/app/globals.css` es la primera vez que la paleta de marca
   (terracota/oliva/crema/rosa/marrón) y las tipografías (Big Shoulders Display, Bricolage Grotesque, Nunito
   Sans) entran al código — antes la app no tenía ningún estilo propio aplicado. La landing pública en sí va
@@ -141,8 +152,7 @@ es el stopgap para resolver disputas (ver más abajo), no un sistema de roles.
 
 ## Próximo paso sugerido
 
-Dos cosas quedaron abiertas del lado del producto, sin que una bloquee a la otra: decidir cómo se fija el
-`honorarioDeclarado` (ver arriba — hoy es un placeholder en 0), y construir el lado del veterinario
-(login, dashboard, onboarding). Del lado técnico puro, elegir el proveedor de video (Sergio es el único que
-puede correr la prueba de carga) sigue siendo la única pieza del frontend que cambia de forma significativa
-según cuál se elija.
+Con los dos lados del producto (cliente y veterinario) ya conectados de punta a punta, lo que queda es
+menos código y más decisiones/infraestructura: elegir el proveedor de video (Sergio es el único que puede
+correr la prueba de carga), decidir dónde va el link a `/ingresar-veterinario`, y — cuando haya al menos un
+veterinario conectado de verdad a Mercado Pago — probar el checkout con split contra la API real.
