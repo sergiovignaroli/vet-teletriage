@@ -51,9 +51,15 @@ export class PagosService {
       // No debería pasar nunca — asignar() siempre lo completa. Defensivo.
       throw new BadRequestException("Este caso todavía no tiene un honorario calculado");
     }
-    if (caso.pago) {
-      // Ya se generó una preferencia antes (el cliente volvió atrás, por
-      // ejemplo) — nunca crear una segunda, Pago.casoId es único.
+    // Pago.casoId es único — nunca se crea una segunda fila para el mismo
+    // caso. Si ya hay una Y sigue viva (PENDIENTE esperando que termine el
+    // checkout, o ya AUTORIZADO/CAPTURADO/REEMBOLSADO_*), no hay nada que
+    // reintentar. La única excepción es CANCELADO (Mercado Pago rechazó o
+    // el tutor abandonó el pago, ver manejarWebhookMercadoPago) — ahí sí
+    // hace falta poder reintentar (ver /pago/fallo), así que se genera una
+    // preferencia NUEVA y se actualiza la fila existente en vez de crear
+    // otra.
+    if (caso.pago && caso.pago.estado !== "CANCELADO") {
       throw new BadRequestException("Ya se inició un cobro para este caso");
     }
 
@@ -71,28 +77,47 @@ export class PagosService {
     const webAppUrl = process.env.WEB_APP_URL ?? "http://localhost:3000";
     const apiUrl = process.env.RENDER_EXTERNAL_URL ?? "http://localhost:3001";
 
+    // Pantallas de resultado dedicadas por casoId (Sergio, 2026-09-29) — ya
+    // no los tres back_urls apuntando a /panel. No se depende de que
+    // Mercado Pago mande `external_reference` de vuelta en el query del
+    // redirect (no se pudo verificar ese comportamiento contra la
+    // documentación): el casoId va directo en la URL, que ya se conoce acá.
     const preferencia = await crearPreferenciaDePago({
       accessTokenVendedor: veterinario.mercadoPagoAccessToken,
       casoId,
       montoTotal,
       cargoPlataforma: montoCargoPlataforma,
-      urlExito: `${webAppUrl}/panel`,
-      urlPendiente: `${webAppUrl}/panel`,
-      urlFallo: `${webAppUrl}/panel`,
+      urlExito: `${webAppUrl}/pago/exito?casoId=${casoId}`,
+      urlPendiente: `${webAppUrl}/pago/pendiente?casoId=${casoId}`,
+      urlFallo: `${webAppUrl}/pago/fallo?casoId=${casoId}`,
       urlNotificacion: `${apiUrl}/pagos/webhooks/mercado-pago`,
     });
 
-    await this.prisma.pago.create({
-      data: {
-        casoId,
-        medioDeCobro: "MERCADO_PAGO",
-        montoTotal,
-        montoHonorarioVet,
-        montoCargoPlataforma,
-        estado: "PENDIENTE",
-        mercadoPagoPreferenciaId: preferencia.id,
-      },
-    });
+    const datosPago = {
+      medioDeCobro: "MERCADO_PAGO" as const,
+      montoTotal,
+      montoHonorarioVet,
+      montoCargoPlataforma,
+      estado: "PENDIENTE" as const,
+      mercadoPagoPreferenciaId: preferencia.id,
+      // Un reintento (ver más arriba) parte de un pago CANCELADO — limpiar
+      // los datos del intento anterior para que no queden pisados con
+      // información vieja (mercadoPagoPaymentId de un pago que Mercado Pago
+      // ya rechazó, montoReembolsado de un caso que ni llegó a cobrarse).
+      mercadoPagoPaymentId: null,
+      pagadoEl: null,
+      capturadoEl: null,
+      reembolsadoEl: null,
+      montoReembolsado: null,
+      montoPendienteAccionManual: null,
+      notaAccionManual: null,
+    };
+
+    if (caso.pago) {
+      await this.prisma.pago.update({ where: { casoId }, data: datosPago });
+    } else {
+      await this.prisma.pago.create({ data: { casoId, ...datosPago } });
+    }
 
     return { initPoint: preferencia.init_point };
   }

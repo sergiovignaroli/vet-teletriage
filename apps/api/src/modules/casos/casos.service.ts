@@ -218,6 +218,11 @@ export class CasosService {
         intake: true,
         veterinario: { select: { id: true, nombre: true, apellido: true } },
         disputaCalidad: { select: { id: true, estado: true, resolucion: true } },
+        // `select`, no `true`: el modelo Pago tiene ids/preferencia de
+        // Mercado Pago que no le aportan nada al cliente — solo lo mínimo
+        // para que /pago/[estado] sepa el resultado real del cobro, sin
+        // confiar únicamente en el back_url por el que MP redirigió.
+        pago: { select: { estado: true, montoTotal: true } },
       },
       orderBy: { creadoEl: "desc" },
     });

@@ -411,11 +411,19 @@ conviene volver a separarla en `preDeployCommand`.
     `@nestjs/schedule`, ningún `@Cron`, ni ningún endpoint o llamada que lo dispare — las suspensiones
     automáticas por matrícula/seguro vencidos no ocurren en la práctica. No se tocó en este trabajo (no era
     parte de lo pedido), queda anotado para cuando se lo priorice.
-- **Sin pantalla dedicada de "gracias por tu pago"**: los `back_urls` (éxito/pendiente/fallo) de la
-  preferencia de Mercado Pago apuntan los tres a `/panel` por ahora — el cliente vuelve ahí después de pagar
-  y ve el estado actualizado del caso una vez que el webhook procesó (puede haber unos segundos de desfase
-  entre el redirect y que `/panel` ya refleje el pago). Una pantalla propia por resultado es una mejora, no
-  un bloqueante.
+- **Pantallas de resultado del pago (2026-09-29)**: ya no los tres `back_urls` apuntando a `/panel` —
+  `crearCheckout()` arma `urlExito`/`urlPendiente`/`urlFallo` con el `casoId` en la propia URL (no se
+  depende de que Mercado Pago mande `external_reference` de vuelta en el redirect, comportamiento sin
+  verificar) hacia la nueva ruta `/pago/[estado]` (`exito` | `pendiente` | `fallo`). La pantalla muestra dos
+  cosas: el mensaje según lo que Mercado Pago le acaba de decir al navegador, y debajo el estado REAL de
+  `Pago.estado` (vía `GET /casos/mios-cliente`, que ahora incluye `pago`) — puede haber unos segundos de
+  desfase mientras el webhook todavía no llegó, y esta pantalla no le esconde eso al cliente.
+  - **Reintento de pago fallido, gap que apareció al construir esto**: antes, si Mercado Pago rechazaba o el
+    tutor abandonaba el pago, `crearCheckout()` no dejaba generar una preferencia nueva para el mismo caso
+    (`Pago.casoId` es único, y el guard bloqueaba cualquier segundo intento) — un pago fallido dejaba al
+    cliente sin ninguna forma de volver a pagar. Ahora, si el `Pago` existente quedó `CANCELADO`, se genera
+    una preferencia nueva y se actualiza esa misma fila (no se crea una segunda) — la pantalla `/pago/fallo`
+    tiene un botón "Reintentar pago" real, no cosmético.
 - **Proveedor de video**: sigue pendiente de la prueba de carga de Sergio (Twilio/Daily.co/Zoom Video SDK).
 - **`GET /veterinarios/disponibles` (búsqueda por proximidad) sigue sin consumidor**: quedó explícitamente
   a propósito (Sergio, 2026-09-29) como opción futura para una consulta a domicilio separada de la

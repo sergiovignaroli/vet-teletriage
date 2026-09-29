@@ -202,6 +202,17 @@ export interface CasoParaVeterinario extends CasoResumen {
   cierre?: { clasificacion: ClasificacionCierre; notas?: string | null } | null;
 }
 
+// Espejo (solo los valores que puede ver un cliente, nunca un Decimal de
+// Prisma) del enum EstadoPago de apps/api/prisma/schema.prisma — ver ese
+// archivo para el detalle de qué significa cada uno.
+export type EstadoPagoCliente =
+  | "PENDIENTE"
+  | "AUTORIZADO"
+  | "CAPTURADO"
+  | "REEMBOLSADO_TOTAL"
+  | "REEMBOLSADO_PARCIAL"
+  | "CANCELADO";
+
 // Lo que devuelve GET /casos/mios-cliente — el historial del cliente, con
 // el veterinario asignado (si ya eligió uno), si ese caso ya fue
 // calificado, y si tiene una disputa de calidad abierta/resuelta — para
@@ -211,6 +222,12 @@ export interface CasoParaCliente extends CasoResumen {
   creadoEl: string;
   intake: IntakeResumen;
   veterinario: { id: string; nombre: string; apellido: string } | null;
+  // null hasta que el cliente arranca el checkout (crearCheckout) — ver
+  // /pago/[estado], la pantalla de resultado post-Mercado Pago, que es la
+  // que más depende de esto para no confiar ciegamente en el back_url por
+  // el que Mercado Pago redirigió (ese solo refleja lo que el navegador
+  // del cliente vio, no necesariamente lo que el webhook ya confirmó).
+  pago: { estado: EstadoPagoCliente; montoTotal: number } | null;
   yaCalificado: boolean;
   disputaCalidad: { id: string; estado: "ABIERTA" | "EN_REVISION" | "RESUELTA"; resolucion: string | null } | null;
 }
