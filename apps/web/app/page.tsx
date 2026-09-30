@@ -52,6 +52,10 @@ export default function HomePage() {
         Al continuar, aceptás nuestros{" "}
         <Link href="/terminos" style={{ color: "inherit", textDecoration: "underline" }}>
           Términos y Condiciones
+        </Link>{" "}
+        y nuestra{" "}
+        <Link href="/privacidad" style={{ color: "inherit", textDecoration: "underline" }}>
+          Política de Privacidad
         </Link>
         .
       </p>

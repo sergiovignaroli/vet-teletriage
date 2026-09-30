@@ -140,6 +140,10 @@ export default function TerminosPage() {
           <Link href="/contacto" style={{ color: "var(--terracota)" }}>
             página de contacto
           </Link>
+          . Para saber cómo tratamos tus datos, ver nuestra{" "}
+          <Link href="/privacidad" style={{ color: "var(--terracota)" }}>
+            Política de Privacidad
+          </Link>
           .
         </p>
       </Seccion>
