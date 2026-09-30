@@ -58,6 +58,18 @@ model Veterinario {
   // llegue ya fuera de rango.
   margenPorcentaje  Int      @default(0)
 
+  // Premio por volumen (Sergio, 2026-09-30): contador que solo sube, nunca
+  // baja — se incrementa en CasosService.cerrar() cada vez que un caso de
+  // este veterinario llega a CERRADO (sin importar la clasificación de
+  // cierre). Cuando supera ConfiguracionPlataforma.umbralSesionesVeterano,
+  // CasosService suma ConfiguracionPlataforma.bonusVeteranoPorcentaje
+  // arriba de margenPorcentaje al calcular honorarioFinalDe — automático,
+  // el veterinario no toca nada. Denormalizado a propósito (no se cuenta
+  // "on the fly" con un COUNT en cada consulta): paraElegir() recorre a
+  // TODOS los veterinarios conectados en cada pedido del cliente, y un
+  // COUNT por veterinario ahí sería un N+1 real.
+  sesionesCompletadas Int    @default(0)
+
   // Cobro (Sección 5 del contrato)
   medioDeCobro      MedioDeCobroVeterinario @default(MERCADO_PAGO)
   // Split de Pagos 1:1 (doc de proveedores) — credenciales OAuth propias del
@@ -435,4 +447,48 @@ model PuntoPremio {
   puntos         Int
   motivo         String      // rating sostenido / antigüedad / volumen (Sección 12)
   creadoEl       DateTime    @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Configuración de la plataforma (Sergio, 2026-09-30)
+// ---------------------------------------------------------------------------
+
+// Fila única (id siempre "global", nunca se crea una segunda) con TODO lo
+// que antes eran constantes fijas en el código (packages/types) — precios y
+// datos de contacto — para que un admin los edite desde el panel sin
+// depender de un deploy nuevo. ConfiguracionService.obtener() crea esta fila
+// con valores por defecto la primera vez que hace falta, así que nunca hay
+// que rezar para que exista.
+model ConfiguracionPlataforma {
+  id     String @id
+
+  // Cargo de plataforma — Sección 4 del contrato, por franja horaria.
+  cargoPlataformaDiurna   Decimal @db.Decimal(10, 2)
+  cargoPlataformaNocturna Decimal @db.Decimal(10, 2)
+
+  // Honorario base del veterinario (Sergio, 2026-09-30: reemplaza al
+  // esquema anterior por franja horaria + recargo %). Ahora son dos valores
+  // fijos nomás — normal y urgencia — sin importar la hora del día. La
+  // franja horaria sigue existiendo (arriba) pero YA NO afecta el
+  // honorario, solo el cargo de plataforma.
+  honorarioBaseNormal    Decimal @db.Decimal(10, 2)
+  honorarioBaseUrgencia  Decimal @db.Decimal(10, 2)
+
+  // Premio por volumen (ver Veterinario.sesionesCompletadas): a partir de
+  // superar este umbral de sesiones cerradas, se suma este % arriba del
+  // margenPorcentaje propio del veterinario al calcular honorarioFinalDe —
+  // lo paga el cliente, no la plataforma.
+  umbralSesionesVeterano   Int
+  bonusVeteranoPorcentaje  Decimal @db.Decimal(5, 2)
+
+  // Contacto y redes — antes hardcodeado (o directamente ausente) en el
+  // footer/landing. Nullable a propósito: si Sergio no cargó todavía un
+  // dato, esa sección simplemente no se muestra en vez de mostrar algo
+  // inventado (ver LegalFooter / lo que consuma esto en apps/web).
+  emailContacto  String?
+  instagramUrl   String?
+  facebookUrl    String?
+  tiktokUrl      String?
+
+  actualizadoEl DateTime @updatedAt
 }

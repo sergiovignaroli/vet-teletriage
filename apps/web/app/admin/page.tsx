@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useSesionAdmin } from "../../lib/sesion-admin";
 import { Logo } from "../../components/Logo";
@@ -220,9 +221,19 @@ export default function AdminPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>
         Panel de administración
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 24, textAlign: "center" }}>
+      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 16, textAlign: "center" }}>
         Solo excepciones — lo que no se resolvió solo.
       </p>
+
+      <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <Link
+          href="/admin/precios"
+          className="va-boton va-boton-ghost"
+          style={{ width: "auto", padding: "8px 18px", display: "inline-block", textDecoration: "none", fontSize: 13 }}
+        >
+          Precios y configuración de la plataforma
+        </Link>
+      </div>
 
       {cargando && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
       {error && (

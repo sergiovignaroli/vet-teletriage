@@ -11,6 +11,12 @@
 // otorgado es, como mínimo, inexacto, y en Argentina es objetable ante el
 // INPI. Quedó pendiente confirmar con Sergio si ya hay un registro
 // otorgado — si lo hay, esta leyenda se actualiza a ® ese mismo día.
+// Links a Términos y Contacto (Sergio, 2026-09-30) agregados acá porque
+// este componente ya se renderiza en todas las pantallas — es el único
+// lugar que garantiza que ambas páginas sean encontrables desde cualquier
+// parte de la app, sin duplicar el link pantalla por pantalla.
+import Link from "next/link";
+
 export function LegalFooter() {
   const anio = new Date().getFullYear();
   return (
@@ -23,6 +29,14 @@ export function LegalFooter() {
         lineHeight: 1.6,
       }}
     >
+      <Link href="/terminos" style={{ color: "inherit" }}>
+        Términos y Condiciones
+      </Link>
+      {" · "}
+      <Link href="/contacto" style={{ color: "inherit" }}>
+        Contacto
+      </Link>
+      <br />
       © {anio} Videollamada Animal. Todos los derechos reservados.
       <br />
       Prohibida su reproducción total o parcial sin autorización expresa.

@@ -2,9 +2,9 @@ import { BadRequestException, ForbiddenException, Injectable, Logger } from "@ne
 import { PrismaService } from "../../prisma.service";
 import { VideoService } from "../video/video.service";
 import { PagosService } from "../pagos/pagos.service";
+import { ConfiguracionService } from "../configuracion/configuracion.service";
 import {
   BanderasRojasIntake,
-  CARGO_PLATAFORMA,
   ClasificacionCierre,
   franjaHorariaDe,
   hayBanderaRoja,
@@ -39,6 +39,7 @@ export class CasosService {
     private readonly prisma: PrismaService,
     private readonly video: VideoService,
     private readonly pagos: PagosService,
+    private readonly configuracion: ConfiguracionService,
   ) {}
 
   // Sección 4 del contrato: el cargo de plataforma se fija según la franja
@@ -52,13 +53,16 @@ export class CasosService {
     const ahora = new Date();
     const franjaHoraria = franjaHorariaDe(ahora);
     const hayUrgencia = hayBanderaRoja(input.banderas);
+    const config = await this.configuracion.obtener();
+    const cargoPlataforma =
+      franjaHoraria === "DIURNA" ? config.cargoPlataformaDiurna : config.cargoPlataformaNocturna;
 
     const caso = await this.prisma.caso.create({
       data: {
         clienteId: input.clienteId,
         franjaHoraria,
-        cargoPlataforma: CARGO_PLATAFORMA[franjaHoraria],
-        honorarioBase: honorarioBaseDe(franjaHoraria, hayUrgencia),
+        cargoPlataforma,
+        honorarioBase: honorarioBaseDe(config, hayUrgencia),
         estado: hayUrgencia ? "BANDERA_ROJA_MOSTRADA" : "INTAKE",
         intake: {
           create: {
@@ -107,6 +111,7 @@ export class CasosService {
 
     const honorarioBase = Number(caso.honorarioBase);
     const cargoPlataforma = Number(caso.cargoPlataforma);
+    const config = await this.configuracion.obtener();
 
     const conectados = await this.prisma.veterinario.findMany({
       where: {
@@ -125,7 +130,12 @@ export class CasosService {
           cantidadCalificaciones > 0
             ? v.calificaciones.reduce((suma, c) => suma + c.estrellas, 0) / cantidadCalificaciones
             : null;
-        const honorarioFinal = honorarioFinalDe(honorarioBase, v.margenPorcentaje);
+        // Premio por volumen (Sergio, 2026-09-30): automático, no lo toca el
+        // veterinario. Tiene que calcularse EXACTAMENTE igual acá que en
+        // asignar() más abajo — si no, el precio que el cliente ve en esta
+        // lista no coincidiría con el que termina pagando.
+        const bonusVeterano = v.sesionesCompletadas >= config.umbralSesionesVeterano ? config.bonusVeteranoPorcentaje : 0;
+        const honorarioFinal = honorarioFinalDe(honorarioBase, v.margenPorcentaje, bonusVeterano);
         return {
           id: v.id,
           nombre: v.nombre,
@@ -180,7 +190,12 @@ export class CasosService {
       throw new BadRequestException("Ese veterinario ya está atendiendo otra consulta — elegí otro de la lista");
     }
 
-    const honorarioDeclarado = honorarioFinalDe(Number(caso.honorarioBase), veterinario.margenPorcentaje);
+    // Mismo cálculo que paraElegir() — ver el comentario ahí sobre por qué
+    // tiene que coincidir exactamente.
+    const config = await this.configuracion.obtener();
+    const bonusVeterano =
+      veterinario.sesionesCompletadas >= config.umbralSesionesVeterano ? config.bonusVeteranoPorcentaje : 0;
+    const honorarioDeclarado = honorarioFinalDe(Number(caso.honorarioBase), veterinario.margenPorcentaje, bonusVeterano);
 
     return this.prisma.caso.update({
       where: { id: casoId },
@@ -291,6 +306,21 @@ export class CasosService {
       },
       include: { cierre: true },
     });
+
+    // Alimenta el premio por volumen (Sergio, 2026-09-30, ver
+    // Veterinario.sesionesCompletadas) — CUALQUIER cierre cuenta acá, sea
+    // cual sea la clasificación: el contador mide "sesiones atendidas", no
+    // "sesiones sin problemas". No bloquea el cierre si falla.
+    try {
+      await this.prisma.veterinario.update({
+        where: { id: veterinarioId },
+        data: { sesionesCompletadas: { increment: 1 } },
+      });
+    } catch (e) {
+      this.logger.error(
+        `No se pudo incrementar sesionesCompletadas del veterinario ${veterinarioId}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
 
     // Situación probable (encontrada 2026-09-29): POST /pagos/:id/liquidar
     // existía desde antes pero ninguna pantalla ni ningún otro service lo

@@ -1,11 +1,15 @@
 import Link from "next/link";
-import { franjaHorariaDe, CARGO_PLATAFORMA } from "@vet-teletriage/types";
 import { Logo } from "../components/Logo";
 import { LegalFooter } from "../components/LegalFooter";
 
+// Sergio, 2026-09-30: "no quiero que aparezcan en la landing el precio que
+// se queda la plataforma. ni el precio de los vetes" — antes acá se
+// mostraba el cargo de plataforma en pesos (import de CARGO_PLATAFORMA,
+// ahora borrado). El costo total sigue viéndose, íntegro, en la pantalla
+// de elegir veterinario (es el momento en que el cliente decide y paga,
+// ahí SÍ tiene que verlo) — el detalle completo de precios vive en
+// Términos y Condiciones.
 export default function HomePage() {
-  const franja = franjaHorariaDe(new Date());
-
   return (
     <main
       style={{
@@ -38,17 +42,19 @@ export default function HomePage() {
           fontSize: 13,
         }}
       >
-        Cargo de plataforma ahora ({franja === "DIURNA" ? "horario diurno" : "horario nocturno"}):{" "}
-        <strong style={{ fontSize: 15 }}>${CARGO_PLATAFORMA[franja]}</strong>
-        <br />
-        <span style={{ opacity: 0.65 }}>
-          + el honorario del veterinario que elijas — vas a ver el costo total de cada uno antes de contratar
-        </span>
+        Vas a ver el costo total de cada veterinario conectado antes de elegir y pagar — sin sorpresas.
       </div>
 
-      <Link href="/intake" className="va-boton" style={{ marginBottom: 20, textDecoration: "none" }}>
+      <Link href="/intake" className="va-boton" style={{ marginBottom: 6, textDecoration: "none" }}>
         Empezar una consulta
       </Link>
+      <p style={{ fontSize: 10.5, opacity: 0.5, marginTop: 0, marginBottom: 20 }}>
+        Al continuar, aceptás nuestros{" "}
+        <Link href="/terminos" style={{ color: "inherit", textDecoration: "underline" }}>
+          Términos y Condiciones
+        </Link>
+        .
+      </p>
 
       <Link href="/ingresar" style={{ fontSize: 13, opacity: 0.55, textDecoration: "underline" }}>
         Ya empecé una consulta, quiero ingresar

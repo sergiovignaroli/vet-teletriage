@@ -4,12 +4,6 @@
 
 export type FranjaHoraria = "DIURNA" | "NOCTURNA";
 
-// Sección 4 del contrato: cargos fijos por franja horaria.
-export const CARGO_PLATAFORMA: Record<FranjaHoraria, number> = {
-  DIURNA: 3500, // 08:30–20:00
-  NOCTURNA: 4000, // 20:01–08:29
-};
-
 export function franjaHorariaDe(fecha: Date): FranjaHoraria {
   const minutos = fecha.getHours() * 60 + fecha.getMinutes();
   const inicioDiurna = 8 * 60 + 30; // 08:30
@@ -18,38 +12,56 @@ export function franjaHorariaDe(fecha: Date): FranjaHoraria {
 }
 
 // -----------------------------------------------------------------------
-// Precio (decisión de Sergio, 2026-09-29): el cliente tiene que ver el
-// costo total ANTES de contratar y poder elegir veterinario — el honorario
-// ya no lo declara el veterinario libremente. La plataforma calcula un
-// honorarioBase por franja horaria + urgencia (banderas rojas del intake,
-// señal que ya existe, no hace falta pedir nada nuevo); cada veterinario
-// conectado aplica su propio margenPorcentaje sobre esa base.
+// Precio (Sergio, 2026-09-30): TODOS los valores de acá abajo dejaron de
+// ser constantes fijas en el código — viven en la tabla
+// ConfiguracionPlataforma (fila única, id "global") y se editan desde el
+// panel de administrador (ver apps/api/src/modules/configuracion y
+// apps/web/app/admin/precios). Este archivo solo se queda con el TIPO que
+// describe esa fila y las funciones puras de cálculo, que ahora reciben
+// esos valores como parámetro en vez de leerlos de una constante del
+// módulo — así packages/types no tiene que saber de dónde salen.
 //
-// Precio de mercado real, definido por Sergio el 2026-09-29 (reemplaza a
-// los valores placeholder $3.500/$4.000 con los que se armó el cálculo).
-export const HONORARIO_BASE: Record<FranjaHoraria, number> = {
-  DIURNA: 30000,
-  NOCTURNA: 40000,
-};
-
-// % que se suma al honorario base cuando el intake disparó alguna bandera
-// roja (más urgencia). Definido por Sergio el 2026-09-29 (reemplaza el 20%
-// placeholder).
-export const RECARGO_URGENCIA_PORCENTAJE = 5;
+// Quedan afuera de este panel (siguen siendo constantes fijas en el
+// código, Sergio no las pidió editables): MARGEN_PORCENTAJE_MIN/MAX y
+// CARGO_NO_COMPLETADO, más abajo.
+export interface ConfiguracionPlataforma {
+  cargoPlataformaDiurna: number;
+  cargoPlataformaNocturna: number;
+  // Honorario del veterinario (Sergio, 2026-09-30: reemplaza al esquema
+  // anterior de franja horaria + recargo %) — dos valores fijos nomás,
+  // normal y urgencia, sin importar la hora del día. La franja horaria
+  // sigue existiendo (arriba) pero ya solo afecta el cargo de plataforma.
+  honorarioBaseNormal: number;
+  honorarioBaseUrgencia: number;
+  // Premio por volumen: a partir de superar `umbralSesionesVeterano`
+  // sesiones cerradas (Veterinario.sesionesCompletadas), se suma
+  // `bonusVeteranoPorcentaje` arriba del margenPorcentaje propio del
+  // veterinario — lo paga el cliente, automático.
+  umbralSesionesVeterano: number;
+  bonusVeteranoPorcentaje: number;
+  emailContacto: string | null;
+  instagramUrl: string | null;
+  facebookUrl: string | null;
+  tiktokUrl: string | null;
+}
 
 // Rango dentro del cual cada veterinario puede mover su honorario final
 // respecto del honorarioBase (Sergio, 2026-09-29: por porcentaje, igual
 // para todos — no por monto fijo ni por tope individual por veterinario).
+// No es parte de ConfiguracionPlataforma — Sergio no pidió que esto sea
+// editable desde el panel, solo los precios y el premio por volumen.
 export const MARGEN_PORCENTAJE_MIN = -20;
 export const MARGEN_PORCENTAJE_MAX = 20;
 
-export function honorarioBaseDe(franjaHoraria: FranjaHoraria, hayUrgencia: boolean): number {
-  const base = HONORARIO_BASE[franjaHoraria];
-  return hayUrgencia ? Math.round(base * (1 + RECARGO_URGENCIA_PORCENTAJE / 100)) : base;
+export function honorarioBaseDe(config: Pick<ConfiguracionPlataforma, "honorarioBaseNormal" | "honorarioBaseUrgencia">, hayUrgencia: boolean): number {
+  return hayUrgencia ? config.honorarioBaseUrgencia : config.honorarioBaseNormal;
 }
 
-export function honorarioFinalDe(honorarioBase: number, margenPorcentaje: number): number {
-  return Math.round(honorarioBase * (1 + margenPorcentaje / 100));
+// bonusVeteranoPorcentaje: 0 si el veterinario no llegó a
+// umbralSesionesVeterano todavía — quien llama decide eso (ver
+// CasosService), acá solo se suma lo que llega.
+export function honorarioFinalDe(honorarioBase: number, margenPorcentaje: number, bonusVeteranoPorcentaje = 0): number {
+  return Math.round(honorarioBase * (1 + (margenPorcentaje + bonusVeteranoPorcentaje) / 100));
 }
 
 // Penalización de NO_COMPLETADO (decisión de Sergio, 2026-09-29): si el
