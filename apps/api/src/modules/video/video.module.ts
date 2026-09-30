@@ -1,13 +1,20 @@
 import { Module } from "@nestjs/common";
 import { VideoService } from "./video.service";
-import { PlaceholderVideoProvider } from "./placeholder-video.provider";
+import { VideoController } from "./video.controller";
+import { AgoraVideoProvider } from "./agora-video.provider";
 import { PROVEEDOR_VIDEO } from "./proveedor-video.interface";
+import { PrismaService } from "../../prisma.service";
 
-// Para conectar un proveedor real: cambiar SOLO el `useClass` de acá abajo
-// por la implementación real de ProveedorVideo — casos.service.ts y las
-// pantallas no se enteran de la diferencia.
+// Proveedor real conectado (Sergio, 2026-09-29: eligió Agora — ver
+// agora-video.provider.ts y agora.util.ts). PlaceholderVideoProvider queda
+// en el repo sin usar por si hace falta volver atrás. Para cambiar de
+// proveedor de nuevo: cambiar SOLO el `useClass` de acá abajo —
+// casos.service.ts y las pantallas de "elegir veterinario"/paneles no se
+// enteran de la diferencia (VideoController, que sí es específico de
+// Agora, es aparte — ver ese archivo).
 @Module({
-  providers: [VideoService, { provide: PROVEEDOR_VIDEO, useClass: PlaceholderVideoProvider }],
+  controllers: [VideoController],
+  providers: [VideoService, PrismaService, { provide: PROVEEDOR_VIDEO, useClass: AgoraVideoProvider }],
   exports: [VideoService],
 })
 export class VideoModule {}

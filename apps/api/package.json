@@ -19,6 +19,7 @@
     "@nestjs/platform-express": "^10.4.0",
     "@prisma/client": "6.19.3",
     "@vet-teletriage/types": "*",
+    "agora-token": "^2.0.6",
     "bcryptjs": "^3.0.3",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",

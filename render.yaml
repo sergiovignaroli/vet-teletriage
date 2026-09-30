@@ -78,15 +78,14 @@ services:
         sync: false
       - key: TRUORA_FLOW_ID
         sync: false
-      - key: TWILIO_ACCOUNT_SID
+      # Proveedor de video (Sergio, 2026-09-29: eligió Agora — ver
+      # apps/api/src/modules/video/agora.util.ts). El App ID no es secreto
+      # en sí (viaja al navegador dentro de la respuesta del token), pero
+      # el App Certificate NUNCA debe salir de acá: con él, cualquiera
+      # podría firmarse tokens válidos para cualquier consulta.
+      - key: AGORA_APP_ID
         sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: DAILY_API_KEY
-        sync: false
-      - key: ZOOM_VIDEO_SDK_KEY
-        sync: false
-      - key: ZOOM_VIDEO_SDK_SECRET
+      - key: AGORA_APP_CERTIFICATE
         sync: false
       - key: S3_BUCKET
         sync: false
