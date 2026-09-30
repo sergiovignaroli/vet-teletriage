@@ -10,6 +10,7 @@ import {
   hayBanderaRoja,
   honorarioBaseDe,
   honorarioFinalDe,
+  honorarioPaypalDe,
   PISO_CALIDAD_ESTRELLAS,
   VeterinarioParaElegir,
 } from "@vet-teletriage/types";
@@ -113,6 +114,13 @@ export class CasosService {
     const cargoPlataforma = Number(caso.cargoPlataforma);
     const config = await this.configuracion.obtener();
 
+    // hace falta para el precio fijo de PayPal (honorarioPaypalDe abajo) —
+    // el mismo criterio que usó crear() para fijar honorarioBase.
+    const intake = await this.prisma.intakeFormulario.findUnique({ where: { casoId } });
+    const hayUrgencia = intake ? hayBanderaRoja(intake) : false;
+    const costoTotalPaypalUsd =
+      Math.round((honorarioPaypalDe(config, hayUrgencia) + config.cargoPlataformaPaypalUsd) * 100) / 100;
+
     const conectados = await this.prisma.veterinario.findMany({
       where: {
         disponible: true,
@@ -142,6 +150,9 @@ export class CasosService {
           apellido: v.apellido,
           honorarioFinal,
           costoTotal: honorarioFinal + cargoPlataforma,
+          // null si este veterinario no cargó un email de PayPal — ver
+          // Veterinario.paypalEmail y PagosService.crearCheckoutPayPal.
+          costoTotalPaypalUsd: v.paypalEmail ? costoTotalPaypalUsd : null,
           ratingPromedio,
           cantidadCalificaciones,
         };
@@ -237,7 +248,7 @@ export class CasosService {
         // Mercado Pago que no le aportan nada al cliente — solo lo mínimo
         // para que /pago/[estado] sepa el resultado real del cobro, sin
         // confiar únicamente en el back_url por el que MP redirigió.
-        pago: { select: { estado: true, montoTotal: true } },
+        pago: { select: { estado: true, montoTotal: true, moneda: true, medioDeCobro: true } },
       },
       orderBy: { creadoEl: "desc" },
     });

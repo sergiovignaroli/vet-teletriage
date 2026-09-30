@@ -80,4 +80,16 @@ export class VeterinariosController {
   ) {
     return this.veterinarios.ajustarMargen(usuario.id, margenPorcentaje);
   }
+
+  // El propio veterinario carga su email de PayPal — sin OAuth, el id sale
+  // del JWT igual que en conectar/desconectar/margen (nunca del body).
+  @Patch("paypal-email")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  guardarPaypalEmail(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body("paypalEmail") paypalEmail: string,
+  ) {
+    return this.veterinarios.guardarPaypalEmail(usuario.id, paypalEmail);
+  }
 }

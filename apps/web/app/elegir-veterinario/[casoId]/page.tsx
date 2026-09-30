@@ -64,6 +64,12 @@ export default function ElegirVeterinarioPage() {
   // elegir veterinario — el caso ya lo tiene asignado, solo falta pagar.
   const [casoAsignado, setCasoAsignado] = useState(false);
   const [errorCheckout, setErrorCheckout] = useState<string | null>(null);
+  // Precio fijo de PayPal del veterinario elegido — null si ese
+  // veterinario no tiene PayPal conectado, en cuyo caso ni se ofrece la
+  // opción (Sergio, 2026-09-30: PayPal es la alternativa, Mercado Pago
+  // sigue siendo siempre la opción principal que se intenta primero).
+  const [paypalUsdElegido, setPaypalUsdElegido] = useState<number | null>(null);
+  const [redirigiendoPaypal, setRedirigiendoPaypal] = useState(false);
 
   async function elegir(veterinarioId: string) {
     if (!sesion) return;
@@ -72,6 +78,7 @@ export default function ElegirVeterinarioPage() {
     try {
       await apiPatch(`/casos/${casoId}/asignar`, sesion.accessToken, { veterinarioId });
       setCasoAsignado(true);
+      setPaypalUsdElegido(veterinarios?.find((v) => v.id === veterinarioId)?.costoTotalPaypalUsd ?? null);
       await irAPagar();
     } catch (e) {
       setError(
@@ -91,12 +98,19 @@ export default function ElegirVeterinarioPage() {
     }
   }
 
-  async function irAPagar() {
+  // medioPago default MERCADO_PAGO — el medio PRINCIPAL, siempre (Sergio,
+  // 2026-09-30) — se llama así automáticamente apenas se asigna veterinario
+  // (ver elegir() arriba). PayPal solo se dispara si el cliente lo elige a
+  // mano en el botón secundario de abajo.
+  async function irAPagar(medioPago: "MERCADO_PAGO" | "PAYPAL" = "MERCADO_PAGO") {
     if (!sesion) return;
     setErrorCheckout(null);
-    setRedirigiendo(true);
+    if (medioPago === "PAYPAL") setRedirigiendoPaypal(true);
+    else setRedirigiendo(true);
     try {
-      const { initPoint } = await apiPostAuth<{ initPoint: string }>(`/pagos/${casoId}/checkout`, sesion.accessToken);
+      const { initPoint } = await apiPostAuth<{ initPoint: string }>(`/pagos/${casoId}/checkout`, sesion.accessToken, {
+        medioPago,
+      });
       window.location.href = initPoint;
       // No hay "finally" que baje redirigiendo: el navegador está a punto de
       // salir de esta página. Si algo interrumpe la navegación, se queda
@@ -104,6 +118,7 @@ export default function ElegirVeterinarioPage() {
     } catch (e) {
       setErrorCheckout(e instanceof ApiError ? e.message : "No pudimos iniciar el pago. Probá de nuevo.");
       setRedirigiendo(false);
+      setRedirigiendoPaypal(false);
     }
   }
 
@@ -126,10 +141,32 @@ export default function ElegirVeterinarioPage() {
             <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 16 }} role="alert">
               {errorCheckout}
             </p>
-            <button type="button" className="va-boton" onClick={irAPagar} disabled={redirigiendo}>
+            <button
+              type="button"
+              className="va-boton"
+              onClick={() => irAPagar("MERCADO_PAGO")}
+              disabled={redirigiendo || redirigiendoPaypal}
+            >
               {redirigiendo ? "Un momento…" : "Reintentar pago"}
             </button>
           </>
+        )}
+
+        {/* PayPal — alternativa, no el medio principal (Sergio, 2026-09-30).
+            Solo se ofrece si el veterinario elegido tiene PayPal conectado;
+            cobra en USD, precio fijo, no una conversión del monto en pesos
+            (PayPal no soporta ARS). */}
+        {paypalUsdElegido != null && (
+          <div style={{ marginTop: errorCheckout ? 16 : 8 }}>
+            <button
+              type="button"
+              className="va-boton va-boton-ghost"
+              onClick={() => irAPagar("PAYPAL")}
+              disabled={redirigiendo || redirigiendoPaypal}
+            >
+              {redirigiendoPaypal ? "Un momento…" : `Pagar con PayPal (US$${paypalUsdElegido})`}
+            </button>
+          </div>
         )}
 
         <LegalFooter />

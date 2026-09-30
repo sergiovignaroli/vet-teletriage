@@ -1,6 +1,13 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
-import { CARGO_NO_COMPLETADO, CIERRES_SIN_REEMBOLSO } from "@vet-teletriage/types";
+import {
+  BanderasRojasIntake,
+  CARGO_NO_COMPLETADO,
+  CARGO_NO_COMPLETADO_USD,
+  CIERRES_SIN_REEMBOLSO,
+  hayBanderaRoja,
+  honorarioPaypalDe,
+} from "@vet-teletriage/types";
 import {
   construirUrlAutorizacionMercadoPago,
   intercambiarCodigoPorToken,
@@ -13,12 +20,22 @@ import {
   reembolsarPagoMercadoPago,
   requerirEnvMercadoPago,
 } from "../../common/mercadopago-checkout.util";
+import {
+  capturarOrdenPayPal,
+  crearOrdenPayPal,
+  enviarPayoutPayPal,
+  reembolsarCapturaPayPal,
+} from "../../common/paypal.util";
+import { ConfiguracionService } from "../configuracion/configuracion.service";
 
 @Injectable()
 export class PagosService {
   private readonly logger = new Logger(PagosService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configuracion: ConfiguracionService,
+  ) {}
 
   // -------------------------------------------------------------------------
   // Checkout (situación probable, encontrada 2026-09-29, no pedida
@@ -37,10 +54,10 @@ export class PagosService {
   // mercadopago-checkout.util.ts): el tutor paga el total ACÁ, antes de que
   // exista ninguna videollamada. Lo que corresponda se reembolsa después,
   // según cómo cierre el caso (ver liquidarSegunCierre más abajo).
-  async crearCheckout(casoId: string, clienteId: string) {
+  async crearCheckout(casoId: string, clienteId: string, medioPago: "MERCADO_PAGO" | "PAYPAL" = "MERCADO_PAGO") {
     const caso = await this.prisma.caso.findUnique({
       where: { id: casoId },
-      include: { pago: true, veterinario: true },
+      include: { pago: true, veterinario: true, intake: true },
     });
     if (!caso) throw new BadRequestException("Caso no encontrado");
     if (caso.clienteId !== clienteId) throw new ForbiddenException("Este caso no te pertenece");
@@ -61,6 +78,10 @@ export class PagosService {
     // otra.
     if (caso.pago && caso.pago.estado !== "CANCELADO") {
       throw new BadRequestException("Ya se inició un cobro para este caso");
+    }
+
+    if (medioPago === "PAYPAL") {
+      return this.crearCheckoutPayPal(caso);
     }
 
     const veterinario = await this.asegurarTokenMercadoPagoVigente(caso.veterinarioId);
@@ -95,6 +116,7 @@ export class PagosService {
 
     const datosPago = {
       medioDeCobro: "MERCADO_PAGO" as const,
+      moneda: "ARS" as const,
       montoTotal,
       montoHonorarioVet,
       montoCargoPlataforma,
@@ -105,6 +127,9 @@ export class PagosService {
       // información vieja (mercadoPagoPaymentId de un pago que Mercado Pago
       // ya rechazó, montoReembolsado de un caso que ni llegó a cobrarse).
       mercadoPagoPaymentId: null,
+      paypalOrderId: null,
+      paypalCaptureId: null,
+      paypalPayoutId: null,
       pagadoEl: null,
       capturadoEl: null,
       reembolsadoEl: null,
@@ -120,6 +145,88 @@ export class PagosService {
     }
 
     return { initPoint: preferencia.init_point };
+  }
+
+  // Rama PayPal de crearCheckout (Sergio, 2026-09-30) — "PayPal Payouts,
+  // dos pasos": acá NO se usa ninguna cuenta del veterinario para cobrar
+  // (a diferencia de Mercado Pago) — la orden se crea contra la cuenta
+  // PROPIA de la plataforma (credenciales PAYPAL_CLIENT_ID/SECRET). Por
+  // eso el único requisito del lado del veterinario es que tenga cargado
+  // un email de PayPal — no una cuenta conectada por OAuth — para que
+  // haya a dónde mandarle el honorario recién al cerrar el caso.
+  //
+  // Precio: FIJO en USD (config.honorarioPaypalNormalUsd/UrgenciaUsd +
+  // cargoPlataformaPaypalUsd), no una conversión del honorarioDeclarado en
+  // pesos ya calculado para este caso — PayPal no soporta ARS (ver nota en
+  // Pago.moneda, schema.prisma) y Sergio decidió (2026-09-30) precio fijo
+  // en vez de conversión en vivo. Consecuencia directa: sin margen
+  // individual por veterinario ni premio por volumen en este precio — todo
+  // veterinario con PayPal conectado cobra igual por sesión.
+  private async crearCheckoutPayPal(caso: {
+    id: string;
+    intake: BanderasRojasIntake | null;
+    veterinario: { paypalEmail: string | null } | null;
+  }) {
+    if (!caso.veterinario?.paypalEmail) {
+      throw new BadRequestException(
+        "El veterinario elegido no tiene PayPal conectado — elegí Mercado Pago o cambiá de veterinario",
+      );
+    }
+    if (!caso.intake) {
+      // No debería pasar nunca — crear() siempre lo completa. Defensivo.
+      throw new BadRequestException("Este caso todavía no tiene datos de intake");
+    }
+
+    const config = await this.configuracion.obtener();
+    const hayUrgencia = hayBanderaRoja(caso.intake);
+    const montoHonorarioVet = honorarioPaypalDe(config, hayUrgencia);
+    const montoCargoPlataforma = config.cargoPlataformaPaypalUsd;
+    const montoTotal = Math.round((montoHonorarioVet + montoCargoPlataforma) * 100) / 100;
+
+    const webAppUrl = process.env.WEB_APP_URL ?? "http://localhost:3000";
+    const apiUrl = process.env.RENDER_EXTERNAL_URL ?? "http://localhost:3001";
+
+    // El return_url apunta al BACKEND (no directo a /pago/exito): PayPal
+    // solo aprueba, la captura efectiva del dinero es una llamada de
+    // servidor aparte (capturarPagoPayPal, ver el controller) — recién esa
+    // llamada, ya confirmada, redirige al navegador a /pago/exito o
+    // /pago/fallo. Así /pago/[estado]/page.tsx no necesita saber nada de
+    // PayPal: sigue leyendo Pago.estado en vivo, como con Mercado Pago.
+    const orden = await crearOrdenPayPal({
+      casoId: caso.id,
+      montoTotalUsd: montoTotal,
+      urlRetorno: `${apiUrl}/pagos/paypal/capturar?casoId=${caso.id}`,
+      urlCancelacion: `${webAppUrl}/pago/fallo?casoId=${caso.id}`,
+    });
+
+    const datosPago = {
+      medioDeCobro: "PAYPAL" as const,
+      moneda: "USD" as const,
+      montoTotal,
+      montoHonorarioVet,
+      montoCargoPlataforma,
+      estado: "PENDIENTE" as const,
+      paypalOrderId: orden.id,
+      paypalCaptureId: null,
+      paypalPayoutId: null,
+      mercadoPagoPreferenciaId: null,
+      mercadoPagoPaymentId: null,
+      pagadoEl: null,
+      capturadoEl: null,
+      reembolsadoEl: null,
+      montoReembolsado: null,
+      montoPendienteAccionManual: null,
+      notaAccionManual: null,
+    };
+
+    const existente = await this.prisma.pago.findUnique({ where: { casoId: caso.id } });
+    if (existente) {
+      await this.prisma.pago.update({ where: { casoId: caso.id }, data: datosPago });
+    } else {
+      await this.prisma.pago.create({ data: { casoId: caso.id, ...datosPago } });
+    }
+
+    return { initPoint: orden.urlAprobacion };
   }
 
   private async asegurarTokenMercadoPagoVigente(veterinarioId: string) {
@@ -178,6 +285,66 @@ export class PagosService {
     return pago;
   }
 
+  // -------------------------------------------------------------------------
+  // PayPal — captura (la llama el controller, en el return_url que PayPal
+  // redirige tras la aprobación del cliente) y webhook (respaldo/
+  // reconciliación — ver comentario en el controller sobre por qué se
+  // confía en la respuesta síncrona de la captura Y además se procesa el
+  // webhook, idempotente, como en Mercado Pago).
+  // -------------------------------------------------------------------------
+  async capturarPagoPayPal(casoId: string, paypalOrderId: string) {
+    const pago = await this.prisma.pago.findUnique({ where: { casoId } });
+    if (!pago) throw new BadRequestException("Pago no encontrado para este caso");
+    if (pago.medioDeCobro !== "PAYPAL") throw new BadRequestException("Este pago no es de PayPal");
+    // Idempotente: si el navegador vuelve a pegarle a este link (doble
+    // click, back del navegador), no se intenta capturar dos veces.
+    if (pago.estado !== "PENDIENTE") return pago;
+
+    const captura = await capturarOrdenPayPal(paypalOrderId);
+    if (captura.status !== "COMPLETED") {
+      return this.prisma.pago.update({
+        where: { casoId },
+        data: { estado: "CANCELADO", paypalOrderId },
+      });
+    }
+    return this.prisma.pago.update({
+      where: { casoId },
+      data: {
+        estado: "AUTORIZADO",
+        paypalOrderId,
+        paypalCaptureId: captura.captureId,
+        pagadoEl: new Date(),
+      },
+    });
+  }
+
+  // Respaldo de reconciliación (Sergio, 2026-09-30, mismo criterio que el
+  // webhook de Mercado Pago): la captura ya se hace sincrónicamente en
+  // capturarPagoPayPal (arriba) al volver del checkout — este webhook es
+  // la red de seguridad para cuando esa vuelta no llega a completarse (el
+  // navegador del cliente se cierra antes del redirect, por ejemplo) pero
+  // PayPal sí completó el cobro de su lado.
+  async manejarWebhookPayPal(evento: { event_type?: string; resource?: { id?: string; custom_id?: string } }) {
+    if (evento.event_type !== "PAYMENT.CAPTURE.COMPLETED") return { ignorado: true };
+    const casoId = evento.resource?.custom_id;
+    if (!casoId) return { ignorado: true };
+
+    const pago = await this.prisma.pago.findUnique({ where: { casoId } });
+    if (!pago || pago.medioDeCobro !== "PAYPAL") return { ignorado: true };
+
+    if (pago.estado === "PENDIENTE") {
+      return this.prisma.pago.update({
+        where: { casoId },
+        data: {
+          estado: "AUTORIZADO",
+          paypalCaptureId: evento.resource?.id ?? pago.paypalCaptureId,
+          pagadoEl: new Date(),
+        },
+      });
+    }
+    return pago; // ya capturado por el camino síncrono — idempotente
+  }
+
   // Sección 8 del contrato, adaptado a cobro inmediato (Sergio, 2026-09-29):
   // la plata YA se cobró y se repartió al pagar (ver crearCheckout) — acá ya
   // no hay nada que "capturar", solo decidir si corresponde reembolso según
@@ -226,6 +393,12 @@ export class PagosService {
       // Todavía no llegó el webhook confirmando el pago, o ya se liquidó
       // antes — no hay nada consistente que hacer acá.
       throw new BadRequestException("El pago de este caso todavía no está confirmado");
+    }
+
+    // PayPal ("Payouts, dos pasos") tiene su propia lógica, bien distinta
+    // de la de Mercado Pago de acá abajo — ver liquidarSegunCierrePayPal.
+    if (caso.pago.medioDeCobro === "PAYPAL") {
+      return this.liquidarSegunCierrePayPal(casoId, caso.cierre.clasificacion, caso.pago, caso.veterinario);
     }
 
     const sinDerechoAReembolso = CIERRES_SIN_REEMBOLSO.includes(caso.cierre.clasificacion);
@@ -291,6 +464,78 @@ export class PagosService {
     });
   }
 
+  // Rama PayPal de liquidarSegunCierre ("Payouts, dos pasos", Sergio,
+  // 2026-09-30) — arquitectónicamente MÁS SIMPLE que la de Mercado Pago de
+  // arriba, y a propósito: como la plataforma cobró el TOTAL a su propia
+  // cuenta y todavía no le mandó nada al veterinario, acá no existe el
+  // problema del reparto proporcional que documenta el comentario grande
+  // de liquidarSegunCierre — no hay nada que "corregir a mano después".
+  //
+  // - Sin derecho a reembolso (RESUELTO_POR_ORIENTACION / DERIVADO_A_EMERGENCIA):
+  //   ACÁ es donde recién se le manda la plata al veterinario, vía PayPal
+  //   Payouts — antes de esto, ese dinero nunca salió de la cuenta de la
+  //   plataforma.
+  // - NO_COMPLETADO: se reembolsa (total - CARGO_NO_COMPLETADO_USD) al
+  //   cliente y NO se manda ningún payout — no hay nada que reclamarle de
+  //   vuelta al veterinario porque nunca se le mandó nada.
+  private async liquidarSegunCierrePayPal(
+    casoId: string,
+    clasificacion: string,
+    pago: { montoTotal: unknown; montoHonorarioVet: unknown; paypalCaptureId: string | null },
+    veterinario: { paypalEmail: string | null } | null,
+  ) {
+    const sinDerechoAReembolso = CIERRES_SIN_REEMBOLSO.includes(clasificacion as (typeof CIERRES_SIN_REEMBOLSO)[number]);
+
+    if (sinDerechoAReembolso) {
+      const montoHonorarioVet = Number(pago.montoHonorarioVet);
+      if (!veterinario?.paypalEmail) {
+        // No debería pasar nunca — crearCheckoutPayPal ya exige el email
+        // antes de crear la orden. Defensivo: si el veterinario de alguna
+        // forma se quedó sin email cargado en el medio, no se pierde el
+        // honorario — queda anotado para pagárselo a mano.
+        return this.prisma.pago.update({
+          where: { casoId },
+          data: {
+            estado: "CAPTURADO",
+            capturadoEl: new Date(),
+            montoPendienteAccionManual: montoHonorarioVet,
+            notaAccionManual:
+              "El veterinario ya no tiene un email de PayPal cargado — pagarle el honorario a mano.",
+          },
+        });
+      }
+      const payout = await enviarPayoutPayPal({
+        emailDestino: veterinario.paypalEmail,
+        montoUsd: montoHonorarioVet,
+        casoId,
+      });
+      return this.prisma.pago.update({
+        where: { casoId },
+        data: { estado: "CAPTURADO", capturadoEl: new Date(), paypalPayoutId: payout.payoutItemId },
+      });
+    }
+
+    if (!pago.paypalCaptureId) {
+      throw new BadRequestException("Falta el id de captura de PayPal — no se puede reembolsar");
+    }
+    const montoTotal = Number(pago.montoTotal);
+    const montoRetenido = Math.min(CARGO_NO_COMPLETADO_USD, montoTotal);
+    const montoAReembolsar = Math.round((montoTotal - montoRetenido) * 100) / 100;
+    if (montoAReembolsar > 0) {
+      await reembolsarCapturaPayPal(pago.paypalCaptureId, montoAReembolsar);
+    }
+    return this.prisma.pago.update({
+      where: { casoId },
+      data: {
+        estado: "REEMBOLSADO_TOTAL",
+        reembolsadoEl: new Date(),
+        montoReembolsado: montoAReembolsar,
+        // Sin montoPendienteAccionManual acá: a diferencia de Mercado
+        // Pago, no hay ningún payout previo que corregir — nunca se envió.
+      },
+    });
+  }
+
   // Sección 10 del contrato: una disputa de CALIDAD puede, como máximo,
   // reembolsar el cargo de servicio de la plataforma — nunca el honorario
   // ya liquidado al veterinario (eso solo pasa por NO_COMPLETADO, arriba).
@@ -310,6 +555,26 @@ export class PagosService {
   async reembolsarCargoPlataforma(casoId: string) {
     const pago = await this.prisma.pago.findUnique({ where: { casoId } });
     if (!pago) throw new BadRequestException("El caso no tiene pago registrado");
+
+    // PayPal (Sergio, 2026-09-30): a diferencia de Mercado Pago de abajo,
+    // ACÁ SÍ se automatiza completo, sin acción manual — el honorario del
+    // veterinario ya salió (o no) por un Payout totalmente aparte (ver
+    // liquidarSegunCierrePayPal), así que reembolsar el cargo de
+    // plataforma desde la captura propia de la plataforma no le toca ni un
+    // centavo al veterinario. Es una mejora real que habilita la
+    // arquitectura de PayPal, no solo paridad con Mercado Pago.
+    if (pago.medioDeCobro === "PAYPAL") {
+      if (pago.estado === "REEMBOLSADO_PARCIAL") return pago; // idempotente
+      const monto = Number(pago.montoCargoPlataforma);
+      if (monto > 0 && pago.paypalCaptureId) {
+        await reembolsarCapturaPayPal(pago.paypalCaptureId, monto);
+      }
+      return this.prisma.pago.update({
+        where: { casoId },
+        data: { estado: "REEMBOLSADO_PARCIAL", reembolsadoEl: new Date(), montoReembolsado: monto },
+      });
+    }
+
     if (pago.montoPendienteAccionManual != null) return pago; // idempotente
 
     const monto = Number(pago.montoCargoPlataforma);

@@ -176,12 +176,16 @@ function EstadoRealPago({
 }) {
   if (!pago) return <>Todavía no encontramos un cobro asociado a este asesoramiento.</>;
   const nombreVet = veterinario ? `${veterinario.nombre} ${veterinario.apellido}` : "tu veterinario";
+  // Mercado Pago cobra en ARS, PayPal en USD (ver Pago.moneda) — nunca
+  // asumir "$" = pesos, ni "Mercado Pago" cuando el medio real fue PayPal.
+  const monto = `${pago.moneda === "USD" ? "US$" : "$"}${Number(pago.montoTotal)}`;
+  const nombreMedio = pago.medioDeCobro === "PAYPAL" ? "PayPal" : "Mercado Pago";
   switch (pago.estado) {
     case "AUTORIZADO":
     case "CAPTURADO":
       return (
         <>
-          ✓ Pago confirmado (${Number(pago.montoTotal)}) — asesoramiento con {nombreVet} reservado.
+          ✓ Pago confirmado ({monto}) — asesoramiento con {nombreVet} reservado.
         </>
       );
     case "REEMBOLSADO_TOTAL":
@@ -192,6 +196,6 @@ function EstadoRealPago({
       return <>El pago no se acreditó.</>;
     case "PENDIENTE":
     default:
-      return <>Estamos confirmando el pago con Mercado Pago — puede tardar unos minutos.</>;
+      return <>Estamos confirmando el pago con {nombreMedio} — puede tardar unos minutos.</>;
   }
 }

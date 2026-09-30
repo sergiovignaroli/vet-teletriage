@@ -143,13 +143,33 @@ export class VeterinariosService {
   async miEstadoDeCobro(veterinarioId: string) {
     const veterinario = await this.prisma.veterinario.findUnique({
       where: { id: veterinarioId },
-      select: { medioDeCobro: true, mercadoPagoOAuthId: true },
+      select: { medioDeCobro: true, mercadoPagoOAuthId: true, paypalEmail: true },
     });
     if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
     return {
       medioDeCobro: veterinario.medioDeCobro,
       mercadoPagoConectado: veterinario.mercadoPagoOAuthId != null,
+      paypalEmail: veterinario.paypalEmail,
     };
+  }
+
+  // PayPal ("Payouts, dos pasos", Sergio, 2026-09-30): a diferencia de
+  // Mercado Pago, acá no hay OAuth — el veterinario simplemente carga la
+  // dirección de PayPal a la que quiere que le manden el honorario (mismo
+  // patrón que ya existía para Payoneer, payoneerEmail, nunca usado desde
+  // ninguna pantalla). Ver PagosService.crearCheckoutPayPal /
+  // liquidarSegunCierrePayPal para dónde se usa esto.
+  async guardarPaypalEmail(veterinarioId: string, paypalEmail: string) {
+    const limpio = paypalEmail.trim();
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!EMAIL_RE.test(limpio)) {
+      throw new BadRequestException("Ese email no tiene un formato válido");
+    }
+    await this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { paypalEmail: limpio },
+    });
+    return { paypalEmail: limpio };
   }
 
   private evaluarHabilitable(veterinario: {

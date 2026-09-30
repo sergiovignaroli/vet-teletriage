@@ -15,6 +15,12 @@ const VALORES_POR_DEFECTO = {
   cargoPlataformaNocturna: 3200,
   honorarioBaseNormal: 20000,
   honorarioBaseUrgencia: 35000,
+  // Precio fijo de PayPal, en USD (Sergio, 2026-09-30) — mismos valores de
+  // arranque que sembró la migración 20260930100000_paypal_payouts_dos_pasos;
+  // acá también es solo red de seguridad, no la fuente de verdad.
+  honorarioPaypalNormalUsd: 25,
+  honorarioPaypalUrgenciaUsd: 40,
+  cargoPlataformaPaypalUsd: 5,
   umbralSesionesVeterano: 50,
   bonusVeteranoPorcentaje: 10,
 };
@@ -67,6 +73,9 @@ export class ConfiguracionService {
       ["cargoPlataformaNocturna", "El cargo de plataforma nocturno"],
       ["honorarioBaseNormal", "El honorario base normal"],
       ["honorarioBaseUrgencia", "El honorario base de urgencia"],
+      ["honorarioPaypalNormalUsd", "El honorario de PayPal normal"],
+      ["honorarioPaypalUrgenciaUsd", "El honorario de PayPal de urgencia"],
+      ["cargoPlataformaPaypalUsd", "El cargo de plataforma de PayPal"],
     ];
     for (const [campo, etiqueta] of numericos) {
       const valor = cambios[campo];
@@ -112,6 +121,9 @@ export class ConfiguracionService {
     cargoPlataformaNocturna: { toNumber(): number };
     honorarioBaseNormal: { toNumber(): number };
     honorarioBaseUrgencia: { toNumber(): number };
+    honorarioPaypalNormalUsd: { toNumber(): number };
+    honorarioPaypalUrgenciaUsd: { toNumber(): number };
+    cargoPlataformaPaypalUsd: { toNumber(): number };
     umbralSesionesVeterano: number;
     bonusVeteranoPorcentaje: { toNumber(): number };
     emailContacto: string | null;
@@ -124,6 +136,9 @@ export class ConfiguracionService {
       cargoPlataformaNocturna: fila.cargoPlataformaNocturna.toNumber(),
       honorarioBaseNormal: fila.honorarioBaseNormal.toNumber(),
       honorarioBaseUrgencia: fila.honorarioBaseUrgencia.toNumber(),
+      honorarioPaypalNormalUsd: fila.honorarioPaypalNormalUsd.toNumber(),
+      honorarioPaypalUrgenciaUsd: fila.honorarioPaypalUrgenciaUsd.toNumber(),
+      cargoPlataformaPaypalUsd: fila.cargoPlataformaPaypalUsd.toNumber(),
       umbralSesionesVeterano: fila.umbralSesionesVeterano,
       bonusVeteranoPorcentaje: fila.bonusVeteranoPorcentaje.toNumber(),
       emailContacto: fila.emailContacto,

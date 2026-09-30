@@ -72,8 +72,17 @@ services:
         sync: false
       - key: PAYPAL_CLIENT_SECRET
         sync: false
-      - key: STRIPE_SECRET_KEY
+      - key: PAYPAL_WEBHOOK_ID
         sync: false
+      # A diferencia de Mercado Pago (mismo host, cambia solo el prefijo
+      # del token), PayPal usa hosts DISTINTOS para sandbox y producción —
+      # este valor decide cuál. Con un valor fijo (no sync: false) porque
+      # no es secreto y así el Blueprint arranca apuntando a producción
+      # sin que haga falta cargarlo a mano; para probar contra sandbox,
+      # pisarlo en el dashboard de Render por
+      # https://api-m.sandbox.paypal.com.
+      - key: PAYPAL_API_BASE_URL
+        value: https://api-m.paypal.com
       - key: TRUORA_API_KEY
         sync: false
       - key: TRUORA_FLOW_ID
@@ -86,12 +95,6 @@ services:
       - key: AGORA_APP_ID
         sync: false
       - key: AGORA_APP_CERTIFICATE
-        sync: false
-      - key: S3_BUCKET
-        sync: false
-      - key: S3_ACCESS_KEY_ID
-        sync: false
-      - key: S3_SECRET_ACCESS_KEY
         sync: false
 
   - type: web

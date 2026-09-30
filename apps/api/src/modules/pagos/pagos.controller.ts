@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Headers,
+  Logger,
   Param,
   Post,
   Query,
@@ -14,6 +15,7 @@ import {
 import type { Response } from "express";
 import { PagosService } from "./pagos.service";
 import { verificarFirmaMercadoPago } from "../../common/mercadopago-webhook.util";
+import { verificarFirmaWebhookPayPal } from "../../common/paypal.util";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
 import { Roles } from "../auth/roles.decorator";
@@ -21,6 +23,8 @@ import { CurrentUser, UsuarioAutenticado } from "../auth/current-user.decorator"
 
 @Controller("pagos")
 export class PagosController {
+  private readonly logger = new Logger(PagosController.name);
+
   constructor(private readonly pagos: PagosService) {}
 
   // Cuerpo real que manda Mercado Pago: {type, data:{id}} — nunca
@@ -54,11 +58,18 @@ export class PagosController {
   // El cliente ya eligió veterinario (asignar() dejó el caso ASIGNADO) —
   // acá se crea la preferencia de Mercado Pago y se le devuelve la URL de
   // checkout para redirigir su navegador.
+  // medioPago en el body, opcional (default Mercado Pago — el medio
+  // principal, Sergio 2026-09-30, "el medio principal es mercado pago
+  // siempre"). PayPal es la alternativa, no el default.
   @Post(":casoId/checkout")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("CLIENTE")
-  crearCheckout(@Param("casoId") casoId: string, @CurrentUser() usuario: UsuarioAutenticado) {
-    return this.pagos.crearCheckout(casoId, usuario.id);
+  crearCheckout(
+    @Param("casoId") casoId: string,
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body("medioPago") medioPago?: "MERCADO_PAGO" | "PAYPAL",
+  ) {
+    return this.pagos.crearCheckout(casoId, usuario.id, medioPago ?? "MERCADO_PAGO");
   }
 
   @Post(":casoId/liquidar")
@@ -112,5 +123,59 @@ export class PagosController {
 
     const destino = process.env.WEB_APP_URL ?? "http://localhost:3000";
     res.redirect(`${destino}/veterinario/cobros?mercadopago=conectado`);
+  }
+
+  // Público — acá es donde PayPal redirige el navegador del cliente
+  // después de que aprueba el pago (return_url armada en
+  // PagosService.crearCheckoutPayPal). La captura efectiva de la plata es
+  // ESTA llamada de servidor (no algo que ya haya pasado antes) — recién
+  // confirmada acá se redirige a /pago/exito o /pago/fallo, para que esa
+  // pantalla (que ya sabía leer Pago.estado en vivo) no necesite ningún
+  // cambio.
+  @Get("paypal/capturar")
+  async capturarPayPal(@Query("token") token: string, @Query("casoId") casoId: string, @Res() res: Response) {
+    const destino = process.env.WEB_APP_URL ?? "http://localhost:3000";
+    if (!token || !casoId) {
+      return res.redirect(`${destino}/pago/fallo?casoId=${casoId ?? ""}`);
+    }
+    try {
+      const pago = await this.pagos.capturarPagoPayPal(casoId, token);
+      const exito = pago.estado === "AUTORIZADO" || pago.estado === "CAPTURADO";
+      res.redirect(`${destino}/pago/${exito ? "exito" : "fallo"}?casoId=${casoId}`);
+    } catch (e) {
+      this.logger.error(`No se pudo capturar el pago de PayPal del caso ${casoId}: ${e instanceof Error ? e.message : e}`);
+      res.redirect(`${destino}/pago/fallo?casoId=${casoId}`);
+    }
+  }
+
+  // Webhook de PayPal — respaldo de reconciliación (ver comentario en
+  // PagosService.manejarWebhookPayPal). Verificación de firma vía la API
+  // oficial de PayPal (no un HMAC calculado local), así que no hace falta
+  // configurar acceso al body crudo en Nest — se le manda a PayPal el body
+  // ya parseado por @Body(), tal cual la documentación oficial permite.
+  @Post("webhooks/paypal")
+  async webhookPayPal(
+    @Headers("paypal-transmission-id") transmissionId: string,
+    @Headers("paypal-transmission-time") transmissionTime: string,
+    @Headers("paypal-cert-url") certUrl: string,
+    @Headers("paypal-auth-algo") authAlgo: string,
+    @Headers("paypal-transmission-sig") transmissionSig: string,
+    @Body() body: { event_type?: string; resource?: { id?: string; custom_id?: string } },
+  ) {
+    const firmaValida = await verificarFirmaWebhookPayPal(
+      {
+        "paypal-transmission-id": transmissionId,
+        "paypal-transmission-time": transmissionTime,
+        "paypal-cert-url": certUrl,
+        "paypal-auth-algo": authAlgo,
+        "paypal-transmission-sig": transmissionSig,
+      },
+      body,
+      process.env.PAYPAL_WEBHOOK_ID ?? "",
+    );
+    if (!firmaValida) {
+      throw new UnauthorizedException("Firma de webhook de PayPal inválida");
+    }
+    return this.pagos.manejarWebhookPayPal(body);
   }
 }

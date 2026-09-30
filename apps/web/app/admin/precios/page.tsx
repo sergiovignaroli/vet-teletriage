@@ -24,6 +24,9 @@ function configAFormulario(config: ConfiguracionPlataforma): FormState {
     cargoPlataformaNocturna: String(config.cargoPlataformaNocturna),
     honorarioBaseNormal: String(config.honorarioBaseNormal),
     honorarioBaseUrgencia: String(config.honorarioBaseUrgencia),
+    honorarioPaypalNormalUsd: String(config.honorarioPaypalNormalUsd),
+    honorarioPaypalUrgenciaUsd: String(config.honorarioPaypalUrgenciaUsd),
+    cargoPlataformaPaypalUsd: String(config.cargoPlataformaPaypalUsd),
     umbralSesionesVeterano: String(config.umbralSesionesVeterano),
     bonusVeteranoPorcentaje: String(config.bonusVeteranoPorcentaje),
     emailContacto: config.emailContacto ?? "",
@@ -116,6 +119,9 @@ export default function AdminPreciosPage() {
         cargoPlataformaNocturna: Number(form.cargoPlataformaNocturna),
         honorarioBaseNormal: Number(form.honorarioBaseNormal),
         honorarioBaseUrgencia: Number(form.honorarioBaseUrgencia),
+        honorarioPaypalNormalUsd: Number(form.honorarioPaypalNormalUsd),
+        honorarioPaypalUrgenciaUsd: Number(form.honorarioPaypalUrgenciaUsd),
+        cargoPlataformaPaypalUsd: Number(form.cargoPlataformaPaypalUsd),
         umbralSesionesVeterano: Number(form.umbralSesionesVeterano),
         bonusVeteranoPorcentaje: Number(form.bonusVeteranoPorcentaje),
         emailContacto: form.emailContacto,
@@ -191,6 +197,37 @@ export default function AdminPreciosPage() {
                 type="number"
                 value={form.honorarioBaseUrgencia}
                 onChange={(e) => actualizarCampo("honorarioBaseUrgencia", e.target.value)}
+              />
+            </Campo>
+          </Seccion>
+
+          <Seccion titulo="Precio fijo para PayPal (USD)">
+            <p style={{ fontSize: 11.5, opacity: 0.6, margin: "0 0 10px" }}>
+              PayPal no cobra en pesos (no soporta ARS) — este precio es independiente del de arriba, no una
+              conversión. Sin margen individual por veterinario: todo el que tenga PayPal conectado cobra igual.
+            </p>
+            <Campo etiqueta="Honorario, asesoramiento normal (US$)">
+              <input
+                className="va-input"
+                type="number"
+                value={form.honorarioPaypalNormalUsd}
+                onChange={(e) => actualizarCampo("honorarioPaypalNormalUsd", e.target.value)}
+              />
+            </Campo>
+            <Campo etiqueta="Honorario, asesoramiento de urgencia (US$)">
+              <input
+                className="va-input"
+                type="number"
+                value={form.honorarioPaypalUrgenciaUsd}
+                onChange={(e) => actualizarCampo("honorarioPaypalUrgenciaUsd", e.target.value)}
+              />
+            </Campo>
+            <Campo etiqueta="Cargo de plataforma (US$)" ayuda="Flat, sin franja horaria">
+              <input
+                className="va-input"
+                type="number"
+                value={form.cargoPlataformaPaypalUsd}
+                onChange={(e) => actualizarCampo("cargoPlataformaPaypalUsd", e.target.value)}
               />
             </Campo>
           </Seccion>

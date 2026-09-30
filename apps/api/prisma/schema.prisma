@@ -79,6 +79,15 @@ model Veterinario {
   mercadoPagoRefreshToken  String?
   mercadoPagoTokenVenceEl  DateTime?
   payoneerEmail      String?
+  // PayPal Payouts, dos pasos (Sergio, 2026-09-30 — ver doc de
+  // proveedores): a diferencia de Mercado Pago, ACÁ NO hay OAuth ni
+  // conexión de cuenta — el cliente le paga el total a la cuenta PROPIA de
+  // la plataforma (ver paypal.util.ts, PagosService.crearCheckout) y este
+  // email es solo la dirección a la que la plataforma le manda, aparte, el
+  // honorario del veterinario vía PayPal Payouts al cerrar el caso (ver
+  // PagosService.liquidarSegunCierre). Mismo patrón simple que
+  // payoneerEmail, arriba.
+  paypalEmail        String?
 
   // Verificación de identidad (Sección 6)
   verificacionesIdentidad VerificacionIdentidad[]
@@ -332,7 +341,21 @@ model Pago {
   mercadoPagoPreferenciaId String?
   mercadoPagoPaymentId  String?
   paypalOrderId         String?       // cuando el split es en dos pasos (PayPal Payouts), ver doc de proveedores
+  paypalCaptureId       String?       // id de la CAPTURA (no de la orden) — hace falta este, no paypalOrderId, para pedir un reembolso puntual: POST /v2/payments/captures/{id}/refund
   paypalPayoutId        String?
+
+  // [Seguro, verificado contra developer.paypal.com/reports/reference/
+  // supported-currencies, 2026-09-30] PayPal NO soporta ARS como moneda de
+  // transacción (la lista oficial incluye USD/EUR/BRL/MXN, entre otras,
+  // pero no pesos argentinos). Por eso un Pago en PAYPAL nunca convierte en
+  // vivo el monto en ARS: usa un precio fijo propio, en dólares, que
+  // Sergio carga aparte en ConfiguracionPlataforma
+  // (honorarioPaypalNormalUsd/honorarioPaypalUrgenciaUsd/
+  // cargoPlataformaPaypalUsd) — decisión confirmada por Sergio, 2026-09-30.
+  // Mercado Pago siempre cobra en ARS — este campo existe para que
+  // cualquier pantalla que muestre montoTotal sepa con qué símbolo
+  // formatearlo, en vez de asumir "$" = pesos siempre.
+  moneda                MonedaPago    @default(ARS)
 
   creadoEl              DateTime      @default(now())
   pagadoEl              DateTime?     // cuando el webhook confirmó el pago aprobado
@@ -376,6 +399,11 @@ enum MedioDeCobroCliente {
   MERCADO_PAGO
   STRIPE
   PAYPAL
+}
+
+enum MonedaPago {
+  ARS
+  USD
 }
 
 enum EstadoPago {
@@ -473,6 +501,18 @@ model ConfiguracionPlataforma {
   // honorario, solo el cargo de plataforma.
   honorarioBaseNormal    Decimal @db.Decimal(10, 2)
   honorarioBaseUrgencia  Decimal @db.Decimal(10, 2)
+
+  // Precio fijo para pagos con PayPal, en USD (Sergio, 2026-09-30):
+  // PayPal no soporta ARS (ver nota en Pago.moneda) — en vez de convertir
+  // en vivo el precio en pesos, este es un precio propio, independiente,
+  // que Sergio edita acá igual que los de arriba. A diferencia del
+  // honorario en ARS, ACÁ NO hay margen individual por veterinario ni
+  // premio por volumen — todo veterinario con PayPal conectado cobra
+  // exactamente este monto por sesión; ver el comentario en
+  // PagosService.crearCheckout sobre por qué se simplificó así.
+  honorarioPaypalNormalUsd    Decimal @db.Decimal(10, 2)
+  honorarioPaypalUrgenciaUsd  Decimal @db.Decimal(10, 2)
+  cargoPlataformaPaypalUsd    Decimal @db.Decimal(10, 2)
 
   // Premio por volumen (ver Veterinario.sesionesCompletadas): a partir de
   // superar este umbral de sesiones cerradas, se suma este % arriba del

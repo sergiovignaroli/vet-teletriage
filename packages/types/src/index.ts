@@ -33,6 +33,14 @@ export interface ConfiguracionPlataforma {
   // sigue existiendo (arriba) pero ya solo afecta el cargo de plataforma.
   honorarioBaseNormal: number;
   honorarioBaseUrgencia: number;
+  // Precio fijo para PayPal, en USD (Sergio, 2026-09-30) — PayPal no
+  // soporta ARS (verificado contra developer.paypal.com/reports/reference/
+  // supported-currencies), así que esto NO es una conversión del precio de
+  // arriba, es un precio propio e independiente. Sin margen individual por
+  // veterinario ni premio por volumen — ver honorarioPaypalDe más abajo.
+  honorarioPaypalNormalUsd: number;
+  honorarioPaypalUrgenciaUsd: number;
+  cargoPlataformaPaypalUsd: number;
   // Premio por volumen: a partir de superar `umbralSesionesVeterano`
   // sesiones cerradas (Veterinario.sesionesCompletadas), se suma
   // `bonusVeteranoPorcentaje` arriba del margenPorcentaje propio del
@@ -57,6 +65,14 @@ export function honorarioBaseDe(config: Pick<ConfiguracionPlataforma, "honorario
   return hayUrgencia ? config.honorarioBaseUrgencia : config.honorarioBaseNormal;
 }
 
+// Análogo a honorarioBaseDe, para el precio fijo en USD de PayPal — sin
+// margen individual del veterinario ni premio por volumen (Sergio,
+// 2026-09-30: simplificación deliberada, ver comentario en
+// PagosService.crearCheckout).
+export function honorarioPaypalDe(config: Pick<ConfiguracionPlataforma, "honorarioPaypalNormalUsd" | "honorarioPaypalUrgenciaUsd">, hayUrgencia: boolean): number {
+  return hayUrgencia ? config.honorarioPaypalUrgenciaUsd : config.honorarioPaypalNormalUsd;
+}
+
 // bonusVeteranoPorcentaje: 0 si el veterinario no llegó a
 // umbralSesionesVeterano todavía — quien llama decide eso (ver
 // CasosService), acá solo se suma lo que llega.
@@ -73,6 +89,11 @@ export function honorarioFinalDe(honorarioBase: number, margenPorcentaje: number
 // disponga la plataforma" (palabras de Sergio) — cuando lo cambie, un solo
 // lugar para tocar.
 export const CARGO_NO_COMPLETADO = 2500;
+
+// Análogo a CARGO_NO_COMPLETADO, para pagos en PayPal (USD) — mismo
+// criterio: constante fija en el código, no editable desde el panel
+// (Sergio no lo pidió para la versión en pesos, se mantiene igual acá).
+export const CARGO_NO_COMPLETADO_USD = 5;
 
 export type ClasificacionCierre =
   | "RESUELTO_POR_ORIENTACION"
@@ -184,7 +205,14 @@ export interface VeterinarioParaElegir {
   nombre: string;
   apellido: string;
   honorarioFinal: number;
-  costoTotal: number; // honorarioFinal + cargoPlataforma del caso
+  costoTotal: number; // honorarioFinal + cargoPlataforma del caso, en ARS (Mercado Pago)
+  // Precio fijo de PayPal (USD) para ESTE caso — null si el veterinario no
+  // tiene un email de PayPal cargado (Sergio, 2026-09-30: sin PayPal
+  // conectado, ese veterinario no puede ofrecerse como opción de pago en
+  // PayPal, mismo criterio que ya existía para Mercado Pago). Es el MISMO
+  // monto para cualquier veterinario que sí lo tenga — ver nota en
+  // honorarioPaypalDe sobre por qué PayPal no tiene margen individual.
+  costoTotalPaypalUsd: number | null;
   ratingPromedio: number | null; // null si todavía no tiene calificaciones
   cantidadCalificaciones: number;
 }
@@ -238,7 +266,15 @@ export interface CasoParaCliente extends CasoResumen {
   // que más depende de esto para no confiar ciegamente en el back_url por
   // el que Mercado Pago redirigió (ese solo refleja lo que el navegador
   // del cliente vio, no necesariamente lo que el webhook ya confirmó).
-  pago: { estado: EstadoPagoCliente; montoTotal: number } | null;
+  // moneda: Mercado Pago siempre es ARS; PayPal siempre USD (ver nota en
+  // Pago.moneda de schema.prisma) — sin esto, cualquier pantalla que
+  // muestre montoTotal no tiene cómo saber con qué símbolo formatearlo.
+  pago: {
+    estado: EstadoPagoCliente;
+    montoTotal: number;
+    moneda: "ARS" | "USD";
+    medioDeCobro: "MERCADO_PAGO" | "STRIPE" | "PAYPAL";
+  } | null;
   yaCalificado: boolean;
   disputaCalidad: { id: string; estado: "ABIERTA" | "EN_REVISION" | "RESUELTA"; resolucion: string | null } | null;
 }
