@@ -73,7 +73,7 @@ export default function IntakePage() {
       // (Sergio, 2026-09-29).
       router.push(`/elegir-veterinario/${caso.id}`);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No pudimos registrar la consulta. Probá de nuevo.");
+      setError(e instanceof ApiError ? e.message : "No pudimos registrar el asesoramiento. Probá de nuevo.");
     } finally {
       setEnviando(false);
     }
@@ -125,7 +125,7 @@ export default function IntakePage() {
           }}
         >
           Esto puede ser una emergencia. Te recomendamos ir a una guardia veterinaria presencial ahora.
-          Podés igual continuar y agendar una consulta online si querés orientación mientras tanto.
+          Podés igual continuar y agendar un asesoramiento online si querés orientación mientras tanto.
         </div>
       )}
 

@@ -31,12 +31,12 @@ export default function ResultadoPagoPage() {
 const COPY: Record<string, { titulo: string; texto: string }> = {
   exito: {
     titulo: "¡Listo! Tu pago se confirmó",
-    texto: "Guardamos tu consulta — ya podés esperar a que tu veterinario te contacte para la videollamada.",
+    texto: "Guardamos tu asesoramiento — ya podés esperar a que tu veterinario te contacte para la videollamada.",
   },
   pendiente: {
     titulo: "Tu pago quedó pendiente de acreditación",
     texto:
-      "Es normal con algunos medios de pago (efectivo, transferencia) — te avisamos apenas se acredite. Tu consulta ya está reservada.",
+      "Es normal con algunos medios de pago (efectivo, transferencia) — te avisamos apenas se acredite. Tu asesoramiento ya está reservado.",
   },
   fallo: {
     titulo: "No pudimos procesar tu pago",
@@ -112,7 +112,7 @@ function ResultadoPagoContenido() {
 
       {!casoId && (
         <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 16 }} role="alert">
-          No pudimos identificar de qué consulta se trata este pago.
+          No pudimos identificar de qué asesoramiento se trata este pago.
         </p>
       )}
       {error && (
@@ -122,7 +122,7 @@ function ResultadoPagoContenido() {
       )}
       {caso === undefined && casoId && <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>Confirmando…</p>}
       {caso === null && !error && casoId && (
-        <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>No encontramos esa consulta en tu cuenta.</p>
+        <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>No encontramos ese asesoramiento en tu cuenta.</p>
       )}
 
       {caso && (
@@ -155,7 +155,7 @@ function ResultadoPagoContenido() {
 
       <p style={{ marginTop: 20 }}>
         <a href="/panel" style={{ fontSize: 13 }}>
-          Ver mis consultas
+          Ver mis asesoramientos
         </a>
       </p>
 
@@ -174,18 +174,18 @@ function EstadoRealPago({
   pago: CasoParaCliente["pago"];
   veterinario: CasoParaCliente["veterinario"];
 }) {
-  if (!pago) return <>Todavía no encontramos un cobro asociado a esta consulta.</>;
+  if (!pago) return <>Todavía no encontramos un cobro asociado a este asesoramiento.</>;
   const nombreVet = veterinario ? `${veterinario.nombre} ${veterinario.apellido}` : "tu veterinario";
   switch (pago.estado) {
     case "AUTORIZADO":
     case "CAPTURADO":
       return (
         <>
-          ✓ Pago confirmado (${Number(pago.montoTotal)}) — consulta con {nombreVet} reservada.
+          ✓ Pago confirmado (${Number(pago.montoTotal)}) — asesoramiento con {nombreVet} reservado.
         </>
       );
     case "REEMBOLSADO_TOTAL":
-      return <>Este pago ya fue reembolsado — la consulta no se llegó a completar.</>;
+      return <>Este pago ya fue reembolsado — el asesoramiento no se llegó a completar.</>;
     case "REEMBOLSADO_PARCIAL":
       return <>Se reembolsó parte de este pago.</>;
     case "CANCELADO":

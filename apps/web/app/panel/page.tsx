@@ -25,8 +25,8 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   BANDERA_ROJA_MOSTRADA: "Elegí un veterinario para continuar",
   ASIGNADO: "Esperando que el veterinario inicie",
   EN_SESION: "En sesión ahora",
-  CERRADO: "Consulta finalizada",
-  CANCELADO_FALLA_PLATAFORMA: "Cancelada",
+  CERRADO: "Asesoramiento finalizado",
+  CANCELADO_FALLA_PLATAFORMA: "Cancelado",
 };
 
 export default function PanelPage() {
@@ -52,7 +52,7 @@ export default function PanelPage() {
       const datos = await apiGet<CasoParaCliente[]>("/casos/mios-cliente", sesion.accessToken);
       setCasos(datos);
     } catch (e) {
-      setErrorCasos(e instanceof ApiError ? e.message : "No pudimos cargar tus consultas. Probá de nuevo.");
+      setErrorCasos(e instanceof ApiError ? e.message : "No pudimos cargar tus asesoramientos. Probá de nuevo.");
     } finally {
       setCargandoCasos(false);
     }
@@ -99,7 +99,7 @@ export default function PanelPage() {
       </p>
 
       <Link href="/intake" className="va-boton" style={{ textDecoration: "none", display: "block" }}>
-        Iniciar una consulta
+        Iniciar un asesoramiento
       </Link>
 
       <button
@@ -111,7 +111,7 @@ export default function PanelPage() {
       </button>
 
       <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 24, marginBottom: 10, textAlign: "left" }}>
-        Mis consultas
+        Mis asesoramientos
       </h2>
 
       {cargandoCasos && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
@@ -121,7 +121,7 @@ export default function PanelPage() {
         </p>
       )}
       {!cargandoCasos && casos && casos.length === 0 && (
-        <p style={{ fontSize: 13, opacity: 0.55, textAlign: "left" }}>Todavía no iniciaste ninguna consulta.</p>
+        <p style={{ fontSize: 13, opacity: 0.55, textAlign: "left" }}>Todavía no iniciaste ningún asesoramiento.</p>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -185,10 +185,10 @@ export default function PanelPage() {
                     className="va-boton"
                     style={{ width: "auto", padding: "6px 14px", fontSize: 13, textDecoration: "none", display: "inline-block" }}
                   >
-                    Calificar consulta
+                    Calificar asesoramiento
                   </Link>
                 ) : (
-                  <span style={{ fontSize: 12, opacity: 0.55 }}>Ya la calificaste — gracias</span>
+                  <span style={{ fontSize: 12, opacity: 0.55 }}>Ya lo calificaste — gracias</span>
                 )}
 
                 {!caso.disputaCalidad ? (

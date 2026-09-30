@@ -187,7 +187,7 @@ export class CasosService {
       throw new BadRequestException("Ese veterinario ya no está disponible — elegí otro de la lista");
     }
     if (veterinario.casos.length > 0) {
-      throw new BadRequestException("Ese veterinario ya está atendiendo otra consulta — elegí otro de la lista");
+      throw new BadRequestException("Ese veterinario ya está atendiendo otro asesoramiento — elegí otro de la lista");
     }
 
     // Mismo cálculo que paraElegir() — ver el comentario ahí sobre por qué

@@ -34,7 +34,7 @@ const ETIQUETA_ESTADO: Record<string, string> = {
 const ETIQUETAS_CIERRE: Record<ClasificacionCierre, string> = {
   RESUELTO_POR_ORIENTACION: "Resuelto con orientación",
   DERIVADO_A_EMERGENCIA: "Derivé a una guardia de emergencia",
-  NO_COMPLETADO: "No se pudo completar la consulta",
+  NO_COMPLETADO: "No se pudo completar el asesoramiento",
 };
 
 export default function PanelVeterinarioPage() {
@@ -346,7 +346,7 @@ export default function PanelVeterinarioPage() {
       {!cargandoCasos && casos && casos.length === 0 && (
         <p style={{ fontSize: 14, opacity: 0.6 }}>
           Todavía nadie te eligió. Mientras estés conectado, vas a aparecer en la lista que ve el cliente al
-          terminar su consulta.
+          terminar su asesoramiento.
         </p>
       )}
 
@@ -516,11 +516,11 @@ function SesionEnCurso({
         </a>
       ) : (
         <p style={{ fontSize: 12, opacity: 0.6, marginTop: 0, marginBottom: 12 }}>
-          Todavía no hay una sala de video conectada — coordiná la consulta por WhatsApp mientras tanto.
+          Todavía no hay una sala de video conectada — coordiná el asesoramiento por WhatsApp mientras tanto.
         </p>
       )}
 
-      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Cerrar consulta</div>
+      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Cerrar asesoramiento</div>
       <select
         className="va-input"
         value={clasificacion}
@@ -554,7 +554,7 @@ function SesionEnCurso({
         onClick={cerrar}
         disabled={cerrando || !clasificacion}
       >
-        {cerrando ? "Cerrando…" : "Cerrar consulta"}
+        {cerrando ? "Cerrando…" : "Cerrar asesoramiento"}
       </button>
     </div>
   );

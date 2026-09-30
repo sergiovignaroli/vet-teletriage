@@ -43,7 +43,7 @@ export default function ReportarProblemaPage() {
       })
       .catch((e) => {
         if (cancelado) return;
-        setError(e instanceof ApiError ? e.message : "No pudimos cargar la consulta. Probá de nuevo.");
+        setError(e instanceof ApiError ? e.message : "No pudimos cargar el asesoramiento. Probá de nuevo.");
         setCaso(null);
       });
     return () => {
@@ -106,7 +106,7 @@ export default function ReportarProblemaPage() {
   if (!caso) {
     return envoltorio(
       <>
-        <p style={{ fontSize: 14, opacity: 0.7 }}>No encontramos esa consulta.</p>
+        <p style={{ fontSize: 14, opacity: 0.7 }}>No encontramos ese asesoramiento.</p>
         <a href="/panel" className="va-boton" style={{ textDecoration: "none", marginTop: 20 }}>
           Volver al inicio
         </a>
@@ -119,7 +119,7 @@ export default function ReportarProblemaPage() {
     return envoltorio(
       <>
         <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }}>
-          Ya reportaste esta consulta
+          Ya reportaste este asesoramiento
         </h1>
         <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 24 }}>
           {estado === "RESUELTA"
@@ -139,7 +139,7 @@ export default function ReportarProblemaPage() {
         ¿Qué pasó?
       </h1>
       <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 20 }}>
-        Contanos qué salió mal con la consulta sobre {caso.intake.especie.toLowerCase()}. Como mucho, esto
+        Contanos qué salió mal con el asesoramiento sobre {caso.intake.especie.toLowerCase()}. Como mucho, esto
         puede resolver en el reembolso del cargo de plataforma — nunca afecta al veterinario que te atendió
         más allá de la revisión.
       </p>

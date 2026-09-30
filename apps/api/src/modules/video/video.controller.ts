@@ -29,10 +29,10 @@ export class VideoController {
     const perteneceAlCaso =
       (usuario.rol === "CLIENTE" && caso.clienteId === usuario.id) ||
       (usuario.rol === "VETERINARIO" && caso.veterinarioId === usuario.id);
-    if (!perteneceAlCaso) throw new ForbiddenException("No formás parte de esta consulta");
+    if (!perteneceAlCaso) throw new ForbiddenException("No formás parte de este asesoramiento");
 
     if (caso.estado !== "EN_SESION") {
-      throw new BadRequestException("Esta consulta todavía no arrancó del lado del veterinario");
+      throw new BadRequestException("Este asesoramiento todavía no arrancó del lado del veterinario");
     }
 
     try {

@@ -118,7 +118,7 @@ export default function ElegirVeterinarioPage() {
         </h1>
         <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 24 }}>
           {errorCheckout
-            ? "Ya elegiste veterinario — solo falta completar el pago para confirmar la consulta."
+            ? "Ya elegiste veterinario — solo falta completar el pago para confirmar el asesoramiento."
             : "Ya elegiste veterinario. Te estamos redirigiendo a Mercado Pago para completar el pago."}
         </p>
         {errorCheckout && (
@@ -162,7 +162,7 @@ export default function ElegirVeterinarioPage() {
             fontSize: 14,
           }}
         >
-          No hay ningún veterinario conectado en este momento. Tu consulta queda registrada — te avisamos por
+          No hay ningún veterinario conectado en este momento. Tu asesoramiento queda registrado — te avisamos por
           WhatsApp apenas se conecte alguno.
         </div>
       )}

@@ -46,7 +46,7 @@ export default function CalificarPage() {
       })
       .catch((e) => {
         if (cancelado) return;
-        setError(e instanceof ApiError ? e.message : "No pudimos cargar la consulta. Probá de nuevo.");
+        setError(e instanceof ApiError ? e.message : "No pudimos cargar el asesoramiento. Probá de nuevo.");
         setCaso(null);
       });
     return () => {
@@ -97,7 +97,7 @@ export default function CalificarPage() {
     return (
       <main style={{ maxWidth: 380, margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 22px", textAlign: "center" }}>
         <Logo size="md" marginBottom={28} />
-        <p style={{ fontSize: 14, opacity: 0.7 }}>No encontramos esa consulta.</p>
+        <p style={{ fontSize: 14, opacity: 0.7 }}>No encontramos ese asesoramiento.</p>
         <a href="/panel" className="va-boton" style={{ textDecoration: "none", marginTop: 20 }}>
           Volver al inicio
         </a>
@@ -110,7 +110,7 @@ export default function CalificarPage() {
     return (
       <main style={{ maxWidth: 380, margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 22px", textAlign: "center" }}>
         <Logo size="md" marginBottom={28} />
-        <p style={{ fontSize: 14, opacity: 0.7 }}>Ya calificaste esta consulta — gracias.</p>
+        <p style={{ fontSize: 14, opacity: 0.7 }}>Ya calificaste este asesoramiento — gracias.</p>
         <a href="/panel" className="va-boton" style={{ textDecoration: "none", marginTop: 20 }}>
           Volver al inicio
         </a>
@@ -129,7 +129,7 @@ export default function CalificarPage() {
         ¿Cómo te fue con {caso.veterinario.nombre}?
       </h1>
       <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 20 }}>
-        Consulta sobre {caso.intake.especie.toLowerCase()} · {caso.intake.motivoConsulta}
+        Asesoramiento sobre {caso.intake.especie.toLowerCase()} · {caso.intake.motivoConsulta}
       </p>
 
       <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }} role="radiogroup" aria-label="Calificación en estrellas">

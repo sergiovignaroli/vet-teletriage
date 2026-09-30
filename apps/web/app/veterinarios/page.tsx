@@ -48,7 +48,7 @@ export default function DirectorioVeterinariosPage() {
         Nuestros veterinarios
       </h1>
       <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 24 }}>
-        Todos matriculados y verificados. El rating es de dueños reales, después de cada consulta.
+        Todos matriculados y verificados. El rating es de dueños reales, después de cada asesoramiento.
       </p>
 
       {error && (
@@ -59,7 +59,7 @@ export default function DirectorioVeterinariosPage() {
       {!error && veterinarios === null && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
       {veterinarios && veterinarios.length === 0 && (
         <p style={{ fontSize: 13, opacity: 0.55 }}>
-          Todavía no tenemos veterinarios habilitados para mostrar acá — pero ya podés iniciar una consulta
+          Todavía no tenemos veterinarios habilitados para mostrar acá — pero ya podés iniciar un asesoramiento
           y te conectamos apenas haya uno disponible.
         </p>
       )}

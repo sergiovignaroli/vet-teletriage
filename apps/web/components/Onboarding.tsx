@@ -25,14 +25,14 @@ const PANTALLAS_CLIENTE = [
   },
   {
     titulo: "Contás qué pasa",
-    texto: "Elegís el motivo de consulta. Nada de formularios largos — dos toques y listo.",
+    texto: "Elegís el motivo del asesoramiento. Nada de formularios largos — dos toques y listo.",
   },
 ];
 
 const PANTALLA_FINAL_CLIENTE = {
   titulo: "Ya estás listo.",
   texto: "Contanos qué le pasa a tu mascota y te conectamos con un veterinario ahora.",
-  boton: "Empezar mi primera consulta",
+  boton: "Empezar mi primer asesoramiento",
 };
 
 // Decisión de Sergio (2026-09-29): el cliente elige veterinario viendo

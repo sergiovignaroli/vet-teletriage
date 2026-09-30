@@ -91,7 +91,7 @@ export async function crearPreferenciaDePago(
       items: [
         {
           id: input.casoId,
-          title: "Consulta veterinaria online — Videollamada Animal",
+          title: "Asesoramiento veterinario online — Videollamada Animal",
           quantity: 1,
           currency_id: "ARS",
           unit_price: input.montoTotal,

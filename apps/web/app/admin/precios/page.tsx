@@ -177,7 +177,7 @@ export default function AdminPreciosPage() {
           </Seccion>
 
           <Seccion titulo="Honorario base del veterinario">
-            <Campo etiqueta="Consulta normal ($)">
+            <Campo etiqueta="Asesoramiento normal ($)">
               <input
                 className="va-input"
                 type="number"
@@ -185,7 +185,7 @@ export default function AdminPreciosPage() {
                 onChange={(e) => actualizarCampo("honorarioBaseNormal", e.target.value)}
               />
             </Campo>
-            <Campo etiqueta="Consulta de urgencia ($)" ayuda="Cuando el intake disparó alguna bandera roja">
+            <Campo etiqueta="Asesoramiento de urgencia ($)" ayuda="Cuando el intake disparó alguna bandera roja">
               <input
                 className="va-input"
                 type="number"

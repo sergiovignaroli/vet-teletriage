@@ -137,12 +137,12 @@ function CobrosVeterinarioContenido() {
           </div>
           {conectado ? (
             <p style={{ fontSize: 13, opacity: 0.65, margin: 0 }}>
-              Ya podés recibir pagos por tus consultas. Si necesitás reconectar la cuenta (por ejemplo, si
+              Ya podés recibir pagos por tus asesoramientos. Si necesitás reconectar la cuenta (por ejemplo, si
               cambiaste de titular), podés volver a hacerlo cuando quieras.
             </p>
           ) : (
             <p style={{ fontSize: 13, opacity: 0.65, margin: "0 0 12px" }}>
-              Todavía no cobrás por acá — sin esto, no vas a poder recibir el pago de tus consultas.
+              Todavía no cobrás por acá — sin esto, no vas a poder recibir el pago de tus asesoramientos.
             </p>
           )}
           <button

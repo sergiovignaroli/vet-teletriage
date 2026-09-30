@@ -57,7 +57,7 @@ export default function HomePage() {
       </p>
 
       <Link href="/ingresar" style={{ fontSize: 13, opacity: 0.55, textDecoration: "underline" }}>
-        Ya empecé una consulta, quiero ingresar
+        Ya empecé un asesoramiento, quiero ingresar
       </Link>
 
       <Link

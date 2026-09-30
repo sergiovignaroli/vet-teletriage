@@ -137,7 +137,7 @@ export class DisputasService {
     // asume un Pago ya capturado para reembolsar — un caso que nunca llegó
     // a CERRADO puede no tener Pago todavía.
     if (caso.estado !== "CERRADO") {
-      throw new BadRequestException("Todavía no se puede reportar un problema — la consulta no terminó");
+      throw new BadRequestException("Todavía no se puede reportar un problema — el asesoramiento no terminó");
     }
 
     return this.prisma.disputaCalidad.create({ data: { casoId, motivo } });

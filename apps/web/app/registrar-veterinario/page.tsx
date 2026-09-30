@@ -121,7 +121,7 @@ export default function RegistrarVeterinarioPage() {
         Sumate como veterinario
       </h1>
       <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 24 }}>
-        Con matrícula y seguro vigentes podés empezar a atender consultas online. Verificamos tu identidad y tus
+        Con matrícula y seguro vigentes podés empezar a brindar asesoramiento online. Verificamos tu identidad y tus
         datos antes de habilitarte — mientras tanto tu cuenta queda pendiente de revisión.
       </p>
 

@@ -78,7 +78,7 @@ export default function TerminosPage() {
       </Seccion>
 
       <Seccion titulo="3. Precios">
-        <p>El costo total de cada consulta tiene dos componentes:</p>
+        <p>El costo total de cada asesoramiento tiene dos componentes:</p>
         <ul style={{ paddingLeft: 20, margin: "8px 0" }}>
           <li>
             <strong>Cargo de plataforma:</strong>{" "}
@@ -95,8 +95,8 @@ export default function TerminosPage() {
             <strong>Honorario del veterinario:</strong>{" "}
             {config ? (
               <>
-                a partir de {pesos(config.honorarioBaseNormal)} para una consulta normal, o{" "}
-                {pesos(config.honorarioBaseUrgencia)} cuando la consulta se marca como urgente. Cada veterinario
+                a partir de {pesos(config.honorarioBaseNormal)} para un asesoramiento normal, o{" "}
+                {pesos(config.honorarioBaseUrgencia)} cuando el asesoramiento se marca como urgente. Cada veterinario
                 puede ajustar este valor dentro de un rango fijo definido por la plataforma.
               </>
             ) : (
@@ -113,22 +113,22 @@ export default function TerminosPage() {
         </p>
         <p>
           El costo total (cargo de plataforma + honorario del veterinario elegido) se muestra siempre antes de
-          confirmar y pagar la consulta — nunca se cobra un monto distinto al que se mostró en ese momento.
+          confirmar y pagar el asesoramiento — nunca se cobra un monto distinto al que se mostró en ese momento.
         </p>
       </Seccion>
 
       <Seccion titulo="4. Aceptación de estos términos">
         <p>
-          Al solicitar una consulta — es decir, al continuar desde la pantalla de inicio hacia el formulario de
-          la consulta — se entiende que el cliente conoce y acepta estos Términos y Condiciones.
+          Al solicitar un asesoramiento — es decir, al continuar desde la pantalla de inicio hacia el formulario
+          del asesoramiento — se entiende que el cliente conoce y acepta estos Términos y Condiciones.
         </p>
       </Seccion>
 
       <Seccion titulo="5. Pagos, cancelaciones y reembolsos">
         <p>
-          El pago se procesa al momento de elegir veterinario, antes de que comience la consulta. Si el
-          veterinario cierra la consulta como resuelta por orientación o como derivada a una emergencia, no
-          corresponde reembolso: el servicio se considera prestado. Si la consulta no pudo completarse por un
+          El pago se procesa al momento de elegir veterinario, antes de que comience el asesoramiento. Si el
+          veterinario cierra el asesoramiento como resuelto por orientación o como derivado a una emergencia, no
+          corresponde reembolso: el servicio se considera prestado. Si el asesoramiento no pudo completarse por un
           motivo atribuible a la plataforma o al veterinario, se reembolsa el monto correspondiente conforme a
           la política vigente, informada en cada caso puntual.
         </p>

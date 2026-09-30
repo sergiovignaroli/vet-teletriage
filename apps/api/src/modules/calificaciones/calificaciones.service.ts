@@ -37,7 +37,7 @@ export class CalificacionesService {
     // consulta que ni siquiera terminó, ensuciando el promedio real del
     // veterinario y sus puntos-premio.
     if (caso.estado !== "CERRADO") {
-      throw new BadRequestException("Todavía no se puede calificar — la consulta no terminó");
+      throw new BadRequestException("Todavía no se puede calificar — el asesoramiento no terminó");
     }
 
     const calificacion = await this.prisma.calificacion.create({

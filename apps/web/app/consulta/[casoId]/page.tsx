@@ -211,7 +211,7 @@ export default function ConsultaVideoPage() {
     return (
       <PantallaAviso
         titulo="La videollamada todavía no está lista"
-        mensaje="Coordiná la consulta por WhatsApp mientras tanto, como hasta ahora."
+        mensaje="Coordiná el asesoramiento por WhatsApp mientras tanto, como hasta ahora."
         volverA={volverA}
       />
     );
