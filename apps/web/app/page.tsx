@@ -46,7 +46,7 @@ export default function HomePage() {
       </div>
 
       <Link href="/intake" className="va-boton" style={{ marginBottom: 6, textDecoration: "none" }}>
-        Empezar una consulta
+        Empezar video
       </Link>
       <p style={{ fontSize: 10.5, opacity: 0.5, marginTop: 0, marginBottom: 20 }}>
         Al continuar, aceptás nuestros{" "}

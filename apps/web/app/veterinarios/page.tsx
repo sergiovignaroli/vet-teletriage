@@ -95,7 +95,7 @@ export default function DirectorioVeterinariosPage() {
         className="va-boton"
         style={{ marginTop: 24, textDecoration: "none", display: "block", textAlign: "center" }}
       >
-        Empezar una consulta
+        Empezar video
       </Link>
 
       <LegalFooter />
