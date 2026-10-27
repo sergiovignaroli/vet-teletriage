@@ -115,6 +115,44 @@ export default function PanelVeterinarioPage() {
   // aceptar, el caso queda asignado y la lista se recarga.
   const { solicitud, respondiendo, error: errorSolicitud, responder } = useSolicitudesVeterinario(sesion, cargarCasos);
   const push = useAvisosPush(sesion?.accessToken);
+
+  // Otros avisos (WhatsApp y correo): solo se ofrecen los canales que el
+  // servidor tiene configurados.
+  interface PreferenciasAvisos {
+    avisarPorWhatsapp: boolean;
+    avisarPorEmail: boolean;
+    telefono: string | null;
+    whatsappDisponible: boolean;
+    emailDisponible: boolean;
+  }
+  const [prefs, setPrefs] = useState<PreferenciasAvisos | null>(null);
+  const [telefonoAvisos, setTelefonoAvisos] = useState("");
+  const [guardandoPrefs, setGuardandoPrefs] = useState(false);
+  const [mensajePrefs, setMensajePrefs] = useState<{ texto: string; error: boolean } | null>(null);
+  useEffect(() => {
+    if (!sesion?.accessToken) return;
+    apiGet<PreferenciasAvisos>("/notificaciones/preferencias", sesion.accessToken)
+      .then((p) => {
+        setPrefs(p);
+        setTelefonoAvisos(p.telefono ?? "");
+      })
+      .catch(() => {});
+  }, [sesion?.accessToken]);
+  async function guardarPrefs(cambios: Partial<Pick<PreferenciasAvisos, "avisarPorWhatsapp" | "avisarPorEmail">> & { telefono?: string }) {
+    if (!sesion) return;
+    setGuardandoPrefs(true);
+    setMensajePrefs(null);
+    try {
+      const nuevo = await apiPatch<PreferenciasAvisos>("/notificaciones/preferencias", sesion.accessToken, cambios);
+      setPrefs(nuevo);
+      setTelefonoAvisos(nuevo.telefono ?? "");
+      setMensajePrefs({ texto: "Guardado.", error: false });
+    } catch (e) {
+      setMensajePrefs({ texto: e instanceof ApiError ? e.message : "No pudimos guardar. Probá de nuevo.", error: true });
+    } finally {
+      setGuardandoPrefs(false);
+    }
+  }
   const { activo: sonidoActivo, activar: activarSonidoAvisos } = useSonidoActivo();
 
   // Latido: mientras estés Conectado o en Stand by con el panel abierto, el
@@ -420,6 +458,80 @@ export default function PanelVeterinarioPage() {
           </div>
         )}
       </div>
+      {prefs && (prefs.whatsappDisponible || prefs.emailDisponible) && (
+        <div
+          style={{
+            border: "1px solid var(--borde)",
+            borderRadius: 14,
+            padding: "12px 16px",
+            marginBottom: 12,
+            background: "var(--card)",
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Otros avisos de consultas nuevas</div>
+          <p style={{ fontSize: 12.5, lineHeight: 1.45, color: "var(--muted)", margin: "0 0 10px" }}>
+            Si pasan unos segundos y no abriste la plataforma, te escribimos. Son solo avisos: la consulta se hace
+            siempre dentro de la plataforma y nunca recibís datos de contacto de nadie.
+          </p>
+          {prefs.emailDisponible && (
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13.5, marginBottom: 8 }}>
+              <input
+                type="checkbox"
+                checked={prefs.avisarPorEmail}
+                disabled={guardandoPrefs}
+                onChange={(e) => guardarPrefs({ avisarPorEmail: e.target.checked })}
+                style={{ width: 18, height: 18 }}
+              />
+              Por correo electrónico
+            </label>
+          )}
+          {prefs.whatsappDisponible && (
+            <>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13.5, marginBottom: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={prefs.avisarPorWhatsapp}
+                  disabled={guardandoPrefs}
+                  onChange={(e) => guardarPrefs({ avisarPorWhatsapp: e.target.checked, telefono: telefonoAvisos })}
+                  style={{ width: 18, height: 18 }}
+                />
+                Por WhatsApp
+              </label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <input
+                  className="va-input"
+                  inputMode="tel"
+                  placeholder="Teléfono con código de país (5493411234567)"
+                  value={telefonoAvisos}
+                  onChange={(e) => setTelefonoAvisos(e.target.value)}
+                  style={{ flex: 1, minWidth: 200 }}
+                />
+                <button
+                  type="button"
+                  className="va-boton va-boton-ghost"
+                  style={{ width: "auto", minHeight: 40, padding: "0 16px", fontSize: 12.5 }}
+                  disabled={guardandoPrefs || !telefonoAvisos.trim()}
+                  onClick={() => guardarPrefs({ telefono: telefonoAvisos })}
+                >
+                  Guardar teléfono
+                </button>
+              </div>
+              <p style={{ fontSize: 11.5, lineHeight: 1.45, color: "var(--muted)", margin: "6px 0 0" }}>
+                Al activar WhatsApp aceptás que la plataforma le escriba a ese número solo para avisarte de consultas
+                nuevas.
+              </p>
+            </>
+          )}
+          {mensajePrefs && (
+            <p
+              style={{ fontSize: 12, margin: "8px 0 0", color: mensajePrefs.error ? "var(--terracota)" : "var(--muted)" }}
+              role={mensajePrefs.error ? "alert" : "status"}
+            >
+              {mensajePrefs.texto}
+            </p>
+          )}
+        </div>
+      )}
       {sesion.presencia === "DESCONECTADO" && sesion.estado !== "HABILITADO" && (
         <p style={{ fontSize: 12, color: "var(--terracota)", marginTop: -6, marginBottom: 16 }}>
           Todavía no podés conectarte — tu cuenta no está habilitada.

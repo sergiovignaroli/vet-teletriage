@@ -18,11 +18,18 @@ import { NotificacionesService } from "../notificaciones/notificaciones.service"
 // solo a Stand by (Sergio aprobó la regla el 2026-10-27).
 const VENCIDAS_SEGUIDAS_PARA_STAND_BY = 3;
 const REVISION_VENCIDAS_MS = 5_000;
+// Si a los 20 s el veterinario no abrió el panel (sin canal en vivo), se suman
+// WhatsApp y correo al aviso push. Si el cliente dejó de mirar la pantalla de
+// espera hace más de 10 s cuando le aceptan, se le avisa por WhatsApp.
+const ESCALADA_OTROS_CANALES_MS = 20_000;
+const CLIENTE_AUSENTE_MS = 10_000;
 
 @Injectable()
 export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger(SolicitudesService.name);
   private temporizador?: NodeJS.Timeout;
+  // Última vez que la pantalla de espera del cliente consultó cada solicitud.
+  private readonly ultimaConsultaCliente = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -128,6 +135,8 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     // Además del canal en vivo: aviso push para quien tiene la pestaña cerrada
     // o el celular bloqueado. No se espera: un fallo de push no frena la solicitud.
     this.notificaciones.avisarSolicitudNueva(veterinario.id, segundos).catch(() => {});
+    this.ultimaConsultaCliente.set(solicitud.id, Date.now());
+    this.programarEscalada(solicitud.id, veterinario.id);
     return this.paraCliente(solicitud);
   }
 
@@ -142,7 +151,24 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
       orderBy: { creadaEl: "desc" },
       include: { veterinario: { select: { id: true, nombre: true, apellido: true } } },
     });
+    if (solicitud) this.ultimaConsultaCliente.set(solicitud.id, Date.now());
     return solicitud ? this.paraCliente(solicitud) : null;
+  }
+
+  private programarEscalada(solicitudId: string, veterinarioId: string) {
+    const t = setTimeout(async () => {
+      try {
+        const sigue = await this.prisma.solicitudAtencion.findFirst({
+          where: { id: solicitudId, estado: "PENDIENTE" },
+          select: { id: true },
+        });
+        if (!sigue || this.eventos.tieneCanalAbierto(veterinarioId)) return;
+        await this.notificaciones.avisarSolicitudPorOtrosCanales(veterinarioId);
+      } catch (e) {
+        this.log.warn(`Escalada de avisos falló: ${e}`);
+      }
+    }, ESCALADA_OTROS_CANALES_MS);
+    t.unref();
   }
 
   async cancelarPorCliente(solicitudId: string, clienteId: string) {
@@ -189,6 +215,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       const caso = await this.casos.asignarPorAceptacion(solicitud.casoId, veterinarioId);
+      void this.avisarAlClienteSiNoMira(solicitud.id, caso.clienteId);
       return { aceptada: true, casoId: caso.id };
     } catch (e) {
       // Si no se pudo asignar (por ejemplo, el caso ya tenía veterinario), se
@@ -199,6 +226,14 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
       });
       throw e;
     }
+  }
+
+  private async avisarAlClienteSiNoMira(solicitudId: string, clienteId: string) {
+    const ultima = this.ultimaConsultaCliente.get(solicitudId) ?? 0;
+    this.ultimaConsultaCliente.delete(solicitudId);
+    if (Date.now() - ultima <= CLIENTE_AUSENTE_MS) return;
+    const cliente = await this.prisma.cliente.findUnique({ where: { id: clienteId }, select: { telefono: true } });
+    if (cliente) await this.notificaciones.avisarClienteConsultaAceptada(cliente.telefono);
   }
 
   async rechazar(solicitudId: string, veterinarioId: string, motivo?: string) {
@@ -217,6 +252,10 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
 
   async vencerPendientes() {
     const ahora = new Date();
+    // Limpieza del registro de consultas del cliente (nada vive más de 10 min).
+    for (const [id, t] of this.ultimaConsultaCliente) {
+      if (ahora.getTime() - t > 10 * 60 * 1000) this.ultimaConsultaCliente.delete(id);
+    }
     const vencidas = await this.prisma.solicitudAtencion.findMany({
       where: { estado: "PENDIENTE", venceEl: { lte: ahora } },
       select: { id: true, veterinarioId: true },

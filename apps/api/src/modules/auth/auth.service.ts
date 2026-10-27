@@ -3,7 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import { createHash, randomBytes, randomInt } from "crypto";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma.service";
-import { enviarWhatsApp, normalizarTelefono } from "../../common/whatsapp-cloud-api.util";
+import { enviarWhatsApp, enviarWhatsAppPlantilla, normalizarTelefono } from "../../common/whatsapp-cloud-api.util";
 
 const RONDAS_BCRYPT = 12;
 const OTP_TTL_MINUTOS = 5;
@@ -174,10 +174,23 @@ export class AuthService {
       update: { otpCodeHash, otpExpiraEl, otpIntentos: 0 },
     });
 
-    await enviarWhatsApp({
-      telefono,
-      texto: `Tu código para ingresar a la plataforma es ${codigo}. Vence en ${OTP_TTL_MINUTOS} minutos. Si no lo pediste vos, ignorá este mensaje.`,
-    });
+    // Con plantilla de autenticación aprobada por Meta (WHATSAPP_PLANTILLA_OTP)
+    // el código llega aunque la persona nunca haya escrito al número. Sin ella,
+    // se manda texto libre como hasta ahora (solo llega dentro de las 24 h).
+    const plantillaOtp = process.env.WHATSAPP_PLANTILLA_OTP;
+    if (plantillaOtp) {
+      await enviarWhatsAppPlantilla({
+        telefono,
+        plantilla: plantillaOtp,
+        parametrosCuerpo: [codigo],
+        parametroBotonCodigo: codigo,
+      });
+    } else {
+      await enviarWhatsApp({
+        telefono,
+        texto: `Tu código para ingresar a la plataforma es ${codigo}. Vence en ${OTP_TTL_MINUTOS} minutos. Si no lo pediste vos, ignorá este mensaje.`,
+      });
+    }
 
     return { enviado: true, expiraEnMinutos: OTP_TTL_MINUTOS };
   }

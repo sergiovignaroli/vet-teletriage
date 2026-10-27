@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Headers, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Headers, Patch, Post, UseGuards } from "@nestjs/common";
 import { NotificacionesService } from "./notificaciones.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
@@ -10,24 +10,24 @@ interface SuscripcionPush {
   keys: { p256dh: string; auth: string };
 }
 
-@Controller("notificaciones/push")
+@Controller("notificaciones")
 export class NotificacionesController {
   constructor(private readonly notificaciones: NotificacionesService) {}
 
   // La clave pública no es secreta: el navegador la necesita para suscribirse.
-  @Get("clave")
+  @Get("push/clave")
   clave() {
     return { clavePublica: this.notificaciones.obtenerClavePublica() };
   }
 
-  @Get("estado")
+  @Get("push/estado")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")
   async estado(@CurrentUser() usuario: UsuarioAutenticado) {
     return { dispositivos: await this.notificaciones.cantidadDeDispositivos(usuario.id) };
   }
 
-  @Post("suscribir")
+  @Post("push/suscribir")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")
   suscribir(
@@ -41,7 +41,7 @@ export class NotificacionesController {
     return this.notificaciones.suscribir(usuario.id, body, userAgent);
   }
 
-  @Post("desuscribir")
+  @Post("push/desuscribir")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")
   desuscribir(@CurrentUser() usuario: UsuarioAutenticado, @Body("endpoint") endpoint: string) {
@@ -49,7 +49,7 @@ export class NotificacionesController {
     return this.notificaciones.desuscribir(usuario.id, endpoint);
   }
 
-  @Post("probar")
+  @Post("push/probar")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")
   async probar(@CurrentUser() usuario: UsuarioAutenticado) {
@@ -61,5 +61,22 @@ export class NotificacionesController {
       vigenciaSegundos: 60,
     });
     return { enviados };
+  }
+
+  @Get("preferencias")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  preferencias(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.notificaciones.obtenerPreferencias(usuario.id);
+  }
+
+  @Patch("preferencias")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  guardarPreferencias(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() body: { avisarPorWhatsapp?: boolean; avisarPorEmail?: boolean; telefono?: string },
+  ) {
+    return this.notificaciones.guardarPreferencias(usuario.id, body ?? {});
   }
 }

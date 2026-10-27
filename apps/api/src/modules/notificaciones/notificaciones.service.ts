@@ -1,6 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import webpush from "web-push";
 import { PrismaService } from "../../prisma.service";
+import { enviarWhatsAppPlantilla, normalizarTelefono, whatsappConfigurado } from "../../common/whatsapp-cloud-api.util";
+import { emailConfigurado, enviarEmail } from "../../common/email.util";
 
 export interface AvisoPush {
   titulo: string;
@@ -111,5 +113,98 @@ export class NotificacionesService {
       etiqueta: "solicitud",
       vigenciaSegundos,
     });
+  }
+
+  // ---- Otros canales (WhatsApp con plantilla y correo) ----
+  // La plataforma es siempre la intermediaria: estos mensajes avisan que hay
+  // una consulta esperando y mandan a la plataforma. Nunca llevan datos del
+  // cliente ni del caso, y no se puede contestar por esa vía.
+
+  capacidades() {
+    return {
+      whatsappDisponible: whatsappConfigurado() && !!process.env.WHATSAPP_PLANTILLA_NUEVA_CONSULTA_VET,
+      emailDisponible: emailConfigurado(),
+    };
+  }
+
+  async obtenerPreferencias(veterinarioId: string) {
+    const v = await this.prisma.veterinario.findUniqueOrThrow({
+      where: { id: veterinarioId },
+      select: { avisarPorWhatsapp: true, avisarPorEmail: true, telefono: true },
+    });
+    return { ...v, ...this.capacidades() };
+  }
+
+  async guardarPreferencias(
+    veterinarioId: string,
+    datos: { avisarPorWhatsapp?: boolean; avisarPorEmail?: boolean; telefono?: string },
+  ) {
+    const cambios: { avisarPorWhatsapp?: boolean; avisarPorEmail?: boolean; telefono?: string } = {};
+    if (typeof datos.avisarPorEmail === "boolean") cambios.avisarPorEmail = datos.avisarPorEmail;
+    if (typeof datos.telefono === "string" && datos.telefono.trim()) {
+      const telefono = normalizarTelefono(datos.telefono);
+      if (telefono.length < 10 || telefono.length > 15) {
+        throw new BadRequestException("Ingresá el teléfono con código de país y área, solo números (ej. 5493411234567)");
+      }
+      cambios.telefono = telefono;
+    }
+    if (typeof datos.avisarPorWhatsapp === "boolean") {
+      if (datos.avisarPorWhatsapp) {
+        const actual = await this.prisma.veterinario.findUniqueOrThrow({
+          where: { id: veterinarioId },
+          select: { telefono: true },
+        });
+        if (!(cambios.telefono ?? actual.telefono)) {
+          throw new BadRequestException("Para recibir avisos por WhatsApp cargá tu teléfono");
+        }
+      }
+      cambios.avisarPorWhatsapp = datos.avisarPorWhatsapp;
+    }
+    await this.prisma.veterinario.update({ where: { id: veterinarioId }, data: cambios });
+    return this.obtenerPreferencias(veterinarioId);
+  }
+
+  // Aviso de consulta nueva por WhatsApp y correo, según lo que la persona
+  // activó. Cada canal falla por separado: un error de uno no frena al otro.
+  async avisarSolicitudPorOtrosCanales(veterinarioId: string) {
+    const v = await this.prisma.veterinario.findUnique({
+      where: { id: veterinarioId },
+      select: { nombre: true, email: true, telefono: true, avisarPorWhatsapp: true, avisarPorEmail: true },
+    });
+    if (!v) return;
+    const cap = this.capacidades();
+    const tareas: Promise<void>[] = [];
+
+    if (v.avisarPorWhatsapp && v.telefono && cap.whatsappDisponible) {
+      tareas.push(
+        enviarWhatsAppPlantilla({
+          telefono: v.telefono,
+          plantilla: process.env.WHATSAPP_PLANTILLA_NUEVA_CONSULTA_VET!,
+          parametrosCuerpo: [v.nombre],
+        }).catch((e) => this.log.warn(`WhatsApp al veterinario falló: ${e instanceof Error ? e.message : e}`)),
+      );
+    }
+    if (v.avisarPorEmail && cap.emailDisponible) {
+      const url = `${process.env.WEB_APP_URL ?? ""}/panel-veterinario`;
+      tareas.push(
+        enviarEmail({
+          para: v.email,
+          asunto: "Nueva consulta en Videollamada Animal",
+          texto: `Hola ${v.nombre},\n\nUna persona quiere una consulta con vos. Entrá a la plataforma para responder antes de que venza:\n${url}\n\nEste mensaje es solo un aviso: la consulta se realiza dentro de la plataforma.`,
+        }).catch((e) => this.log.warn(`Correo al veterinario falló: ${e instanceof Error ? e.message : e}`)),
+      );
+    }
+    await Promise.all(tareas);
+  }
+
+  // Al cliente: solo cuando el veterinario aceptó y la persona ya no está
+  // mirando la pantalla de espera (si la está mirando, no hace falta gastar un
+  // mensaje).
+  async avisarClienteConsultaAceptada(telefono: string) {
+    const plantilla = process.env.WHATSAPP_PLANTILLA_CONSULTA_ACEPTADA_CLIENTE;
+    if (!plantilla || !whatsappConfigurado()) return;
+    await enviarWhatsAppPlantilla({ telefono, plantilla }).catch((e) =>
+      this.log.warn(`WhatsApp al cliente falló: ${e instanceof Error ? e.message : e}`),
+    );
   }
 }

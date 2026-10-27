@@ -53,6 +53,10 @@ model Veterinario {
   sesionesRenovables SesionVeterinario[]
   solicitudes       SolicitudAtencion[]
   pushSuscripciones PushSuscripcion[]
+  // Otros canales de aviso de consultas nuevas (la persona los activa; WhatsApp
+  // exige consentimiento previo del destinatario).
+  avisarPorWhatsapp Boolean @default(false)
+  avisarPorEmail    Boolean @default(true)
 
   // Onboarding de producto (no confundir con habilitación de la Sección 2):
   // recorrido guiado de 3 pantallas la primera vez que entra a la app.
