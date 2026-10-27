@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { Logo } from "../components/Logo";
 import { LegalFooter } from "../components/LegalFooter";
 import { Foto } from "../components/Foto";
@@ -35,37 +34,6 @@ const PASOS = [
     texto: "Entrás desde tu panel. Al terminar, calificás la atención con estrellas.",
   },
 ];
-
-function IconoVideo({ children }: { children: ReactNode }) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        width: 48,
-        height: 48,
-        borderRadius: "50%",
-        background: "#123a32",
-        border: "1px solid var(--video-borde)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#f4f1e6"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {children}
-      </svg>
-    </span>
-  );
-}
 
 export default function HomePage() {
   return (
@@ -158,38 +126,29 @@ export default function HomePage() {
 
           <div className="va-hero-media">
             <Foto
-              src="/fotos/hero-tutor-gato.jpg"
-              alt="Una persona con su gato en brazos, en videollamada con un veterinario"
+              src="/fotos/hero-videollamada.webp"
+              alt="Una mujer abraza a su perro mientras habla con un veterinario por videollamada en la laptop"
+              posicion="62% 50%"
+              prioridad
               style={{
-                height: "clamp(330px, 40vw, 470px)",
+                aspectRatio: "4 / 3",
                 borderRadius: 30,
-                border: "1px solid var(--video-borde)",
-                color: "var(--video-texto)",
+                border: "1px solid var(--borde)",
+                boxShadow: "0 30px 70px -40px rgba(var(--esmeralda-rgb), 0.55)",
               }}
             >
               <div
-                aria-hidden="true"
                 style={{
                   position: "absolute",
-                  right: -70,
-                  bottom: -70,
-                  width: 260,
-                  height: 260,
-                  borderRadius: "50%",
-                  background: "radial-gradient(circle, rgba(127,224,184,0.28) 0%, rgba(127,224,184,0) 70%)",
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  left: 16,
-                  top: 16,
+                  left: 14,
+                  top: 14,
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
                   padding: "6px 12px",
                   borderRadius: 999,
                   background: "rgba(12,42,36,0.78)",
+                  color: "var(--video-texto)",
                   fontSize: 12.5,
                   fontWeight: 600,
                 }}
@@ -200,54 +159,20 @@ export default function HomePage() {
                 />
                 Asesoramiento por video
               </div>
-              <div
-                aria-hidden="true"
+              <span
                 style={{
                   position: "absolute",
-                  right: 14,
-                  top: 14,
-                  width: "26%",
-                  maxWidth: 120,
-                  aspectRatio: "3 / 4",
-                  borderRadius: 18,
-                  background: "#184a40",
-                  border: "1px solid var(--video-borde)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
+                  right: 12,
+                  bottom: 10,
+                  padding: "3px 9px",
+                  borderRadius: 999,
+                  background: "rgba(12,42,36,0.7)",
+                  color: "var(--video-texto)",
+                  fontSize: 11,
                 }}
               >
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#7fe0b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
-                </svg>
-                <span style={{ fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--video-muted)" }}>
-                  Tu veterinario
-                </span>
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  bottom: 18,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: 14,
-                }}
-              >
-                <IconoVideo>
-                  <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />
-                  <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-                </IconoVideo>
-                <IconoVideo>
-                  <rect x="3" y="6" width="13" height="12" rx="3" />
-                  <path d="M16 10l5-3v10l-5-3z" />
-                </IconoVideo>
-              </div>
+                Imagen ilustrativa
+              </span>
             </Foto>
           </div>
         </section>
@@ -271,6 +196,33 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="va-franja" aria-labelledby="noche-titulo">
+          <Foto
+            src="/fotos/de-noche.webp"
+            alt="Un hombre abraza a su perro en el sillón, de noche, mientras habla con un veterinario por videollamada"
+            posicion="40% 50%"
+            className="va-franja-foto"
+            style={{ borderRadius: 26, border: "1px solid var(--borde)" }}
+          />
+          <div className="va-franja-texto">
+            <h2 id="noche-titulo" className="va-titular" style={{ fontSize: "clamp(20px, 2.6vw, 28px)", margin: 0 }}>
+              ¿Se complicó de noche?
+            </h2>
+            <p style={{ fontSize: 15, lineHeight: 1.55, color: "var(--muted)", margin: "12px 0 0", maxWidth: 460 }}>
+              Lo más difícil es decidir si podés esperar a la mañana o si tenés que ir a una guardia. Un
+              veterinario matriculado evalúa qué tan urgente es y te orienta. Ves quién está conectado en ese
+              momento.
+            </p>
+            <Link
+              href="/intake"
+              className="va-boton va-boton-ghost"
+              style={{ width: "auto", minHeight: 52, padding: "0 30px", marginTop: 20, maxWidth: 300 }}
+            >
+              Empezar ahora
+            </Link>
           </div>
         </section>
 

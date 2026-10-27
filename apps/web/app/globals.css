@@ -345,3 +345,34 @@ main[style*="max-width"] .va-boton[style*="width: auto"] {
     justify-content: flex-start !important;
   }
 }
+
+/* ---------- fotos: franja nocturna del home y banner del directorio ---------- */
+
+.va-franja {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px 48px;
+  margin-top: 40px;
+}
+
+.va-franja-foto {
+  flex: 1 1 360px;
+  min-width: 0;
+  aspect-ratio: 3 / 2;
+}
+
+.va-franja-texto {
+  flex: 1 1 340px;
+  min-width: 0;
+}
+
+.va-banner {
+  aspect-ratio: 4 / 3;
+}
+
+@media (min-width: 700px) {
+  .va-banner {
+    aspect-ratio: 21 / 9;
+  }
+}

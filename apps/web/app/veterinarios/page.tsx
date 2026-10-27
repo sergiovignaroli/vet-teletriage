@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiGet, ApiError } from "../../lib/api";
 import { Logo } from "../../components/Logo";
+import { Foto } from "../../components/Foto";
 import { LegalFooter } from "../../components/LegalFooter";
 import { Avatar, Calificacion } from "../../components/Veterinario";
 
@@ -51,6 +52,14 @@ export default function DirectorioVeterinariosPage() {
       <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
         Todos matriculados y verificados. El rating es de dueños reales, después de cada asesoramiento.
       </p>
+
+      <Foto
+        src="/fotos/mascotas.webp"
+        alt="Un perro golden retriever, un gato, un cobayo y un periquito juntos sobre una manta"
+        posicion="50% 38%"
+        className="va-banner"
+        style={{ borderRadius: 24, border: "1px solid var(--borde)", marginBottom: 24 }}
+      />
 
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 12 }} role="alert">
