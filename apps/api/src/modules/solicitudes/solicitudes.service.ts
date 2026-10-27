@@ -3,11 +3,13 @@ import {
   BanderasRojasIntake,
   hayBanderaRoja,
   listarBanderasRojas,
+  POSTERGAR_OPCIONES_MINUTOS,
+  PROPUESTA_SEGUNDOS,
   SOLICITUD_SEGUNDOS_EN_CONSULTA,
   SOLICITUD_SEGUNDOS_LIBRE,
   VERSION_TERMINOS,
 } from "@vet-teletriage/types";
-import type { SolicitudParaCliente, SolicitudParaVeterinario } from "@vet-teletriage/types";
+import type { SolicitudParaCliente, SolicitudParaVeterinario, TurnoPactadoParaVeterinario } from "@vet-teletriage/types";
 import { PrismaService } from "../../prisma.service";
 import { CasosService } from "../casos/casos.service";
 import { tieneSenalVigente } from "../../common/presencia";
@@ -23,6 +25,9 @@ const REVISION_VENCIDAS_MS = 5_000;
 // espera hace más de 10 s cuando le aceptan, se le avisa por WhatsApp.
 const ESCALADA_OTROS_CANALES_MS = 20_000;
 const CLIENTE_AUSENTE_MS = 10_000;
+// Si a la hora del turno pactado el veterinario tiene otro cliente esperando
+// que arranque, se reintenta durante este tiempo antes de darlo por perdido.
+const TOLERANCIA_TURNO_MS = 30 * 60 * 1000;
 
 @Injectable()
 export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
@@ -107,7 +112,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     // Una sola solicitud viva por caso: si el cliente elige a otro, la anterior se cancela.
     const solicitud = await this.prisma.$transaction(async (tx) => {
       await tx.solicitudAtencion.updateMany({
-        where: { casoId: caso.id, estado: "PENDIENTE" },
+        where: { casoId: caso.id, estado: { in: ["PENDIENTE", "POSTERGADA", "PACTADA"] } },
         data: { estado: "CANCELADA_POR_CLIENTE", respondidaEl: ahora },
       });
       return tx.solicitudAtencion.create({
@@ -179,7 +184,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     if (!solicitud) throw new BadRequestException("Solicitud no encontrada");
     if (solicitud.caso.clienteId !== clienteId) throw new ForbiddenException("Esta solicitud no te pertenece");
     const r = await this.prisma.solicitudAtencion.updateMany({
-      where: { id: solicitudId, estado: "PENDIENTE" },
+      where: { id: solicitudId, estado: { in: ["PENDIENTE", "POSTERGADA", "PACTADA"] } },
       data: { estado: "CANCELADA_POR_CLIENTE", respondidaEl: new Date() },
     });
     if (r.count > 0) this.eventos.emitir(solicitud.veterinarioId, { tipo: "solicitud-cerrada", solicitudId });
@@ -228,6 +233,121 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  // ---- Postergar y turno pactado (Fase 5) ----
+
+  // El veterinario no puede ahora pero propone atender más tarde. Con una
+  // posible emergencia no se permite: en ese caso solo se acepta o se rechaza,
+  // para que la persona pueda buscar a otro de inmediato.
+  async postergar(solicitudId: string, veterinarioId: string, minutos: number) {
+    if (!(POSTERGAR_OPCIONES_MINUTOS as readonly number[]).includes(minutos)) {
+      throw new BadRequestException("Elegí uno de los horarios propuestos");
+    }
+    const solicitud = await this.propiaPendiente(solicitudId, veterinarioId);
+    const intake = await this.prisma.intakeFormulario.findUnique({ where: { casoId: solicitud.casoId } });
+    if (intake && hayBanderaRoja(intake)) {
+      throw new BadRequestException(
+        "Esta consulta tiene una posible emergencia: no se puede postergar. Aceptala o rechazala para que la persona busque a otro veterinario.",
+      );
+    }
+    const ahora = new Date();
+    const r = await this.prisma.solicitudAtencion.updateMany({
+      where: { id: solicitud.id, estado: "PENDIENTE", venceEl: { gt: ahora } },
+      data: {
+        estado: "POSTERGADA",
+        respondidaEl: ahora,
+        propuestaPara: new Date(ahora.getTime() + minutos * 60 * 1000),
+        venceEl: new Date(ahora.getTime() + PROPUESTA_SEGUNDOS * 1000),
+      },
+    });
+    if (r.count === 0) throw new BadRequestException("La solicitud ya no está disponible: venció o la canceló el cliente");
+    return { postergada: true };
+  }
+
+  // El cliente acepta el nuevo horario: queda un turno pactado. No se cobra
+  // nada ahora; el pago ocurre a la hora acordada, cuando el veterinario
+  // toma la consulta, siguiendo el flujo normal.
+  async aceptarPropuesta(solicitudId: string, clienteId: string): Promise<SolicitudParaCliente> {
+    const solicitud = await this.prisma.solicitudAtencion.findUnique({
+      where: { id: solicitudId },
+      include: { caso: { select: { clienteId: true } } },
+    });
+    if (!solicitud) throw new BadRequestException("Solicitud no encontrada");
+    if (solicitud.caso.clienteId !== clienteId) throw new ForbiddenException("Esta solicitud no te pertenece");
+    const r = await this.prisma.solicitudAtencion.updateMany({
+      where: { id: solicitudId, estado: "POSTERGADA", venceEl: { gt: new Date() } },
+      data: { estado: "PACTADA", respondidaEl: new Date() },
+    });
+    if (r.count === 0) {
+      throw new BadRequestException("La propuesta ya no está disponible: venció o la cancelaste");
+    }
+    const actual = await this.prisma.solicitudAtencion.findUniqueOrThrow({
+      where: { id: solicitudId },
+      include: { veterinario: { select: { id: true, nombre: true, apellido: true } } },
+    });
+    this.eventos.emitir(actual.veterinarioId, { tipo: "turno-nuevo", solicitudId });
+    return this.paraCliente(actual);
+  }
+
+  async turnosDelCliente(clienteId: string): Promise<SolicitudParaCliente[]> {
+    await this.vencerPendientes();
+    const filas = await this.prisma.solicitudAtencion.findMany({
+      where: { caso: { clienteId }, estado: { in: ["POSTERGADA", "PACTADA"] } },
+      orderBy: { creadaEl: "desc" },
+      include: { veterinario: { select: { id: true, nombre: true, apellido: true } } },
+    });
+    return filas.map((f) => this.paraCliente(f));
+  }
+
+  async turnosDelVeterinario(veterinarioId: string): Promise<TurnoPactadoParaVeterinario[]> {
+    const filas = await this.prisma.solicitudAtencion.findMany({
+      where: { veterinarioId, estado: "PACTADA", propuestaPara: { not: null } },
+      orderBy: { propuestaPara: "asc" },
+      include: { caso: { include: { intake: true } } },
+    });
+    return filas
+      .filter((f) => f.caso.intake)
+      .map((f) => ({
+        id: f.id,
+        casoId: f.casoId,
+        propuestaPara: f.propuestaPara!.toISOString(),
+        especie: f.caso.intake!.especie,
+        motivoConsulta: f.caso.intake!.motivoConsulta,
+      }));
+  }
+
+  // A la hora acordada el turno se convierte en una consulta aceptada: el caso
+  // se asigna al veterinario y el cliente sigue al pago con el flujo de
+  // siempre.
+  private async activarTurnosPactados(ahora: Date) {
+    const vencidos = await this.prisma.solicitudAtencion.findMany({
+      where: { estado: "PACTADA", propuestaPara: { lte: ahora } },
+      select: { id: true, casoId: true, veterinarioId: true, propuestaPara: true, caso: { select: { clienteId: true } } },
+    });
+    for (const t of vencidos) {
+      try {
+        await this.casos.asignarPorAceptacion(t.casoId, t.veterinarioId);
+      } catch (e) {
+        const demasiadoTarde = ahora.getTime() - t.propuestaPara!.getTime() > TOLERANCIA_TURNO_MS;
+        const yaTieneVet = e instanceof BadRequestException && /ya tiene un veterinario/.test(e.message);
+        if (demasiadoTarde || yaTieneVet) {
+          await this.prisma.solicitudAtencion.updateMany({
+            where: { id: t.id, estado: "PACTADA" },
+            data: { estado: yaTieneVet ? "CANCELADA_POR_CLIENTE" : "VENCIDA", respondidaEl: ahora },
+          });
+        }
+        continue; // si el veterinario estaba ocupado, se reintenta en la próxima vuelta
+      }
+      const r = await this.prisma.solicitudAtencion.updateMany({
+        where: { id: t.id, estado: "PACTADA" },
+        data: { estado: "ACEPTADA", respondidaEl: ahora },
+      });
+      if (r.count === 0) continue;
+      this.eventos.emitir(t.veterinarioId, { tipo: "turno-activo", solicitudId: t.id });
+      this.notificaciones.avisarTurnoPactado(t.veterinarioId).catch(() => {});
+      void this.avisarAlClienteSiNoMira(t.id, t.caso.clienteId);
+    }
+  }
+
   private async avisarAlClienteSiNoMira(solicitudId: string, clienteId: string) {
     const ultima = this.ultimaConsultaCliente.get(solicitudId) ?? 0;
     this.ultimaConsultaCliente.delete(solicitudId);
@@ -256,6 +376,12 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     for (const [id, t] of this.ultimaConsultaCliente) {
       if (ahora.getTime() - t > 10 * 60 * 1000) this.ultimaConsultaCliente.delete(id);
     }
+    // Propuestas de postergación que el cliente no respondió a tiempo.
+    await this.prisma.solicitudAtencion.updateMany({
+      where: { estado: "POSTERGADA", venceEl: { lte: ahora } },
+      data: { estado: "VENCIDA", respondidaEl: ahora },
+    });
+    await this.activarTurnosPactados(ahora);
     const vencidas = await this.prisma.solicitudAtencion.findMany({
       where: { estado: "PENDIENTE", venceEl: { lte: ahora } },
       select: { id: true, veterinarioId: true },
@@ -274,7 +400,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
   // Tres vencidas seguidas (sin ninguna respondida en el medio) -> Stand by.
   private async bajarAStandBySiCorresponde(veterinarioId: string) {
     const ultimas = await this.prisma.solicitudAtencion.findMany({
-      where: { veterinarioId, estado: { not: "PENDIENTE" } },
+      where: { veterinarioId, estado: { not: "PENDIENTE" }, propuestaPara: null },
       orderBy: { creadaEl: "desc" },
       take: VENCIDAS_SEGUIDAS_PARA_STAND_BY,
       select: { estado: true },
@@ -307,6 +433,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     estado: string;
     venceEl: Date;
     vetEnConsulta: boolean;
+    propuestaPara: Date | null;
     veterinario: { id: string; nombre: string; apellido: string };
   }): SolicitudParaCliente {
     return {
@@ -315,6 +442,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
       estado: s.estado as SolicitudParaCliente["estado"],
       venceEl: s.venceEl.toISOString(),
       vetEnConsulta: s.vetEnConsulta,
+      propuestaPara: s.propuestaPara ? s.propuestaPara.toISOString() : null,
       veterinario: { id: s.veterinario.id, nombre: s.veterinario.nombre, apellido: s.veterinario.apellido },
     };
   }

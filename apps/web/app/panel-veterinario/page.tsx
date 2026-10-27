@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CasoParaVeterinario, ClasificacionCierre } from "@vet-teletriage/types";
+import type { CasoParaVeterinario, ClasificacionCierre, TurnoPactadoParaVeterinario } from "@vet-teletriage/types";
 import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useLatidoVeterinario, useSesionVeterinario } from "../../lib/sesion-veterinario";
@@ -16,6 +16,14 @@ import { Logo } from "../../components/Logo";
 import { LegalFooter } from "../../components/LegalFooter";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-AR", {
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+const FORMATO_HORA = new Intl.DateTimeFormat("es-AR", {
+  weekday: "short",
   day: "2-digit",
   month: "2-digit",
   hour: "2-digit",
@@ -113,7 +121,25 @@ export default function PanelVeterinarioPage() {
 
   // Solicitudes de atención: ventana emergente con sonido y vibración. Al
   // aceptar, el caso queda asignado y la lista se recarga.
-  const { solicitud, respondiendo, error: errorSolicitud, responder } = useSolicitudesVeterinario(sesion, cargarCasos);
+  const [turnos, setTurnos] = useState<TurnoPactadoParaVeterinario[]>([]);
+  const cargarTurnos = useCallback(async () => {
+    if (!sesion) return;
+    try {
+      setTurnos(await apiGet<TurnoPactadoParaVeterinario[]>("/solicitudes/turnos", sesion.accessToken));
+    } catch {
+      // se reintenta en la próxima actualización
+    }
+  }, [sesion]);
+  useEffect(() => {
+    if (!sesion || !sesion.onboardingCompletado) return;
+    void cargarTurnos();
+    const id = window.setInterval(cargarTurnos, 60_000);
+    return () => window.clearInterval(id);
+  }, [sesion, cargarTurnos]);
+  const { solicitud, respondiendo, error: errorSolicitud, responder } = useSolicitudesVeterinario(sesion, () => {
+    void cargarCasos();
+    void cargarTurnos();
+  });
   const push = useAvisosPush(sesion?.accessToken);
 
   // Otros avisos (WhatsApp y correo): solo se ofrecen los canales que el
@@ -275,6 +301,7 @@ export default function PanelVeterinarioPage() {
           error={errorSolicitud}
           onAceptar={() => responder("aceptar")}
           onRechazar={() => responder("rechazar")}
+          onPostergar={(minutos) => responder("postergar", minutos)}
         />
       )}
       {/* La marca siempre centrada (pedido explícito de Sergio, 2026-09-29),
@@ -458,6 +485,27 @@ export default function PanelVeterinarioPage() {
           </div>
         )}
       </div>
+      {turnos.length > 0 && (
+        <div
+          style={{
+            border: "1px solid var(--borde)",
+            borderRadius: 14,
+            padding: "12px 16px",
+            marginBottom: 12,
+            background: "var(--card)",
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Turnos pactados</div>
+          {turnos.map((t) => (
+            <div key={t.id} style={{ fontSize: 13.5, padding: "6px 0", borderTop: "1px solid var(--borde)" }}>
+              <strong>{FORMATO_HORA.format(new Date(t.propuestaPara))}</strong> · {t.especie} — {t.motivoConsulta}
+            </div>
+          ))}
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: "8px 0 0" }}>
+            A la hora acordada te avisamos y la persona continúa hacia el pago; después iniciás la consulta como siempre.
+          </p>
+        </div>
+      )}
       {prefs && (prefs.whatsappDisponible || prefs.emailDisponible) && (
         <div
           style={{

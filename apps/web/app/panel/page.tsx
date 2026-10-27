@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import type { CasoParaCliente } from "@vet-teletriage/types";
+import type { CasoParaCliente, SolicitudParaCliente } from "@vet-teletriage/types";
 import { apiGet, apiPatch, ApiError } from "../../lib/api";
 import { useSesionCliente } from "../../lib/sesion";
 import { Onboarding } from "../../components/Onboarding";
@@ -62,6 +62,15 @@ export default function PanelPage() {
     cargarCasos();
   }, [cargarCasos]);
 
+  // Turnos acordados con un veterinario (postergaciones aceptadas).
+  const [turnos, setTurnos] = useState<SolicitudParaCliente[]>([]);
+  useEffect(() => {
+    if (!sesion || !sesion.onboardingCompletado) return;
+    apiGet<SolicitudParaCliente[]>("/solicitudes/mis-turnos", sesion.accessToken)
+      .then(setTurnos)
+      .catch(() => {});
+  }, [sesion]);
+
   async function terminarOnboarding() {
     if (!sesion) return;
     setEnviandoOnboarding(true);
@@ -97,6 +106,24 @@ export default function PanelPage() {
       <p style={{ fontSize: 14, opacity: 0.7, marginBottom: 28 }}>
         Contanos qué le pasa a tu mascota y te conectamos con un veterinario matriculado.
       </p>
+
+      {turnos.map((t) => (
+        <Link
+          key={t.id}
+          href={`/elegir-veterinario/${t.casoId}`}
+          className="va-tarjeta"
+          style={{ display: "block", padding: 14, marginBottom: 14, textDecoration: "none", textAlign: "left" }}
+        >
+          <div className="va-etiqueta" style={{ color: "var(--esmeralda)", letterSpacing: "0.1em" }}>
+            {t.estado === "POSTERGADA" ? "Propuesta de horario" : "Turno acordado"}
+          </div>
+          <div style={{ fontSize: 14.5, marginTop: 4 }}>
+            {t.veterinario.nombre} {t.veterinario.apellido}
+            {t.propuestaPara ? ` · ${FORMATO_FECHA.format(new Date(t.propuestaPara))}` : ""}
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>Tocá para ver o continuar</div>
+        </Link>
+      ))}
 
       <Link href="/intake" className="va-boton" style={{ textDecoration: "none" }}>
         Iniciar un asesoramiento

@@ -105,6 +105,19 @@ export class NotificacionesService {
     return enviados;
   }
 
+  // A la hora de un turno pactado: push inmediato y, según lo que tenga
+  // activado, WhatsApp y correo (el veterinario ya aceptó este horario).
+  async avisarTurnoPactado(veterinarioId: string) {
+    await this.avisar(veterinarioId, {
+      titulo: "Es la hora de tu consulta pactada",
+      cuerpo: "Tu cliente ya puede continuar. Entrá a la plataforma para iniciar la consulta.",
+      url: "/panel-veterinario",
+      etiqueta: "turno",
+      vigenciaSegundos: 1800,
+    });
+    await this.avisarSolicitudPorOtrosCanales(veterinarioId);
+  }
+
   avisarSolicitudNueva(veterinarioId: string, vigenciaSegundos: number) {
     return this.avisar(veterinarioId, {
       titulo: "Nueva consulta",

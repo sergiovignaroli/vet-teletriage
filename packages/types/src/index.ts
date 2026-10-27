@@ -249,6 +249,8 @@ export const SOLICITUD_SEGUNDOS_EN_CONSULTA = 120;
 
 export type EstadoSolicitudAtencion =
   | "PENDIENTE"
+  | "POSTERGADA"
+  | "PACTADA"
   | "ACEPTADA"
   | "RECHAZADA"
   | "VENCIDA"
@@ -262,7 +264,23 @@ export interface SolicitudParaCliente {
   venceEl: string;
   veterinario: { id: string; nombre: string; apellido: string };
   vetEnConsulta: boolean;
+  // Horario propuesto por el veterinario al postergar (POSTERGADA) o acordado (PACTADA).
+  propuestaPara: string | null;
 }
+
+// Turno acordado que ve el VETERINARIO en su panel (solo contexto clínico).
+export interface TurnoPactadoParaVeterinario {
+  id: string;
+  casoId: string;
+  propuestaPara: string;
+  especie: string;
+  motivoConsulta: string;
+}
+
+// Opciones de "Postergar" para el veterinario, en minutos.
+export const POSTERGAR_OPCIONES_MINUTOS = [15, 30, 60, 120] as const;
+// Tiempo que tiene el cliente para responder a una propuesta de postergación.
+export const PROPUESTA_SEGUNDOS = 180;
 
 // Lo que ve el VETERINARIO de una solicitud entrante: contexto clínico del
 // intake, sin ningún dato de contacto del cliente (la plataforma es siempre

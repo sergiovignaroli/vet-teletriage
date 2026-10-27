@@ -11,6 +11,14 @@ import { LegalFooter } from "../../../components/LegalFooter";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Avatar, Calificacion } from "../../../components/Veterinario";
 
+const FORMATO_TURNO = new Intl.DateTimeFormat("es-AR", {
+  weekday: "long",
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 // Pantalla que reemplaza al viejo "te vamos a contactar por WhatsApp"
 // (2026-09-28): ahora el cliente ve el costo total de cada veterinario
 // conectado ANTES de contratar, y elige — el precio que ve acá es
@@ -131,7 +139,7 @@ export default function ElegirVeterinarioPage() {
     apiGet<SolicitudParaCliente | null>(`/solicitudes/caso/${casoId}/actual`, sesion.accessToken)
       .then((actual) => {
         if (cancelado || !actual) return;
-        if (actual.estado === "PENDIENTE" || actual.estado === "ACEPTADA") {
+        if (["PENDIENTE", "POSTERGADA", "PACTADA", "ACEPTADA"].includes(actual.estado)) {
           try {
             const guardado = sessionStorage.getItem(claveStorage);
             if (guardado) setPaypalUsdElegido(Number(guardado));
@@ -145,10 +153,13 @@ export default function ElegirVeterinarioPage() {
     };
   }, [sesion, casoId, claveStorage]);
 
-  // Mientras la solicitud está pendiente: se consulta cada 2 s.
-  const idPendiente = solicitud?.estado === "PENDIENTE" ? solicitud.id : null;
+  // Mientras la solicitud está viva se consulta el servidor: cada 2 s si se
+  // espera una respuesta, cada 5 s si ya hay un turno pactado.
+  const estadoVivo =
+    solicitud && ["PENDIENTE", "POSTERGADA", "PACTADA"].includes(solicitud.estado) ? solicitud.estado : null;
+  const idVivo = solicitud?.id ?? null;
   useEffect(() => {
-    if (!idPendiente || !sesion) return;
+    if (!estadoVivo || !idVivo || !sesion) return;
     let cancelado = false;
     const consultar = async () => {
       try {
@@ -156,22 +167,22 @@ export default function ElegirVeterinarioPage() {
           `/solicitudes/caso/${casoId}/actual`,
           sesion.accessToken,
         );
-        if (cancelado || !actual || actual.id !== idPendiente) return;
-        if (actual.estado !== "PENDIENTE") setSolicitud(actual);
+        if (cancelado || !actual || actual.id !== idVivo) return;
+        if (actual.estado !== estadoVivo) setSolicitud(actual);
       } catch {
         // un corte momentáneo de red no cierra la espera: se reintenta solo
       }
     };
-    const t = setInterval(consultar, 2000);
+    const t = setInterval(consultar, estadoVivo === "PACTADA" ? 5000 : 2000);
     return () => {
       cancelado = true;
       clearInterval(t);
     };
-  }, [idPendiente, sesion, casoId]);
+  }, [estadoVivo, idVivo, sesion, casoId]);
 
   // Cuenta regresiva (solo visual: quien decide el vencimiento es el servidor).
   useEffect(() => {
-    if (!solicitud || solicitud.estado !== "PENDIENTE") return;
+    if (!solicitud || (solicitud.estado !== "PENDIENTE" && solicitud.estado !== "POSTERGADA")) return;
     const calcular = () =>
       setSegundosRestantes(Math.max(0, Math.ceil((new Date(solicitud.venceEl).getTime() - Date.now()) / 1000)));
     calcular();
@@ -187,7 +198,7 @@ export default function ElegirVeterinarioPage() {
       pagoIniciado.current = true;
       setCasoAsignado(true);
       irAPagar();
-    } else if (solicitud.estado !== "PENDIENTE") {
+    } else if (!["PENDIENTE", "POSTERGADA", "PACTADA"].includes(solicitud.estado)) {
       const nombre = `${solicitud.veterinario.nombre} ${solicitud.veterinario.apellido}`;
       setAviso(
         solicitud.estado === "RECHAZADA"
@@ -202,6 +213,16 @@ export default function ElegirVeterinarioPage() {
     // irAPagar y recargarLista se recrean en cada render; solo importa el cambio de solicitud
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [solicitud]);
+
+  async function aceptarPropuesta() {
+    if (!sesion || !solicitud) return;
+    setError(null);
+    try {
+      setSolicitud(await apiPostAuth<SolicitudParaCliente>(`/solicitudes/${solicitud.id}/aceptar-propuesta`, sesion.accessToken));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No pudimos confirmar el turno. Probá de nuevo.");
+    }
+  }
 
   async function cancelarSolicitud() {
     if (!sesion || !solicitud) return;
@@ -288,6 +309,72 @@ export default function ElegirVeterinarioPage() {
           </div>
         )}
 
+        <LegalFooter />
+      </main>
+    );
+  }
+
+  if (solicitud && (solicitud.estado === "POSTERGADA" || solicitud.estado === "PACTADA")) {
+    const nombre = `${solicitud.veterinario.nombre} ${solicitud.veterinario.apellido}`;
+    const cuando = solicitud.propuestaPara ? FORMATO_TURNO.format(new Date(solicitud.propuestaPara)) : "";
+    const mm = Math.floor(segundosRestantes / 60);
+    const ss = String(segundosRestantes % 60).padStart(2, "0");
+    return (
+      <main style={{ maxWidth: 420, margin: "0 auto", padding: "48px 22px", textAlign: "center" }}>
+        <Logo size="md" marginBottom={28} />
+        {solicitud.estado === "POSTERGADA" ? (
+          <>
+            <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }} aria-live="polite">
+              {nombre} te propone otro horario
+            </h1>
+            <p style={{ fontSize: 14, opacity: 0.85, marginBottom: 6 }}>
+              Ahora no puede atenderte. Te propone hacerlo <strong>{cuando}</strong>
+            </p>
+            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+              No se te cobra nada ahora: el pago es a la hora acordada, cuando empieza tu consulta.
+            </p>
+            <div className="va-titular" style={{ fontSize: 28, margin: "14px 0 18px" }} aria-label="Tiempo para responder">
+              {mm}:{ss}
+            </div>
+            {error && (
+              <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 12 }} role="alert">
+                {error}
+              </p>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button type="button" className="va-boton" onClick={aceptarPropuesta}>
+                Aceptar ese horario
+              </button>
+              <button type="button" className="va-boton va-boton-ghost" onClick={cancelarSolicitud} disabled={cancelando}>
+                {cancelando ? "Un momento…" : "Prefiero elegir a otro veterinario"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }} aria-live="polite">
+              Turno acordado con {nombre}
+            </h1>
+            <p style={{ fontSize: 15, marginBottom: 8 }}>
+              <strong>{cuando}</strong>
+            </p>
+            <p style={{ fontSize: 13.5, opacity: 0.85, marginBottom: 6 }}>
+              A esa hora volvé a esta pantalla (o a tu panel): vas a poder continuar al pago y empezar la consulta. Si
+              tenés WhatsApp te avisamos cuando llegue el momento.
+            </p>
+            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20 }}>
+              No se te cobra nada hasta entonces. Si cambiás de idea, cancelá cuando quieras sin costo.
+            </p>
+            <button type="button" className="va-boton va-boton-ghost" onClick={cancelarSolicitud} disabled={cancelando}>
+              {cancelando ? "Un momento…" : "Cancelar el turno y elegir a otro"}
+            </button>
+            <p style={{ marginTop: 16 }}>
+              <Link href="/panel" style={{ fontSize: 13, textDecoration: "underline" }}>
+                Ir a mi panel
+              </Link>
+            </p>
+          </>
+        )}
         <LegalFooter />
       </main>
     );

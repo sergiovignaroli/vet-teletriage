@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Observable, Subject, interval, merge, map } from "rxjs";
 
 export interface EventoVeterinario {
-  tipo: "solicitud-nueva" | "solicitud-cerrada";
+  tipo: "solicitud-nueva" | "solicitud-cerrada" | "turno-nuevo" | "turno-activo";
   solicitudId: string;
 }
 

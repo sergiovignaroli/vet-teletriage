@@ -146,6 +146,10 @@ model SesionVeterinario {
 
 enum EstadoSolicitud {
   PENDIENTE
+  // El veterinario propuso atender más tarde y espera la respuesta del cliente.
+  POSTERGADA
+  // El cliente aceptó el nuevo horario: turno acordado, sin cobro hasta la hora.
+  PACTADA
   ACEPTADA
   RECHAZADA
   VENCIDA
@@ -185,6 +189,8 @@ model SolicitudAtencion {
   venceEl       DateTime
   respondidaEl  DateTime?
   motivoRechazo String?
+  // Horario propuesto al postergar (turno pactado).
+  propuestaPara DateTime?
 
   // Registro de aceptación de los Términos y Condiciones al elegir.
   terminosVersion     String

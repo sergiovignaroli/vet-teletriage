@@ -42,6 +42,20 @@ export class SolicitudesController {
     return this.solicitudes.actualDelCaso(casoId, usuario.id);
   }
 
+  @Get("mis-turnos")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("CLIENTE")
+  misTurnos(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.solicitudes.turnosDelCliente(usuario.id);
+  }
+
+  @Post(":id/aceptar-propuesta")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("CLIENTE")
+  aceptarPropuesta(@Param("id") id: string, @CurrentUser() usuario: UsuarioAutenticado) {
+    return this.solicitudes.aceptarPropuesta(id, usuario.id);
+  }
+
   @Post(":id/cancelar")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("CLIENTE")
@@ -56,6 +70,24 @@ export class SolicitudesController {
   @Roles("VETERINARIO")
   pendiente(@CurrentUser() usuario: UsuarioAutenticado) {
     return this.solicitudes.pendienteDelVeterinario(usuario.id);
+  }
+
+  @Get("turnos")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  turnos(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.solicitudes.turnosDelVeterinario(usuario.id);
+  }
+
+  @Post(":id/postergar")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  postergar(
+    @Param("id") id: string,
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body("minutos") minutos: number,
+  ) {
+    return this.solicitudes.postergar(id, usuario.id, Number(minutos));
   }
 
   // Canal en tiempo real (SSE). Se abre con fetch y el token en el header.

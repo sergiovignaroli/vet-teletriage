@@ -135,6 +135,12 @@ export default function TerminosPage() {
           anterior.
         </p>
         <p>
+          Si el veterinario no puede atender en ese momento, puede proponer un horario posterior (salvo que se haya
+          marcado una posible emergencia, caso en el que solo puede aceptar o rechazar). El cliente decide si lo
+          acepta, en cuyo caso queda un turno acordado, o elige a otro veterinario. <strong>No se cobra nada hasta
+          la hora del turno</strong>, y el cliente puede cancelarlo sin costo antes de ese momento.
+        </p>
+        <p>
           La plataforma es siempre la intermediaria: puede enviar avisos por sus propios canales (aplicación,
           WhatsApp o correo) al cliente y al veterinario, y no comparte los datos de contacto de uno con el otro. El
           asesoramiento se realiza dentro de la plataforma; cliente y veterinario se comprometen a no trasladar la

@@ -154,7 +154,7 @@ export function useSolicitudesVeterinario(
   alAceptarRef.current = alAceptar;
 
   const [solicitud, setSolicitud] = useState<SolicitudParaVeterinario | null>(null);
-  const [respondiendo, setRespondiendo] = useState<"aceptar" | "rechazar" | null>(null);
+  const [respondiendo, setRespondiendo] = useState<"aceptar" | "rechazar" | "postergar" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const consultar = useCallback(async () => {
@@ -175,7 +175,11 @@ export function useSolicitudesVeterinario(
     }
     void consultar();
     const cierre = escucharCanal(() => tokenRef.current, (nombre) => {
-      if (nombre === "evento" || nombre === "listo") void consultar();
+      if (nombre === "evento" || nombre === "listo") {
+        void consultar();
+        // Un turno pactado que llegó o se activó cambia las listas del panel.
+        alAceptarRef.current();
+      }
     });
     const id = window.setInterval(consultar, CONSULTA_DE_RESPALDO_MS);
     const alVolver = () => {
@@ -222,15 +226,15 @@ export function useSolicitudesVeterinario(
   }, [idAbierta]);
 
   const responder = useCallback(
-    async (accion: "aceptar" | "rechazar") => {
+    async (accion: "aceptar" | "rechazar" | "postergar", minutos?: number) => {
       const token = tokenRef.current;
       if (!token || !idAbierta) return;
       setError(null);
       setRespondiendo(accion);
       try {
-        await apiPostAuth(`/solicitudes/${idAbierta}/${accion}`, token);
+        await apiPostAuth(`/solicitudes/${idAbierta}/${accion}`, token, accion === "postergar" ? { minutos } : undefined);
         setSolicitud(null);
-        if (accion === "aceptar") alAceptarRef.current();
+        if (accion === "aceptar" || accion === "postergar") alAceptarRef.current();
       } catch (e) {
         setError(e instanceof ApiError ? e.message : "No pudimos enviar tu respuesta. Probá de nuevo.");
         // Si ya no está disponible (venció o la canceló el cliente), se cierra la ventana.

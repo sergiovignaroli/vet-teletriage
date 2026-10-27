@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { SolicitudParaVeterinario } from "@vet-teletriage/types";
+import { POSTERGAR_OPCIONES_MINUTOS } from "@vet-teletriage/types";
 
 // Ventana emergente de "te están pidiendo una consulta" (Sergio, 2026-10-27).
 // Solo muestra contexto clínico: nunca datos de contacto de la persona.
@@ -11,14 +12,17 @@ export function VentanaSolicitud({
   error,
   onAceptar,
   onRechazar,
+  onPostergar,
 }: {
   solicitud: SolicitudParaVeterinario;
-  respondiendo: "aceptar" | "rechazar" | null;
+  respondiendo: "aceptar" | "rechazar" | "postergar" | null;
   error: string | null;
   onAceptar: () => void;
   onRechazar: () => void;
+  onPostergar: (minutos: number) => void;
 }) {
   const [segundos, setSegundos] = useState(0);
+  const [eligiendoHorario, setEligiendoHorario] = useState(false);
   const total = Math.max(
     1,
     Math.round((new Date(solicitud.venceEl).getTime() - new Date(solicitud.creadaEl).getTime()) / 1000),
@@ -146,6 +150,49 @@ export function VentanaSolicitud({
             {respondiendo === "rechazar" ? "Un momento…" : "Rechazar"}
           </button>
         </div>
+        {/* Con una posible emergencia no se puede postergar (decisión de Sergio, 27/10/2026). */}
+        {!solicitud.hayBanderaRoja && (
+          <div style={{ marginTop: 10 }}>
+            {!eligiendoHorario ? (
+              <button
+                type="button"
+                className="va-boton va-boton-ghost"
+                onClick={() => setEligiendoHorario(true)}
+                disabled={ocupado}
+                style={{ width: "100%", minHeight: 42, fontSize: 12.5 }}
+              >
+                Postergar: atenderla más tarde
+              </button>
+            ) : (
+              <div>
+                <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "0 0 8px", textAlign: "center" }}>
+                  Le proponemos a la persona atenderla en:
+                </p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  {POSTERGAR_OPCIONES_MINUTOS.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      className="va-chip"
+                      style={{ cursor: "pointer" }}
+                      disabled={ocupado}
+                      onClick={() => onPostergar(m)}
+                    >
+                      {m < 60 ? `${m} min` : `${m / 60} h`}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEligiendoHorario(false)}
+                  style={{ background: "none", border: "none", fontSize: 12, textDecoration: "underline", margin: "8px auto 0", display: "block", cursor: "pointer" }}
+                >
+                  Volver
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <p style={{ fontSize: 12, color: "var(--muted)", margin: "12px 0 0", textAlign: "center" }}>
           Si no respondés a tiempo, la persona elige a otro veterinario.
         </p>
