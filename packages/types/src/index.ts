@@ -153,6 +153,22 @@ export function hayBanderaRoja(banderas: BanderasRojasIntake): boolean {
   return CLAVES_BANDERAS_ROJAS.some((clave) => banderas[clave]);
 }
 
+const ETIQUETAS_BANDERAS_ROJAS: Record<keyof BanderasRojasIntake, string> = {
+  dificultadRespiratoria: "Dificultad para respirar",
+  inconsciente: "Inconsciente",
+  sangradoActivo: "Sangrado activo",
+  sospechaIngestaToxico: "Sospecha de ingesta de tóxico",
+  convulsionEnCurso: "Convulsión en curso",
+  noPuedeParseCaminar: "No puede pararse ni caminar",
+  distensionAbdominal: "Distensión abdominal",
+  traumatismoMayor: "Traumatismo mayor",
+};
+
+// Lista legible de las banderas rojas marcadas (para la ventana de solicitud).
+export function listarBanderasRojas(banderas: BanderasRojasIntake): string[] {
+  return CLAVES_BANDERAS_ROJAS.filter((clave) => banderas[clave]).map((clave) => ETIQUETAS_BANDERAS_ROJAS[clave]);
+}
+
 export interface VeterinarioResumen {
   id: string;
   nombre: string;
@@ -215,6 +231,56 @@ export interface VeterinarioParaElegir {
   costoTotalPaypalUsd: number | null;
   ratingPromedio: number | null; // null si todavía no tiene calificaciones
   cantidadCalificaciones: number;
+  // Está en una consulta ahora: puede demorar en responder (Sergio, 2026-10-27).
+  enConsulta: boolean;
+  // En Stand by: sigue con la sesión abierta pero puede no estar atento.
+  enStandBy: boolean;
+}
+
+// Versión vigente de los Términos y Condiciones. Se guarda con cada
+// aceptación (SolicitudAtencion.terminosVersion): al cambiar el texto de los
+// Términos hay que subir esta fecha.
+export const VERSION_TERMINOS = "2026-10-27";
+
+// Tiempo que tiene el veterinario para responder una solicitud (Sergio,
+// 2026-10-27): 90 segundos si está libre, 2 minutos si está en una consulta.
+export const SOLICITUD_SEGUNDOS_LIBRE = 90;
+export const SOLICITUD_SEGUNDOS_EN_CONSULTA = 120;
+
+export type EstadoSolicitudAtencion =
+  | "PENDIENTE"
+  | "ACEPTADA"
+  | "RECHAZADA"
+  | "VENCIDA"
+  | "CANCELADA_POR_CLIENTE";
+
+// Lo que ve el CLIENTE de su solicitud (nunca datos de contacto del veterinario).
+export interface SolicitudParaCliente {
+  id: string;
+  casoId: string;
+  estado: EstadoSolicitudAtencion;
+  venceEl: string;
+  veterinario: { id: string; nombre: string; apellido: string };
+  vetEnConsulta: boolean;
+}
+
+// Lo que ve el VETERINARIO de una solicitud entrante: contexto clínico del
+// intake, sin ningún dato de contacto del cliente (la plataforma es siempre
+// la mediadora).
+export interface SolicitudParaVeterinario {
+  id: string;
+  casoId: string;
+  estado: EstadoSolicitudAtencion;
+  venceEl: string;
+  creadaEl: string;
+  vetEnConsulta: boolean;
+  hayBanderaRoja: boolean;
+  banderasRojas: string[];
+  especie: string;
+  raza: string | null;
+  edadAproximada: string | null;
+  pesoAproximadoKg: number | null;
+  motivoConsulta: string;
 }
 
 // Contexto clínico que ve el veterinario al mirar un caso — Capa 2 del

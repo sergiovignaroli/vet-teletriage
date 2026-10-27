@@ -49,7 +49,7 @@ export default function TerminosPage() {
         Términos y Condiciones
       </h1>
       <p style={{ fontSize: 12, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
-        Última actualización: 30 de septiembre de 2026.
+        Última actualización: 27 de octubre de 2026.
       </p>
 
       <Seccion titulo="1. Qué es Videollamada Animal">
@@ -120,21 +120,39 @@ export default function TerminosPage() {
       <Seccion titulo="4. Aceptación de estos términos">
         <p>
           Al solicitar un asesoramiento — es decir, al continuar desde la pantalla de inicio hacia el formulario
-          del asesoramiento — se entiende que el cliente conoce y acepta estos Términos y Condiciones.
+          del asesoramiento — se entiende que el cliente conoce y acepta estos Términos y Condiciones. Además, al
+          elegir un veterinario el cliente los acepta de forma expresa, tildando la casilla correspondiente; la
+          plataforma registra la versión aceptada, la fecha y la dirección IP.
         </p>
       </Seccion>
 
-      <Seccion titulo="5. Pagos, cancelaciones y reembolsos">
+      <Seccion titulo="5. Cómo se pide un asesoramiento">
         <p>
-          El pago se procesa al momento de elegir veterinario, antes de que comience el asesoramiento. Si el
-          veterinario cierra el asesoramiento como resuelto por orientación o como derivado a una emergencia, no
-          corresponde reembolso: el servicio se considera prestado. Si el asesoramiento no pudo completarse por un
-          motivo atribuible a la plataforma o al veterinario, se reembolsa el monto correspondiente conforme a
+          Elegir un veterinario envía una <strong>solicitud</strong>: el veterinario puede aceptarla o rechazarla, y
+          tiene un tiempo limitado para responder (si está atendiendo a otra persona, ese tiempo es algo mayor). Si
+          rechaza, no responde a tiempo o el cliente cancela la solicitud, <strong>no se cobra nada</strong> y el
+          cliente puede elegir a otro veterinario. Elegir a otro mientras hay una solicitud pendiente cancela la
+          anterior.
+        </p>
+        <p>
+          La plataforma es siempre la intermediaria: puede enviar avisos por sus propios canales (aplicación,
+          WhatsApp o correo) al cliente y al veterinario, y no comparte los datos de contacto de uno con el otro. El
+          asesoramiento se realiza dentro de la plataforma; cliente y veterinario se comprometen a no trasladar la
+          conversación ni los pagos a otros canales.
+        </p>
+      </Seccion>
+
+      <Seccion titulo="6. Pagos, cancelaciones y reembolsos">
+        <p>
+          El pago se procesa una vez que el veterinario aceptó la solicitud, antes de que comience el asesoramiento.
+          Si el veterinario cierra el asesoramiento como resuelto por orientación o como derivado a una emergencia,
+          no corresponde reembolso: el servicio se considera prestado. Si el asesoramiento no pudo completarse por
+          un motivo atribuible a la plataforma o al veterinario, se reembolsa el monto correspondiente conforme a
           la política vigente, informada en cada caso puntual.
         </p>
       </Seccion>
 
-      <Seccion titulo="6. Contacto">
+      <Seccion titulo="7. Contacto">
         <p>
           Para consultas sobre estos términos, escribinos a <ContactoEmail config={config} /> o visitá nuestra{" "}
           <Link href="/contacto" style={{ color: "var(--esmeralda)" }}>

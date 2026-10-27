@@ -51,6 +51,7 @@ model Veterinario {
   presencia         PresenciaVeterinario @default(DESCONECTADO)
   ultimaSenal       DateTime?
   sesionesRenovables SesionVeterinario[]
+  solicitudes       SolicitudAtencion[]
 
   // Onboarding de producto (no confundir con habilitación de la Sección 2):
   // recorrido guiado de 3 pantallas la primera vez que entra a la app.
@@ -136,6 +137,42 @@ model SesionVeterinario {
   revocadaEl    DateTime?
 
   @@index([veterinarioId])
+}
+
+enum EstadoSolicitud {
+  PENDIENTE
+  ACEPTADA
+  RECHAZADA
+  VENCIDA
+  CANCELADA_POR_CLIENTE
+}
+
+// El cliente ya no asigna al veterinario directamente (Sergio, 2026-10-27):
+// elige, acepta los Términos y le llega una SOLICITUD que el veterinario
+// toma o rechaza. Recién al tomarla se asigna el caso y se paga: una
+// solicitud rechazada, vencida o cancelada nunca cobra. Una sola solicitud
+// pendiente por veterinario, y una sola por caso.
+model SolicitudAtencion {
+  id            String          @id @default(uuid())
+  caso          Caso            @relation(fields: [casoId], references: [id])
+  casoId        String
+  veterinario   Veterinario     @relation(fields: [veterinarioId], references: [id])
+  veterinarioId String
+  estado        EstadoSolicitud @default(PENDIENTE)
+  // Si el veterinario estaba en una consulta al llegar: cambia el plazo (2 min en vez de 90 s).
+  vetEnConsulta Boolean         @default(false)
+  creadaEl      DateTime        @default(now())
+  venceEl       DateTime
+  respondidaEl  DateTime?
+  motivoRechazo String?
+
+  // Registro de aceptación de los Términos y Condiciones al elegir.
+  terminosVersion     String
+  terminosAceptadosEl DateTime
+  terminosIp          String?
+
+  @@index([casoId, estado])
+  @@index([veterinarioId, estado])
 }
 
 enum EstadoVeterinario {
@@ -231,6 +268,9 @@ model Caso {
   // congelado desde ahí (no se vuelve a tocar en PATCH /casos/:id/iniciar).
   honorarioDeclarado Decimal?  @db.Decimal(10, 2)
   cargoPlataforma    Decimal   @db.Decimal(10, 2) // $3.500 diurno / $4.000 nocturno al momento del caso
+
+  // Solicitudes de atención a veterinarios (Sergio, 2026-10-27)
+  solicitudes     SolicitudAtencion[]
 
   // Cierre del caso (Sección 9): determina la Sección 8 (reembolso)
   cierre          CierreCaso?

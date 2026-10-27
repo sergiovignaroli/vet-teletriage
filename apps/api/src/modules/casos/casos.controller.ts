@@ -34,18 +34,6 @@ export class CasosController {
     return this.casos.paraElegir(id, usuario.id);
   }
 
-  // El cliente elige — acá se congela el precio y se asigna el caso.
-  @Patch(":id/asignar")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("CLIENTE")
-  asignar(
-    @Param("id") id: string,
-    @CurrentUser() usuario: UsuarioAutenticado,
-    @Body("veterinarioId") veterinarioId: string,
-  ) {
-    return this.casos.asignar(id, usuario.id, veterinarioId);
-  }
-
   // Casos de ESTE veterinario — el id sale del JWT, nunca de un query
   // param, para que no pueda pedir la lista de otro veterinario.
   @Get("mios")

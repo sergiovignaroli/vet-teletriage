@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import type { VeterinarioParaElegir } from "@vet-teletriage/types";
-import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../../lib/api";
+import type { SolicitudParaCliente, VeterinarioParaElegir } from "@vet-teletriage/types";
+import Link from "next/link";
+import { apiGet, apiPostAuth, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
 import { Logo } from "../../../components/Logo";
 import { LegalFooter } from "../../../components/LegalFooter";
@@ -73,31 +74,147 @@ export default function ElegirVeterinarioPage() {
   const [paypalUsdElegido, setPaypalUsdElegido] = useState<number | null>(null);
   const [redirigiendoPaypal, setRedirigiendoPaypal] = useState(false);
 
-  async function elegir(veterinarioId: string) {
+  // ---- Solicitud de atención (Sergio, 2026-10-27) ----
+  // El cliente ya no asigna directo: pide la atención y el veterinario la
+  // acepta (o no). Recién cuando acepta se sigue a pagar — si rechaza, no
+  // responde o el cliente cancela, no se cobra nada.
+  const [acepto, setAcepto] = useState(false);
+  const [solicitud, setSolicitud] = useState<SolicitudParaCliente | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [segundosRestantes, setSegundosRestantes] = useState(0);
+  const [cancelando, setCancelando] = useState(false);
+  const pagoIniciado = useRef(false);
+  const claveStorage = `va_paypal_${casoId}`;
+
+  const recargarLista = useCallback(() => {
     if (!sesion) return;
+    apiGet<VeterinarioParaElegir[]>(`/casos/${casoId}/para-elegir`, sesion.accessToken)
+      .then(setVeterinarios)
+      .catch(() => {});
+  }, [sesion, casoId]);
+
+  async function elegir(veterinarioId: string) {
+    if (!sesion || !acepto) return;
     setError(null);
+    setAviso(null);
     setEligiendo(veterinarioId);
     try {
-      await apiPatch(`/casos/${casoId}/asignar`, sesion.accessToken, { veterinarioId });
-      setCasoAsignado(true);
-      setPaypalUsdElegido(veterinarios?.find((v) => v.id === veterinarioId)?.costoTotalPaypalUsd ?? null);
-      await irAPagar();
+      const creada = await apiPostAuth<SolicitudParaCliente>(`/solicitudes/caso/${casoId}`, sesion.accessToken, {
+        veterinarioId,
+        aceptoTerminos: true,
+      });
+      const usd = veterinarios?.find((v) => v.id === veterinarioId)?.costoTotalPaypalUsd ?? null;
+      setPaypalUsdElegido(usd);
+      try {
+        sessionStorage.setItem(claveStorage, usd == null ? "" : String(usd));
+      } catch {}
+      setSolicitud(creada);
     } catch (e) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "No pudimos asignarte ese veterinario. Puede que se haya desconectado — probá con otro.",
+          : "No pudimos enviar la solicitud. Puede que se haya desconectado — probá con otro.",
       );
       // Puede haberse desconectado justo ahora — refrescamos la lista para
       // no dejar al cliente eligiendo a alguien que ya no está.
-      if (sesion) {
-        apiGet<VeterinarioParaElegir[]>(`/casos/${casoId}/para-elegir`, sesion.accessToken)
-          .then(setVeterinarios)
-          .catch(() => {});
-      }
+      recargarLista();
     } finally {
       setEligiendo(null);
     }
+  }
+
+  // Al abrir (o recargar) la pantalla: si ya hay una solicitud en curso o
+  // aceptada, se retoma donde estaba en vez de mostrar la lista de nuevo.
+  useEffect(() => {
+    if (!sesion || !casoId) return;
+    let cancelado = false;
+    apiGet<SolicitudParaCliente | null>(`/solicitudes/caso/${casoId}/actual`, sesion.accessToken)
+      .then((actual) => {
+        if (cancelado || !actual) return;
+        if (actual.estado === "PENDIENTE" || actual.estado === "ACEPTADA") {
+          try {
+            const guardado = sessionStorage.getItem(claveStorage);
+            if (guardado) setPaypalUsdElegido(Number(guardado));
+          } catch {}
+          setSolicitud(actual);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [sesion, casoId, claveStorage]);
+
+  // Mientras la solicitud está pendiente: se consulta cada 2 s.
+  const idPendiente = solicitud?.estado === "PENDIENTE" ? solicitud.id : null;
+  useEffect(() => {
+    if (!idPendiente || !sesion) return;
+    let cancelado = false;
+    const consultar = async () => {
+      try {
+        const actual = await apiGet<SolicitudParaCliente | null>(
+          `/solicitudes/caso/${casoId}/actual`,
+          sesion.accessToken,
+        );
+        if (cancelado || !actual || actual.id !== idPendiente) return;
+        if (actual.estado !== "PENDIENTE") setSolicitud(actual);
+      } catch {
+        // un corte momentáneo de red no cierra la espera: se reintenta solo
+      }
+    };
+    const t = setInterval(consultar, 2000);
+    return () => {
+      cancelado = true;
+      clearInterval(t);
+    };
+  }, [idPendiente, sesion, casoId]);
+
+  // Cuenta regresiva (solo visual: quien decide el vencimiento es el servidor).
+  useEffect(() => {
+    if (!solicitud || solicitud.estado !== "PENDIENTE") return;
+    const calcular = () =>
+      setSegundosRestantes(Math.max(0, Math.ceil((new Date(solicitud.venceEl).getTime() - Date.now()) / 1000)));
+    calcular();
+    const t = setInterval(calcular, 500);
+    return () => clearInterval(t);
+  }, [solicitud]);
+
+  // Resultado de la solicitud.
+  useEffect(() => {
+    if (!solicitud) return;
+    if (solicitud.estado === "ACEPTADA") {
+      if (pagoIniciado.current) return;
+      pagoIniciado.current = true;
+      setCasoAsignado(true);
+      irAPagar();
+    } else if (solicitud.estado !== "PENDIENTE") {
+      const nombre = `${solicitud.veterinario.nombre} ${solicitud.veterinario.apellido}`;
+      setAviso(
+        solicitud.estado === "RECHAZADA"
+          ? `${nombre} no pudo tomar tu consulta ahora. No se te cobró nada — elegí a otro veterinario.`
+          : solicitud.estado === "VENCIDA"
+            ? `${nombre} no alcanzó a responder. No se te cobró nada — elegí a otro veterinario.`
+            : null,
+      );
+      setSolicitud(null);
+      recargarLista();
+    }
+    // irAPagar y recargarLista se recrean en cada render; solo importa el cambio de solicitud
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solicitud]);
+
+  async function cancelarSolicitud() {
+    if (!sesion || !solicitud) return;
+    setCancelando(true);
+    try {
+      await apiPostAuth(`/solicitudes/${solicitud.id}/cancelar`, sesion.accessToken);
+    } catch {
+      // si ya estaba resuelta, la próxima consulta lo refleja
+    }
+    setSolicitud(null);
+    setCancelando(false);
+    setAviso(null);
+    recargarLista();
   }
 
   // medioPago default MERCADO_PAGO — el medio PRINCIPAL, siempre (Sergio,
@@ -176,6 +293,37 @@ export default function ElegirVeterinarioPage() {
     );
   }
 
+  if (solicitud && solicitud.estado === "PENDIENTE") {
+    const mm = Math.floor(segundosRestantes / 60);
+    const ss = String(segundosRestantes % 60).padStart(2, "0");
+    return (
+      <main style={{ maxWidth: 420, margin: "0 auto", padding: "48px 22px", textAlign: "center" }}>
+        <Logo size="md" marginBottom={28} />
+        <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }} aria-live="polite">
+          Esperando a {solicitud.veterinario.nombre} {solicitud.veterinario.apellido}
+        </h1>
+        <p style={{ fontSize: 14, opacity: 0.85, marginBottom: 6 }}>
+          Le avisamos que querés una consulta. Cuando acepte, seguís directo al pago.
+        </p>
+        {solicitud.vetEnConsulta && (
+          <p style={{ fontSize: 13.5, color: "var(--muted)", marginBottom: 6 }}>
+            Está atendiendo a otra persona en este momento, así que puede demorar un poco más en responder.
+          </p>
+        )}
+        <div className="va-titular" style={{ fontSize: 34, margin: "18px 0 6px" }} aria-label="Tiempo restante">
+          {mm}:{ss}
+        </div>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 24 }}>
+          No se te cobra nada hasta que acepte. Si no responde a tiempo o no puede, te lo avisamos y elegís a otro.
+        </p>
+        <button type="button" className="va-boton va-boton-ghost" onClick={cancelarSolicitud} disabled={cancelando}>
+          {cancelando ? "Un momento…" : "Cancelar y elegir a otro"}
+        </button>
+        <LegalFooter />
+      </main>
+    );
+  }
+
   return (
     <main style={{ maxWidth: 480, margin: "0 auto", padding: "40px 22px 60px" }}>
       <Logo size="sm" marginBottom={20} />
@@ -186,6 +334,21 @@ export default function ElegirVeterinarioPage() {
         Están conectados ahora. El precio que ves es el total que vas a pagar — ya incluye el cargo de plataforma.
       </p>
 
+      {aviso && (
+        <p
+          style={{
+            background: "rgba(180, 67, 45, 0.08)",
+            border: "1px solid var(--borde)",
+            borderRadius: 12,
+            padding: "10px 14px",
+            fontSize: 13.5,
+            marginBottom: 14,
+          }}
+          role="status"
+        >
+          {aviso}
+        </p>
+      )}
       {cargando && <p style={{ fontSize: 14, opacity: 0.75 }}>Buscando veterinarios conectados…</p>}
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 12 }} role="alert">
@@ -200,10 +363,29 @@ export default function ElegirVeterinarioPage() {
           }}
         >
           <EstadoVacio>
-            No hay ningún veterinario conectado en este momento. Tu asesoramiento queda registrado — te avisamos por
-            WhatsApp apenas se conecte alguno.
+            No hay ningún veterinario disponible en este momento. Probá de nuevo en unos minutos.
           </EstadoVacio>
         </div>
+      )}
+
+      {veterinarios && veterinarios.length > 0 && (
+        <label
+          style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, lineHeight: 1.45, marginBottom: 16 }}
+        >
+          <input
+            type="checkbox"
+            checked={acepto}
+            onChange={(e) => setAcepto(e.target.checked)}
+            style={{ marginTop: 3, width: 18, height: 18, flexShrink: 0 }}
+          />
+          <span>
+            Acepto los{" "}
+            <Link href="/terminos" target="_blank" style={{ textDecoration: "underline" }}>
+              Términos y Condiciones
+            </Link>
+            . Al elegir un veterinario le enviamos tu solicitud; no se te cobra hasta que la acepte.
+          </span>
+        </label>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -218,6 +400,11 @@ export default function ElegirVeterinarioPage() {
                 <div style={{ marginTop: 4 }}>
                   <Calificacion promedio={v.ratingPromedio ?? null} cantidad={v.cantidadCalificaciones} />
                 </div>
+                {(v.enConsulta || v.enStandBy) && (
+                  <div style={{ marginTop: 6, fontSize: 12.5, color: "var(--muted)" }}>
+                    {v.enConsulta ? "En consulta, puede demorar" : "Puede tardar un poco más en responder"}
+                  </div>
+                )}
               </div>
             </div>
             <div
@@ -244,7 +431,8 @@ export default function ElegirVeterinarioPage() {
                 className="va-boton"
                 style={{ width: "auto", minHeight: 46, padding: "0 28px" }}
                 onClick={() => elegir(v.id)}
-                disabled={eligiendo === v.id}
+                disabled={eligiendo !== null || !acepto}
+                title={acepto ? undefined : "Aceptá los Términos y Condiciones para continuar"}
               >
                 {eligiendo === v.id ? "…" : "Elegir"}
               </button>

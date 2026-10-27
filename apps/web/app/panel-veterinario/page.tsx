@@ -7,6 +7,8 @@ import type { CasoParaVeterinario, ClasificacionCierre } from "@vet-teletriage/t
 import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useLatidoVeterinario, useSesionVeterinario } from "../../lib/sesion-veterinario";
+import { tocarAviso, useSolicitudesVeterinario, useSonidoActivo } from "../../lib/solicitudes-veterinario";
+import { VentanaSolicitud } from "../../components/VentanaSolicitud";
 import type { Presencia } from "../../lib/sesion-veterinario";
 import { Onboarding } from "../../components/Onboarding";
 import { Logo } from "../../components/Logo";
@@ -43,7 +45,7 @@ const OPCIONES_PRESENCIA: { valor: Presencia; etiqueta: string; ayuda: string }[
   {
     valor: "STAND_BY",
     etiqueta: "Stand by",
-    ayuda: "Seguís con la sesión abierta, pero por ahora no aparecés en la lista de los clientes.",
+    ayuda: "Seguís con la sesión abierta y también te pueden elegir, pero los clientes ven que podés tardar más en responder.",
   },
   { valor: "DESCONECTADO", etiqueta: "Desconectado", ayuda: "No aparecés en la lista de los clientes." },
 ];
@@ -107,6 +109,11 @@ export default function PanelVeterinarioPage() {
     if (!sesion || !sesion.onboardingCompletado) return;
     cargarCasos();
   }, [sesion, cargarCasos]);
+
+  // Solicitudes de atención: ventana emergente con sonido y vibración. Al
+  // aceptar, el caso queda asignado y la lista se recarga.
+  const { solicitud, respondiendo, error: errorSolicitud, responder } = useSolicitudesVeterinario(sesion, cargarCasos);
+  const { activo: sonidoActivo, activar: activarSonidoAvisos } = useSonidoActivo();
 
   // Latido: mientras estés Conectado o en Stand by con el panel abierto, el
   // servidor sabe que seguís ahí. Si el estado real cambió por fuera (por
@@ -221,6 +228,15 @@ export default function PanelVeterinarioPage() {
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 22px 60px" }}>
+      {solicitud && (
+        <VentanaSolicitud
+          solicitud={solicitud}
+          respondiendo={respondiendo}
+          error={errorSolicitud}
+          onAceptar={() => responder("aceptar")}
+          onRechazar={() => responder("rechazar")}
+        />
+      )}
       {/* La marca siempre centrada (pedido explícito de Sergio, 2026-09-29),
           aunque este panel necesite además un link de "Cerrar sesión" —
           por eso va en una esquina, no compitiendo por el centro con el logo. */}
@@ -289,6 +305,32 @@ export default function PanelVeterinarioPage() {
             Dejá esta pestaña abierta: por ahora, si la cerrás, dejás de aparecer a los 5 minutos. Tu sesión sigue
             abierta hasta que salgas. Los avisos con la app cerrada llegan en una próxima etapa.
           </p>
+        )}
+        {sesion.presencia !== "DESCONECTADO" && (
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {sonidoActivo ? (
+              <>
+                <span style={{ fontSize: 12.5, color: "var(--esmeralda)", fontWeight: 600 }}>Sonido de avisos activado</span>
+                <button
+                  type="button"
+                  className="va-boton va-boton-ghost"
+                  style={{ width: "auto", minHeight: 34, padding: "0 14px", fontSize: 12 }}
+                  onClick={() => tocarAviso()}
+                >
+                  Probar sonido
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="va-boton va-boton-ghost"
+                style={{ width: "auto", minHeight: 38, padding: "0 16px", fontSize: 12.5 }}
+                onClick={activarSonidoAvisos}
+              >
+                Activar el sonido de los avisos
+              </button>
+            )}
+          </div>
         )}
       </div>
       {sesion.presencia === "DESCONECTADO" && sesion.estado !== "HABILITADO" && (
@@ -541,7 +583,7 @@ function SesionEnCurso({
         </a>
       ) : (
         <p style={{ fontSize: 12, opacity: 0.75, marginTop: 0, marginBottom: 12 }}>
-          Todavía no hay una sala de video conectada — coordiná el asesoramiento por WhatsApp mientras tanto.
+          Todavía no hay una sala de video conectada — esperá un momento o volvé a abrir el caso.
         </p>
       )}
 

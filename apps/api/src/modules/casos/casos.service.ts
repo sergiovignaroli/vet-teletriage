@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from "@nestjs/common";
-import { desdeSenalVigente, tieneSenalVigente } from "../../common/presencia";
+import { desdeSenalVigente } from "../../common/presencia";
 import { PrismaService } from "../../prisma.service";
 import { VideoService } from "../video/video.service";
 import { PagosService } from "../pagos/pagos.service";
@@ -50,7 +50,7 @@ export class CasosService {
   // cliente va a ver, junto al margen de cada veterinario, en la pantalla
   // de "elegí veterinario" (GET /casos/:id/para-elegir), ANTES de contratar
   // a nadie. honorarioDeclarado sigue en null: se completa recién cuando el
-  // cliente elige (ver asignar()), no antes.
+  // cliente elige (ver asignarPorAceptacion()), no antes.
   async crear(input: CrearCasoInput) {
     const ahora = new Date();
     const franjaHoraria = franjaHorariaDe(ahora);
@@ -122,16 +122,24 @@ export class CasosService {
     const costoTotalPaypalUsd =
       Math.round((honorarioPaypalDe(config, hayUrgencia) + config.cargoPlataformaPaypalUsd) * 100) / 100;
 
+    // Solicitudes de atención (Sergio, 2026-10-27): se lista a quien está
+    // Conectado o en Stand by (ambos reciben aviso) con el panel vivo. Quien
+    // está en consulta SIGUE apareciendo — recibe la solicitud como ventana
+    // emergente — pero no quien ya tiene un cliente asignado esperando que
+    // empiece, ni quien tiene una solicitud pendiente de respuesta.
     const conectados = await this.prisma.veterinario.findMany({
       where: {
-        disponible: true,
         estado: "HABILITADO",
+        presencia: { in: ["CONECTADO", "STAND_BY"] },
         // Solo quien tiene el panel abierto (latido reciente) — ver common/presencia.ts
         ultimaSenal: { gte: desdeSenalVigente() },
-        // Excluye a quien ya tiene un caso en curso — ver comentario arriba.
-        casos: { none: { estado: { in: ["ASIGNADO", "EN_SESION"] } } },
+        casos: { none: { estado: "ASIGNADO" } },
+        solicitudes: { none: { estado: "PENDIENTE", venceEl: { gt: new Date() } } },
       },
-      include: { calificaciones: { select: { estrellas: true } } },
+      include: {
+        calificaciones: { select: { estrellas: true } },
+        casos: { where: { estado: "EN_SESION" }, select: { id: true } },
+      },
     });
 
     return conectados
@@ -158,6 +166,8 @@ export class CasosService {
           costoTotalPaypalUsd: v.paypalEmail ? costoTotalPaypalUsd : null,
           ratingPromedio,
           cantidadCalificaciones,
+          enConsulta: v.casos.length > 0,
+          enStandBy: v.presencia === "STAND_BY",
         };
       })
       // Piso de calidad (Sección 11/12, PISO_CALIDAD_ESTRELLAS): un
@@ -169,17 +179,19 @@ export class CasosService {
       .sort((a, b) => a.costoTotal - b.costoTotal);
   }
 
-  // El cliente elige veterinario (reemplaza al viejo "tomar caso" desde el
-  // lado del veterinario). Se recalcula disponible/HABILITADO acá también
-  // —no solo en paraElegir()— porque puede pasar tiempo entre que el
-  // cliente ve la lista y hace click; si el veterinario se desconectó en el
-  // medio, mejor un error claro que asignarle un caso a quien ya no está.
-  async asignar(casoId: string, clienteId: string, veterinarioId: string) {
+  // Asignación por aceptación (Sergio, 2026-10-27): el cliente ya NO asigna
+  // directo — pide una solicitud (SolicitudesService.crear) y el caso se
+  // asigna recién cuando el veterinario la acepta. Por eso esto es interno:
+  // ninguna ruta del cliente lo llama, y no se puede saltear el consentimiento
+  // del veterinario ni la aceptación de los términos.
+  //
+  // Acá no se vuelve a exigir `disponible` ni señal vigente: quien acepta una
+  // solicitud está claramente presente. Sí se mantiene el límite de un solo
+  // caso ASIGNADO esperando (no se puede acumular clientes sin arrancar). Un
+  // caso EN_SESION no bloquea: justamente se acepta mientras se atiende a otro.
+  async asignarPorAceptacion(casoId: string, veterinarioId: string) {
     const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
     if (!caso) throw new BadRequestException("Caso no encontrado");
-    if (caso.clienteId !== clienteId) {
-      throw new ForbiddenException("Este caso no te pertenece");
-    }
     if (caso.veterinarioId) {
       throw new BadRequestException("Este caso ya tiene un veterinario asignado");
     }
@@ -189,19 +201,13 @@ export class CasosService {
 
     const veterinario = await this.prisma.veterinario.findUnique({
       where: { id: veterinarioId },
-      include: {
-        // Mismo filtro de "ocupado" que paraElegir() — acá es el que
-        // importa de verdad: entre que el cliente VIO la lista y hace
-        // click puede pasar tiempo suficiente para que otro cliente ya lo
-        // haya elegido para otro caso.
-        casos: { where: { estado: { in: ["ASIGNADO", "EN_SESION"] } }, select: { id: true } },
-      },
+      include: { casos: { where: { estado: "ASIGNADO" }, select: { id: true } } },
     });
-    if (!veterinario || !veterinario.disponible || veterinario.estado !== "HABILITADO" || !tieneSenalVigente(veterinario.ultimaSenal)) {
-      throw new BadRequestException("Ese veterinario ya no está disponible — elegí otro de la lista");
+    if (!veterinario || veterinario.estado !== "HABILITADO") {
+      throw new BadRequestException("Ese veterinario no está habilitado");
     }
     if (veterinario.casos.length > 0) {
-      throw new BadRequestException("Ese veterinario ya está atendiendo otro asesoramiento — elegí otro de la lista");
+      throw new BadRequestException("Ya tenés un cliente esperando que empieces — iniciá esa consulta primero");
     }
 
     // Mismo cálculo que paraElegir() — ver el comentario ahí sobre por qué
@@ -211,10 +217,13 @@ export class CasosService {
       veterinario.sesionesCompletadas >= config.umbralSesionesVeterano ? config.bonusVeteranoPorcentaje : 0;
     const honorarioDeclarado = honorarioFinalDe(Number(caso.honorarioBase), veterinario.margenPorcentaje, bonusVeterano);
 
-    return this.prisma.caso.update({
-      where: { id: casoId },
+    // Condición en el update: si dos aceptaciones se cruzan, solo una gana.
+    const r = await this.prisma.caso.updateMany({
+      where: { id: casoId, veterinarioId: null },
       data: { veterinarioId, honorarioDeclarado, estado: "ASIGNADO" },
     });
+    if (r.count === 0) throw new BadRequestException("Este caso ya tiene un veterinario asignado");
+    return this.prisma.caso.findUniqueOrThrow({ where: { id: casoId } });
   }
 
   // Casos de ESTE veterinario (tomados por él, en curso o ya cerrados) —
@@ -266,7 +275,7 @@ export class CasosService {
   }
 
   // El veterinario confirma que arranca la videollamada de un caso que el
-  // CLIENTE ya le asignó (ver asignar()) — ya no fija ni recalcula ningún
+  // CLIENTE ya le asignó (ver asignarPorAceptacion()) — ya no fija ni recalcula ningún
   // monto acá: el precio quedó congelado en el momento en que el cliente
   // eligió, precisamente para que sea el total que le prometimos, no uno
   // que cambie según cuándo el veterinario efectivamente se conecte.

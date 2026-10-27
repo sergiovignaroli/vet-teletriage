@@ -6,6 +6,7 @@ import { DisputasModule } from "./modules/disputas/disputas.module";
 import { CalificacionesModule } from "./modules/calificaciones/calificaciones.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { IdentidadModule } from "./modules/identidad/identidad.module";
+import { SolicitudesModule } from "./modules/solicitudes/solicitudes.module";
 import { ConfiguracionModule } from "./modules/configuracion/configuracion.module";
 
 @Module({
@@ -18,6 +19,7 @@ import { ConfiguracionModule } from "./modules/configuracion/configuracion.modul
     CalificacionesModule,
     IdentidadModule,
     ConfiguracionModule,
+    SolicitudesModule,
   ],
 })
 export class AppModule {}
