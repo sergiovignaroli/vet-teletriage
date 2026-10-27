@@ -89,7 +89,7 @@ export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props
               right: 0,
               background: "none",
               border: "none",
-              opacity: 0.5,
+              opacity: 0.75,
               fontSize: 13,
               cursor: "pointer",
             }}
@@ -126,7 +126,7 @@ export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: i === paso ? "var(--oliva)" : "rgba(64,53,47,.25)",
+              background: i === paso ? "var(--oliva)" : "rgba(var(--texto-rgb), .25)",
             }}
           />
         ))}

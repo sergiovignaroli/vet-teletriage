@@ -120,7 +120,7 @@ export default function RegistrarVeterinarioPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Sumate como veterinario
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 24 }}>
+      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
         Con matrícula y seguro vigentes podés empezar a brindar asesoramiento online. Verificamos tu identidad y tus
         datos antes de habilitarte — mientras tanto tu cuenta queda pendiente de revisión.
       </p>
@@ -180,7 +180,7 @@ export default function RegistrarVeterinarioPage() {
 
       <Link
         href="/ingresar-veterinario"
-        style={{ fontSize: 13, opacity: 0.55, marginTop: 24, textDecoration: "underline", display: "block", textAlign: "center" }}
+        style={{ fontSize: 13, opacity: 0.75, marginTop: 24, textDecoration: "underline", display: "block", textAlign: "center" }}
       >
         ¿Ya tenés cuenta? Ingresá acá
       </Link>

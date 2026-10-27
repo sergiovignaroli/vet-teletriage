@@ -1,59 +1,144 @@
-/* Paleta e identidad de marca — ver el trabajo de diseño de la landing
-   (portadas/*.html) para el origen de estos valores. Primera vez que se
-   define un token de marca dentro del código de apps/web: hasta ahora la
-   app no tenía ningún estilo propio aplicado. */
+/* Dirección visual G — "Esmeralda y arena" (Sergio, 2026-10-27).
+   Fondo beige claro con luces suaves de color y tarjetas semitransparentes;
+   esmeralda profundo como color de acción, azul de apoyo y un rojo ladrillo
+   reservado para alertas. Mobile-first: todo está pensado para el celular y
+   se amplía para laptop (Windows / Mac) con las reglas @media de abajo.
+
+   Los nombres viejos (--terracota, --oliva, --crema, --rosa, --marron,
+   --accent) se conservan como alias para no romper ninguna pantalla que
+   todavía los use: ahora apuntan a la paleta nueva. Contrastes medidos
+   (texto sobre fondo y sobre tarjeta ≥ 4,5:1; botón ≥ 5,7:1). */
 
 :root {
-  --terracota: #c86b52;
-  --oliva: #7a8b68;
-  --crema: #fcfaf6;
-  --rosa: #e8cfc5;
-  --marron: #40352f;
-  --accent: var(--oliva);
+  /* paleta G */
+  --bg: #f6f0e4;
+  --card: rgba(255, 255, 255, 0.66);
+  --card-solida: #fbf8f1;
+  --card2: #ede4d1;
+  --borde: #ddd3be;
+  --borde-campo: #8c8a78;
+  --texto: #14302a;
+  --texto-rgb: 20, 48, 42;
+  --muted: #4f625a;
+  --esmeralda: #0a6b52;
+  --esmeralda-rgb: 10, 107, 82;
+  --azul: #2a6fa8;
+  --azul-rgb: 42, 111, 168;
+  --alerta: #b4432d;
+  --alerta-rgb: 180, 67, 45;
+  --alerta-fondo: rgba(180, 67, 45, 0.1);
+  --alerta-borde: rgba(180, 67, 45, 0.45);
+
+  /* bloque de videollamada: siempre oscuro, en el tono de la marca */
+  --video-1: #1c5a4c;
+  --video-2: #0c3029;
+  --video-3: #06181a;
+  --video-borde: #2c6556;
+  --video-texto: #f4f1e6;
+  --video-muted: #a9c7be;
+  --video-acento: #7fe0b8;
+
+  /* alias de la paleta anterior */
+  --terracota: var(--alerta);
+  --oliva: var(--esmeralda);
+  --crema: var(--bg);
+  --rosa: var(--card2);
+  --marron: var(--texto);
+  --accent: var(--esmeralda);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
-  background: var(--crema);
-  color: var(--marron);
-  font-family: "Nunito Sans", sans-serif;
+  min-height: 100vh;
+  color: var(--texto);
+  font-family: "Figtree", system-ui, sans-serif;
+  line-height: 1.45;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 88% 0%, rgba(var(--esmeralda-rgb), 0.2) 0, rgba(var(--esmeralda-rgb), 0) 46%),
+    radial-gradient(circle at 0% 38%, rgba(var(--azul-rgb), 0.14) 0, rgba(var(--azul-rgb), 0) 44%);
+  background-repeat: no-repeat;
 }
 
 a {
   color: inherit;
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--azul);
+  outline-offset: 2px;
+}
+
+/* ---------- marca y tipografía ---------- */
+
 .va-logo {
-  font-family: "Big Shoulders Display", sans-serif;
-  font-weight: 800;
+  font-family: "Unbounded", sans-serif;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  line-height: 1;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
 }
 
 .va-titular {
-  font-family: "Bricolage Grotesque", sans-serif;
+  font-family: "Unbounded", sans-serif;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  word-spacing: 0.12em;
+  line-height: 1.15;
 }
 
+.va-etiqueta {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--esmeralda);
+}
+
+/* ---------- botones y campos ---------- */
+
 .va-boton {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
+  min-height: 56px;
+  padding: 0 28px;
   background: var(--accent);
   color: var(--crema);
-  font-weight: 800;
-  font-size: 16px;
-  padding: 16px 0;
-  border-radius: 14px;
+  font-family: "Unbounded", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  border-radius: 999px;
   border: none;
-  font-family: "Nunito Sans", sans-serif;
   cursor: pointer;
   text-align: center;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.va-boton:hover:not(:disabled) {
+  background: #085a45;
+}
+
+.va-boton:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .va-boton:disabled {
@@ -61,19 +146,202 @@ a {
   cursor: not-allowed;
 }
 
+/* Botones compactos (los que venían con width: auto): en listas y paneles
+   no tienen que ser tan altos como el botón principal. */
+main[style*="max-width"] .va-boton[style*="width: auto"] {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+/* Los que venían como inline-block pierden el centrado vertical del texto. */
+.va-boton[style*="inline-block"],
+.va-boton[style*="display: block"] {
+  display: inline-flex !important;
+}
+
 .va-boton-ghost {
   background: transparent;
-  border: 1.5px solid var(--marron);
-  color: var(--marron);
+  border: 1.5px solid var(--texto);
+  color: var(--texto);
+}
+
+.va-boton-ghost:hover:not(:disabled) {
+  background: rgba(var(--texto-rgb), 0.06);
 }
 
 .va-input {
   width: 100%;
   padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(64, 53, 47, 0.25);
+  border-radius: 14px;
+  border: 1.5px solid var(--borde-campo);
   font-size: 16px;
-  font-family: "Nunito Sans", sans-serif;
+  font-family: "Figtree", system-ui, sans-serif;
   background: #fff;
-  color: var(--marron);
+  color: var(--texto);
+}
+
+.va-input:focus {
+  outline: 3px solid rgba(var(--azul-rgb), 0.45);
+  outline-offset: 1px;
+  border-color: var(--azul);
+}
+
+/* ---------- tarjetas y etiquetas ---------- */
+
+.va-tarjeta {
+  background: var(--card);
+  border: 1px solid var(--borde);
+  border-radius: 22px;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.va-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---------- páginas con layout propio (home, directorio) ---------- */
+
+.va-contenedor {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.va-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0 8px;
+}
+
+.va-nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.va-nav-enlace {
+  display: none;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.va-boton-chico {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 1.5px solid var(--texto);
+  background: transparent;
+  color: var(--texto);
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.va-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 32px 48px;
+  padding: 20px 0 40px;
+}
+
+.va-hero-texto {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.va-hero-media {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+
+.va-hero h1 {
+  margin: 20px 0 0;
+  font-size: clamp(26px, 4.4vw, 50px);
+  letter-spacing: -0.025em;
+}
+
+.va-pasos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+
+.va-paso {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--borde);
+}
+
+/* ---------- foto (espacio reservado hasta que haya imagen real) ---------- */
+
+.va-foto {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--video-1) 0%, var(--video-2) 62%, var(--video-3) 100%);
+}
+
+.va-foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---------- laptop / escritorio ---------- */
+
+@media (min-width: 760px) {
+  .va-nav-enlace {
+    display: inline;
+  }
+}
+
+@media (min-width: 900px) {
+  .va-contenedor {
+    padding: 0 32px;
+  }
+
+  .va-cabecera {
+    padding: 24px 0 12px;
+  }
+
+  .va-hero {
+    padding: 32px 0 56px;
+  }
+
+  /* Las pantallas angostas (formularios, login, paneles) estaban pegadas a
+     una columna de celular sobre un fondo vacío. En laptop se enmarcan como
+     una tarjeta de vidrio centrada, sin tocar su contenido ni su lógica. */
+  main[style*="max-width"] {
+    background: var(--card);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--borde);
+    border-radius: 32px;
+    box-shadow: 0 30px 80px -44px rgba(var(--esmeralda-rgb), 0.45);
+    margin: 56px auto !important;
+    padding: 48px 44px 40px !important;
+    min-height: 0 !important;
+    justify-content: flex-start !important;
+  }
 }

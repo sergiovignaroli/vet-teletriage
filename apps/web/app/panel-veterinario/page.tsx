@@ -215,7 +215,7 @@ export default function PanelVeterinarioPage() {
             right: 0,
             background: "none",
             border: "none",
-            opacity: 0.5,
+            opacity: 0.75,
             fontSize: 13,
             cursor: "pointer",
           }}
@@ -228,7 +228,7 @@ export default function PanelVeterinarioPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>
         Hola, {sesion.nombre}
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 16, textAlign: "center" }}>
+      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 16, textAlign: "center" }}>
         Estado de tu cuenta: {sesion.estado}
       </p>
 
@@ -237,11 +237,11 @@ export default function PanelVeterinarioPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          border: "1px solid rgba(64,53,47,0.15)",
+          border: "1px solid var(--borde)",
           borderRadius: 14,
           padding: "12px 16px",
           marginBottom: 12,
-          background: "#fff",
+          background: "var(--card)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -250,7 +250,7 @@ export default function PanelVeterinarioPage() {
               width: 9,
               height: 9,
               borderRadius: "50%",
-              background: sesion.disponible ? "var(--oliva)" : "rgba(64,53,47,0.3)",
+              background: sesion.disponible ? "var(--oliva)" : "rgba(var(--texto-rgb), 0.3)",
               display: "inline-block",
             }}
           />
@@ -282,11 +282,11 @@ export default function PanelVeterinarioPage() {
           hace falta declarar honorario caso por caso, como antes. */}
       <div
         style={{
-          border: "1px solid rgba(64,53,47,0.15)",
+          border: "1px solid var(--borde)",
           borderRadius: 14,
           padding: "12px 16px",
           marginBottom: 24,
-          background: "#fff",
+          background: "var(--card)",
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Tu margen sobre el precio base</div>
@@ -301,7 +301,7 @@ export default function PanelVeterinarioPage() {
             max={MARGEN_PORCENTAJE_MAX}
             style={{ flex: 1 }}
           />
-          <span style={{ fontSize: 14, opacity: 0.6 }}>%</span>
+          <span style={{ fontSize: 14, opacity: 0.75 }}>%</span>
           <button
             type="button"
             className="va-boton"
@@ -312,7 +312,7 @@ export default function PanelVeterinarioPage() {
             {guardandoMargen ? "…" : "Guardar"}
           </button>
         </div>
-        <p style={{ fontSize: 11, opacity: 0.55, margin: "6px 0 0" }}>
+        <p style={{ fontSize: 11, opacity: 0.75, margin: "6px 0 0" }}>
           Entre {MARGEN_PORCENTAJE_MIN}% y {MARGEN_PORCENTAJE_MAX}% sobre la base de cada caso — el cliente ve el
           total ya calculado con esto antes de elegirte.
         </p>
@@ -325,14 +325,14 @@ export default function PanelVeterinarioPage() {
 
       <Link
         href="/veterinario/cobros"
-        style={{ fontSize: 13, opacity: 0.6, display: "block", marginBottom: 24, textDecoration: "underline" }}
+        style={{ fontSize: 13, opacity: 0.75, display: "block", marginBottom: 24, textDecoration: "underline" }}
       >
         Medios de cobro — conectá tu cuenta de Mercado Pago
       </Link>
 
       <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginBottom: 10 }}>Mis casos</h2>
 
-      {cargandoCasos && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
+      {cargandoCasos && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
       {errorCasos && (
         <p style={{ color: "var(--terracota)", fontSize: 13 }} role="alert">
           {errorCasos}
@@ -344,7 +344,7 @@ export default function PanelVeterinarioPage() {
         </p>
       )}
       {!cargandoCasos && casos && casos.length === 0 && (
-        <p style={{ fontSize: 14, opacity: 0.6 }}>
+        <p style={{ fontSize: 14, opacity: 0.75 }}>
           Todavía nadie te eligió. Mientras estés conectado, vas a aparecer en la lista que ve el cliente al
           terminar su asesoramiento.
         </p>
@@ -355,23 +355,23 @@ export default function PanelVeterinarioPage() {
           <div
             key={caso.id}
             style={{
-              border: "1px solid rgba(64,53,47,0.15)",
+              border: "1px solid var(--borde)",
               borderRadius: 14,
               padding: 16,
-              background: "#fff",
+              background: "var(--card)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
               <strong style={{ fontSize: 15 }}>{caso.intake.especie}</strong>
-              <span style={{ fontSize: 12, opacity: 0.6 }}>{FORMATO_FECHA.format(new Date(caso.creadoEl))}</span>
+              <span style={{ fontSize: 12, opacity: 0.75 }}>{FORMATO_FECHA.format(new Date(caso.creadoEl))}</span>
             </div>
 
             {hayBanderaRoja(caso.intake) && (
               <div
                 style={{
                   display: "inline-block",
-                  background: "#fdecea",
-                  color: "#c0392b",
+                  background: "var(--alerta-fondo)",
+                  color: "var(--alerta)",
                   fontSize: 12,
                   fontWeight: 700,
                   padding: "3px 8px",
@@ -385,9 +385,9 @@ export default function PanelVeterinarioPage() {
 
             <p style={{ fontSize: 14, margin: "0 0 10px", opacity: 0.85 }}>{caso.intake.motivoConsulta}</p>
 
-            <p style={{ fontSize: 12, opacity: 0.6, margin: "0 0 10px" }}>
+            <p style={{ fontSize: 12, opacity: 0.75, margin: "0 0 10px" }}>
               {ETIQUETA_ESTADO[caso.estado] ?? caso.estado} · Franja {caso.franjaHoraria.toLowerCase()}
-              {caso.honorarioDeclarado != null && <> · Tu honorario: ${caso.honorarioDeclarado}</>}
+              {caso.honorarioDeclarado != null && <> · Tu honorario: ${caso.honorarioDeclarado.toLocaleString("es-AR")}</>}
             </p>
 
             {caso.estado === "ASIGNADO" && (
@@ -412,7 +412,7 @@ export default function PanelVeterinarioPage() {
           <button
             type="button"
             onClick={() => setConfirmandoRevocar(true)}
-            style={{ background: "none", border: "none", opacity: 0.4, fontSize: 12, cursor: "pointer" }}
+            style={{ background: "none", border: "none", opacity: 0.75, fontSize: 12, cursor: "pointer" }}
           >
             Cerrar sesión en todos mis dispositivos
           </button>
@@ -422,17 +422,17 @@ export default function PanelVeterinarioPage() {
               border: "1px solid rgba(192,57,43,0.3)",
               borderRadius: 14,
               padding: 14,
-              background: "#fdecea",
+              background: "var(--alerta-fondo)",
               maxWidth: 340,
               margin: "0 auto",
             }}
           >
-            <p style={{ fontSize: 12, color: "#c0392b", margin: "0 0 10px" }}>
+            <p style={{ fontSize: 12, color: "var(--alerta)", margin: "0 0 10px" }}>
               Esto va a cerrar tu sesión acá y en cualquier otro celular o computadora donde hayas ingresado —
               vas a tener que volver a loguearte en todos lados.
             </p>
             {errorRevocar && (
-              <p style={{ fontSize: 12, color: "#c0392b", fontWeight: 700, margin: "0 0 10px" }} role="alert">
+              <p style={{ fontSize: 12, color: "var(--alerta)", fontWeight: 700, margin: "0 0 10px" }} role="alert">
                 {errorRevocar}
               </p>
             )}
@@ -442,7 +442,7 @@ export default function PanelVeterinarioPage() {
                 onClick={revocarSesiones}
                 disabled={revocando}
                 style={{
-                  background: "#c0392b",
+                  background: "var(--alerta)",
                   color: "#fff",
                   border: "none",
                   borderRadius: 10,
@@ -458,7 +458,7 @@ export default function PanelVeterinarioPage() {
                 type="button"
                 onClick={() => setConfirmandoRevocar(false)}
                 disabled={revocando}
-                style={{ background: "none", border: "none", opacity: 0.6, fontSize: 12, cursor: "pointer" }}
+                style={{ background: "none", border: "none", opacity: 0.75, fontSize: 12, cursor: "pointer" }}
               >
                 Cancelar
               </button>
@@ -503,7 +503,7 @@ function SesionEnCurso({
   }
 
   return (
-    <div style={{ borderTop: "1px solid rgba(64,53,47,0.1)", marginTop: 4, paddingTop: 12 }}>
+    <div style={{ borderTop: "1px solid rgba(var(--texto-rgb), 0.1)", marginTop: 4, paddingTop: 12 }}>
       {caso.salaVideoUrl ? (
         <a
           href={caso.salaVideoUrl}
@@ -515,7 +515,7 @@ function SesionEnCurso({
           Abrir videollamada
         </a>
       ) : (
-        <p style={{ fontSize: 12, opacity: 0.6, marginTop: 0, marginBottom: 12 }}>
+        <p style={{ fontSize: 12, opacity: 0.75, marginTop: 0, marginBottom: 12 }}>
           Todavía no hay una sala de video conectada — coordiná el asesoramiento por WhatsApp mientras tanto.
         </p>
       )}

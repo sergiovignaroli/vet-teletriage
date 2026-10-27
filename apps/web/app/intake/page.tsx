@@ -96,12 +96,27 @@ export default function IntakePage() {
           Primero, algunas preguntas rápidas
         </h2>
         {BANDERAS.map(({ campo, etiqueta }) => (
-          <label key={campo} style={{ display: "block", margin: "10px 0", fontSize: 14 }}>
+          <label
+            key={campo}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 12,
+              margin: "8px 0",
+              padding: "12px 14px",
+              fontSize: 14.5,
+              lineHeight: 1.4,
+              cursor: "pointer",
+              borderRadius: 14,
+              background: banderas[campo] ? "var(--alerta-fondo)" : "var(--card)",
+              border: `1px solid ${banderas[campo] ? "var(--alerta)" : "var(--borde)"}`,
+            }}
+          >
             <input
               type="checkbox"
               checked={banderas[campo]}
               onChange={(e) => setBanderas((prev) => ({ ...prev, [campo]: e.target.checked }))}
-              style={{ marginRight: 8 }}
+              style={{ width: 20, height: 20, marginTop: 1, flexShrink: 0, accentColor: "var(--alerta)" }}
             />
             {etiqueta}
           </label>
@@ -114,9 +129,9 @@ export default function IntakePage() {
         <div
           role="alert"
           style={{
-            background: "#fdecea",
-            border: "2px solid #c0392b",
-            color: "#c0392b",
+            background: "var(--alerta-fondo)",
+            border: "2px solid var(--alerta)",
+            color: "var(--texto)",
             padding: "16px",
             margin: "16px 0",
             borderRadius: 12,

@@ -125,14 +125,14 @@ export default function IngresarPage() {
               type="button"
               onClick={reenviarCodigo}
               disabled={cargando}
-              style={{ background: "none", border: "none", opacity: 0.6, fontSize: 13, cursor: "pointer" }}
+              style={{ background: "none", border: "none", opacity: 0.75, fontSize: 13, cursor: "pointer" }}
             >
               Pedir un código nuevo
             </button>
             <button
               type="button"
               onClick={() => setEtapa("telefono")}
-              style={{ background: "none", border: "none", opacity: 0.6, fontSize: 13, cursor: "pointer" }}
+              style={{ background: "none", border: "none", opacity: 0.75, fontSize: 13, cursor: "pointer" }}
             >
               Cambiar número
             </button>
@@ -142,7 +142,7 @@ export default function IngresarPage() {
 
       <Link
         href="/ingresar-veterinario"
-        style={{ fontSize: 13, opacity: 0.55, marginTop: 32, textDecoration: "underline" }}
+        style={{ fontSize: 13, opacity: 0.75, marginTop: 32, textDecoration: "underline" }}
       >
         ¿Sos veterinario? Ingresá acá
       </Link>

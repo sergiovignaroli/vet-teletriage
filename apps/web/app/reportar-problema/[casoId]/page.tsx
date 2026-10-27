@@ -138,7 +138,7 @@ export default function ReportarProblemaPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         ¿Qué pasó?
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 20 }}>
+      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 20 }}>
         Contanos qué salió mal con el asesoramiento sobre {caso.intake.especie.toLowerCase()}. Como mucho, esto
         puede resolver en el reembolso del cargo de plataforma — nunca afecta al veterinario que te atendió
         más allá de la revisión.

@@ -48,7 +48,7 @@ function Campo({
   return (
     <label style={{ display: "block", margin: "12px 0" }}>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{etiqueta}</div>
-      {ayuda && <div style={{ fontSize: 11.5, opacity: 0.55, marginBottom: 6 }}>{ayuda}</div>}
+      {ayuda && <div style={{ fontSize: 11.5, opacity: 0.75, marginBottom: 6 }}>{ayuda}</div>}
       {children}
     </label>
   );
@@ -58,10 +58,10 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   return (
     <div
       style={{
-        border: "1px solid rgba(64,53,47,0.15)",
+        border: "1px solid var(--borde)",
         borderRadius: 14,
         padding: 16,
-        background: "#fff",
+        background: "var(--card)",
         marginBottom: 16,
       }}
     >
@@ -144,17 +144,17 @@ export default function AdminPreciosPage() {
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 22px 60px" }}>
       <Logo size="sm" marginBottom={20} />
-      <Link href="/admin" style={{ fontSize: 12, opacity: 0.55, display: "inline-block", marginBottom: 14 }}>
+      <Link href="/admin" style={{ fontSize: 12, opacity: 0.75, display: "inline-block", marginBottom: 14 }}>
         ← Volver al panel
       </Link>
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Precios y configuración
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 20 }}>
+      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 20 }}>
         Se aplica en vivo, sin deploy — al próximo caso que se cree o al próximo veterinario que se elija.
       </p>
 
-      {cargando && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
+      {cargando && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 12 }} role="alert">
           {error}
@@ -202,7 +202,7 @@ export default function AdminPreciosPage() {
           </Seccion>
 
           <Seccion titulo="Precio fijo para PayPal (USD)">
-            <p style={{ fontSize: 11.5, opacity: 0.6, margin: "0 0 10px" }}>
+            <p style={{ fontSize: 11.5, opacity: 0.75, margin: "0 0 10px" }}>
               PayPal no cobra en pesos (no soporta ARS) — este precio es independiente del de arriba, no una
               conversión. Sin margen individual por veterinario: todo el que tenga PayPal conectado cobra igual.
             </p>

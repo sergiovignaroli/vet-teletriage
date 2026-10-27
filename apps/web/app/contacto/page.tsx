@@ -61,11 +61,11 @@ export default function ContactoPage() {
         Contacto
       </h1>
 
-      {config === undefined && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
+      {config === undefined && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
 
       {config?.emailContacto && (
         <p style={{ fontSize: 15, marginBottom: 14 }}>
-          <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--terracota)", fontWeight: 600 }}>
+          <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--esmeralda)", fontWeight: 600 }}>
             {config.emailContacto}
           </a>
         </p>
@@ -79,7 +79,7 @@ export default function ContactoPage() {
               href={config![campo] as string}
               target="_blank"
               rel="noreferrer"
-              style={{ fontSize: 14, color: "var(--terracota)", textDecoration: "underline" }}
+              style={{ fontSize: 14, color: "var(--esmeralda)", textDecoration: "underline" }}
             >
               {etiqueta}
             </a>
@@ -88,7 +88,7 @@ export default function ContactoPage() {
       )}
 
       {ausenciaTotal && (
-        <p style={{ fontSize: 13, opacity: 0.55 }}>
+        <p style={{ fontSize: 13, opacity: 0.75 }}>
           Todavía no cargamos un medio de contacto acá — mientras tanto, escribinos por WhatsApp.
         </p>
       )}

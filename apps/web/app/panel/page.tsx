@@ -98,14 +98,14 @@ export default function PanelPage() {
         Contanos qué le pasa a tu mascota y te conectamos con un veterinario matriculado.
       </p>
 
-      <Link href="/intake" className="va-boton" style={{ textDecoration: "none", display: "block" }}>
+      <Link href="/intake" className="va-boton" style={{ textDecoration: "none" }}>
         Iniciar un asesoramiento
       </Link>
 
       <button
         type="button"
         onClick={cerrarSesion}
-        style={{ background: "none", border: "none", opacity: 0.5, fontSize: 13, marginTop: 24, marginBottom: 8, cursor: "pointer" }}
+        style={{ background: "none", border: "none", opacity: 0.75, fontSize: 13, marginTop: 24, marginBottom: 8, cursor: "pointer" }}
       >
         Cerrar sesión
       </button>
@@ -114,14 +114,14 @@ export default function PanelPage() {
         Mis asesoramientos
       </h2>
 
-      {cargandoCasos && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
+      {cargandoCasos && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
       {errorCasos && (
         <p style={{ color: "var(--terracota)", fontSize: 13 }} role="alert">
           {errorCasos}
         </p>
       )}
       {!cargandoCasos && casos && casos.length === 0 && (
-        <p style={{ fontSize: 13, opacity: 0.55, textAlign: "left" }}>Todavía no iniciaste ningún asesoramiento.</p>
+        <p style={{ fontSize: 13, opacity: 0.75, textAlign: "left" }}>Todavía no iniciaste ningún asesoramiento.</p>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -129,18 +129,18 @@ export default function PanelPage() {
           <div
             key={caso.id}
             style={{
-              border: "1px solid rgba(64,53,47,0.15)",
+              border: "1px solid var(--borde)",
               borderRadius: 14,
               padding: 14,
-              background: "#fff",
+              background: "var(--card)",
               textAlign: "left",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
               <strong style={{ fontSize: 14 }}>{caso.intake.especie}</strong>
-              <span style={{ fontSize: 11, opacity: 0.55 }}>{FORMATO_FECHA.format(new Date(caso.creadoEl))}</span>
+              <span style={{ fontSize: 11, opacity: 0.75 }}>{FORMATO_FECHA.format(new Date(caso.creadoEl))}</span>
             </div>
-            <p style={{ fontSize: 12, opacity: 0.6, margin: "0 0 6px" }}>
+            <p style={{ fontSize: 12, opacity: 0.75, margin: "0 0 6px" }}>
               {ETIQUETA_ESTADO[caso.estado] ?? caso.estado}
               {caso.veterinario && (
                 <>
@@ -172,7 +172,7 @@ export default function PanelPage() {
                   Entrar a la videollamada
                 </a>
               ) : (
-                <span style={{ fontSize: 12, opacity: 0.55 }}>
+                <span style={{ fontSize: 12, opacity: 0.75 }}>
                   Tu veterinario te va a contactar por WhatsApp para la videollamada.
                 </span>
               ))}
@@ -188,15 +188,15 @@ export default function PanelPage() {
                     Calificar asesoramiento
                   </Link>
                 ) : (
-                  <span style={{ fontSize: 12, opacity: 0.55 }}>Ya lo calificaste — gracias</span>
+                  <span style={{ fontSize: 12, opacity: 0.75 }}>Ya lo calificaste — gracias</span>
                 )}
 
                 {!caso.disputaCalidad ? (
-                  <Link href={`/reportar-problema/${caso.id}`} style={{ fontSize: 12, opacity: 0.55, textDecoration: "underline" }}>
+                  <Link href={`/reportar-problema/${caso.id}`} style={{ fontSize: 12, opacity: 0.75, textDecoration: "underline" }}>
                     ¿Hubo un problema? Reportalo
                   </Link>
                 ) : (
-                  <span style={{ fontSize: 12, opacity: 0.55 }}>
+                  <span style={{ fontSize: 12, opacity: 0.75 }}>
                     {caso.disputaCalidad.estado === "RESUELTA" ? "Reporte resuelto" : "Reporte en revisión"}
                   </span>
                 )}

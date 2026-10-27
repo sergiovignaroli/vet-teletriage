@@ -128,7 +128,7 @@ export default function CalificarPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         ¿Cómo te fue con {caso.veterinario.nombre}?
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 20 }}>
+      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 20 }}>
         Asesoramiento sobre {caso.intake.especie.toLowerCase()} · {caso.intake.motivoConsulta}
       </p>
 
@@ -149,7 +149,7 @@ export default function CalificarPage() {
               fontSize: 34,
               lineHeight: 1,
               padding: 2,
-              color: n <= estrellasAMostrar ? "var(--terracota)" : "rgba(64,53,47,0.2)",
+              color: n <= estrellasAMostrar ? "var(--esmeralda)" : "rgba(var(--texto-rgb), 0.35)",
             }}
           >
             ★

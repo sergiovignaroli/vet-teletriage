@@ -23,8 +23,8 @@ export function LegalFooter() {
   return (
     <p
       style={{
-        fontSize: 10.5,
-        opacity: 0.45,
+        fontSize: 12,
+        color: "var(--muted)",
         textAlign: "center",
         marginTop: 40,
         lineHeight: 1.6,

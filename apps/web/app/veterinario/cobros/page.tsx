@@ -133,12 +133,12 @@ function CobrosVeterinarioContenido() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Medios de cobro
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 24 }}>
+      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
         Conectá tu propia cuenta de Mercado Pago para poder cobrar tu honorario directamente — la plataforma
         nunca ve ni guarda tu contraseña, solo un permiso de acceso que Mercado Pago emite.
       </p>
 
-      {cargando && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
+      {cargando && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 12 }} role="alert">
           {error}
@@ -148,10 +148,10 @@ function CobrosVeterinarioContenido() {
       {!cargando && (
         <div
           style={{
-            border: "1px solid rgba(64,53,47,0.15)",
+            border: "1px solid var(--borde)",
             borderRadius: 14,
             padding: 16,
-            background: "#fff",
+            background: "var(--card)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -160,7 +160,7 @@ function CobrosVeterinarioContenido() {
                 width: 9,
                 height: 9,
                 borderRadius: "50%",
-                background: conectado ? "var(--oliva)" : "rgba(64,53,47,0.3)",
+                background: conectado ? "var(--oliva)" : "rgba(var(--texto-rgb), 0.3)",
                 display: "inline-block",
               }}
             />
@@ -169,12 +169,12 @@ function CobrosVeterinarioContenido() {
             </span>
           </div>
           {conectado ? (
-            <p style={{ fontSize: 13, opacity: 0.65, margin: 0 }}>
+            <p style={{ fontSize: 13, opacity: 0.75, margin: 0 }}>
               Ya podés recibir pagos por tus asesoramientos. Si necesitás reconectar la cuenta (por ejemplo, si
               cambiaste de titular), podés volver a hacerlo cuando quieras.
             </p>
           ) : (
-            <p style={{ fontSize: 13, opacity: 0.65, margin: "0 0 12px" }}>
+            <p style={{ fontSize: 13, opacity: 0.75, margin: "0 0 12px" }}>
               Todavía no cobrás por acá — sin esto, no vas a poder recibir el pago de tus asesoramientos.
             </p>
           )}
@@ -193,10 +193,10 @@ function CobrosVeterinarioContenido() {
       {!cargando && (
         <div
           style={{
-            border: "1px solid rgba(64,53,47,0.15)",
+            border: "1px solid var(--borde)",
             borderRadius: 14,
             padding: 16,
-            background: "#fff",
+            background: "var(--card)",
             marginTop: 14,
           }}
         >
@@ -206,7 +206,7 @@ function CobrosVeterinarioContenido() {
                 width: 9,
                 height: 9,
                 borderRadius: "50%",
-                background: estado?.paypalEmail ? "var(--oliva)" : "rgba(64,53,47,0.3)",
+                background: estado?.paypalEmail ? "var(--oliva)" : "rgba(var(--texto-rgb), 0.3)",
                 display: "inline-block",
               }}
             />
@@ -214,7 +214,7 @@ function CobrosVeterinarioContenido() {
               {estado?.paypalEmail ? "PayPal conectado" : "PayPal sin conectar"}
             </span>
           </div>
-          <p style={{ fontSize: 13, opacity: 0.65, margin: "0 0 12px" }}>
+          <p style={{ fontSize: 13, opacity: 0.75, margin: "0 0 12px" }}>
             Alternativa a Mercado Pago — acá no hay que autorizar nada, solo cargar tu email de PayPal. Cuando un
             cliente paga con PayPal, la plataforma te transfiere tu honorario a esta dirección apenas cerrás el
             caso.

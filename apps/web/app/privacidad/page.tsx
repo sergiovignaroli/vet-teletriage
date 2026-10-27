@@ -50,7 +50,7 @@ export default function PrivacidadPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Política de Privacidad
       </h1>
-      <p style={{ fontSize: 12, opacity: 0.55, marginTop: 0, marginBottom: 24 }}>
+      <p style={{ fontSize: 12, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
         Última actualización: 30 de septiembre de 2026.
       </p>
 
@@ -195,11 +195,11 @@ export default function PrivacidadPage() {
         <p>
           Para cualquier consulta sobre esta Política de Privacidad o sobre tus datos, escribinos a{" "}
           <ContactoEmail config={config} /> o visitá nuestra{" "}
-          <Link href="/contacto" style={{ color: "var(--terracota)" }}>
+          <Link href="/contacto" style={{ color: "var(--esmeralda)" }}>
             página de contacto
           </Link>
           . También podés ver nuestros{" "}
-          <Link href="/terminos" style={{ color: "var(--terracota)" }}>
+          <Link href="/terminos" style={{ color: "var(--esmeralda)" }}>
             Términos y Condiciones
           </Link>
           .
@@ -214,7 +214,7 @@ export default function PrivacidadPage() {
 function ContactoEmail({ config }: { config: ConfiguracionPlataforma | null }) {
   if (!config?.emailContacto) return <>el email que figura en nuestra página de contacto</>;
   return (
-    <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--terracota)" }}>
+    <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--esmeralda)" }}>
       {config.emailContacto}
     </a>
   );

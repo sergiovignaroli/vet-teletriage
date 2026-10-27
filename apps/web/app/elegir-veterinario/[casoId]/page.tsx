@@ -7,6 +7,7 @@ import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
 import { Logo } from "../../../components/Logo";
 import { LegalFooter } from "../../../components/LegalFooter";
+import { Avatar, Calificacion } from "../../../components/Veterinario";
 
 // Pantalla que reemplaza al viejo "te vamos a contactar por WhatsApp"
 // (2026-09-28): ahora el cliente ve el costo total de cada veterinario
@@ -178,13 +179,13 @@ export default function ElegirVeterinarioPage() {
     <main style={{ maxWidth: 480, margin: "0 auto", padding: "40px 22px 60px" }}>
       <Logo size="sm" marginBottom={20} />
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
-        Elegí quién te atiende
+        Elegí con quién hablar
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.65, marginTop: 0, marginBottom: 20 }}>
-        El precio que ves es el total que vas a pagar — ya incluye el cargo de plataforma.
+      <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 0, marginBottom: 20 }}>
+        Están conectados ahora. El precio que ves es el total que vas a pagar — ya incluye el cargo de plataforma.
       </p>
 
-      {cargando && <p style={{ fontSize: 14, opacity: 0.6 }}>Buscando veterinarios conectados…</p>}
+      {cargando && <p style={{ fontSize: 14, opacity: 0.75 }}>Buscando veterinarios conectados…</p>}
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 12 }} role="alert">
           {error}
@@ -193,7 +194,7 @@ export default function ElegirVeterinarioPage() {
       {!cargando && veterinarios && veterinarios.length === 0 && (
         <div
           style={{
-            background: "rgba(122, 139, 104, 0.12)",
+            background: "rgba(var(--esmeralda-rgb), 0.1)",
             borderRadius: 14,
             padding: "16px",
             fontSize: 14,
@@ -206,39 +207,47 @@ export default function ElegirVeterinarioPage() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {veterinarios?.map((v) => (
-          <div
-            key={v.id}
-            style={{
-              border: "1px solid rgba(64,53,47,0.15)",
-              borderRadius: 14,
-              padding: 16,
-              background: "#fff",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>
-                {v.nombre} {v.apellido}
+          <div key={v.id} className="va-tarjeta" style={{ padding: 16 }}>
+            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+              <Avatar nombre={v.nombre} apellido={v.apellido} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>
+                  {v.nombre} {v.apellido}
+                </div>
+                <div style={{ marginTop: 4 }}>
+                  <Calificacion promedio={v.ratingPromedio ?? null} cantidad={v.cantidadCalificaciones} />
+                </div>
               </div>
-              <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
-                {v.ratingPromedio != null
-                  ? `★ ${v.ratingPromedio.toFixed(1)} (${v.cantidadCalificaciones})`
-                  : "Sin calificaciones todavía"}
-              </div>
-              <div style={{ fontSize: 17, fontWeight: 800, marginTop: 6 }}>${v.costoTotal}</div>
             </div>
-            <button
-              type="button"
-              className="va-boton"
-              style={{ width: "auto", padding: "0 18px" }}
-              onClick={() => elegir(v.id)}
-              disabled={eligiendo === v.id}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                gap: 12,
+                marginTop: 14,
+                paddingTop: 14,
+                borderTop: "1px solid var(--borde)",
+              }}
             >
-              {eligiendo === v.id ? "…" : "Elegir"}
-            </button>
+              <div>
+                <div className="va-etiqueta" style={{ color: "var(--muted)", letterSpacing: "0.1em" }}>
+                  Costo total
+                </div>
+                <div className="va-titular" style={{ fontSize: 20, marginTop: 2 }}>
+                  ${v.costoTotal.toLocaleString("es-AR")}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="va-boton"
+                style={{ width: "auto", minHeight: 46, padding: "0 28px" }}
+                onClick={() => elegir(v.id)}
+                disabled={eligiendo === v.id}
+              >
+                {eligiendo === v.id ? "…" : "Elegir"}
+              </button>
+            </div>
           </div>
         ))}
       </div>

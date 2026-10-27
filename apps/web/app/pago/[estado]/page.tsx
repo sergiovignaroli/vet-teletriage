@@ -120,15 +120,15 @@ function ResultadoPagoContenido() {
           {error}
         </p>
       )}
-      {caso === undefined && casoId && <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>Confirmando…</p>}
+      {caso === undefined && casoId && <p style={{ fontSize: 13, opacity: 0.75, marginBottom: 20 }}>Confirmando…</p>}
       {caso === null && !error && casoId && (
-        <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 20 }}>No encontramos ese asesoramiento en tu cuenta.</p>
+        <p style={{ fontSize: 13, opacity: 0.75, marginBottom: 20 }}>No encontramos ese asesoramiento en tu cuenta.</p>
       )}
 
       {caso && (
         <div
           style={{
-            background: "rgba(122, 139, 104, 0.12)",
+            background: "rgba(var(--esmeralda-rgb), 0.1)",
             borderRadius: 14,
             padding: "14px 16px",
             fontSize: 13,
@@ -178,7 +178,7 @@ function EstadoRealPago({
   const nombreVet = veterinario ? `${veterinario.nombre} ${veterinario.apellido}` : "tu veterinario";
   // Mercado Pago cobra en ARS, PayPal en USD (ver Pago.moneda) — nunca
   // asumir "$" = pesos, ni "Mercado Pago" cuando el medio real fue PayPal.
-  const monto = `${pago.moneda === "USD" ? "US$" : "$"}${Number(pago.montoTotal)}`;
+  const monto = `${pago.moneda === "USD" ? "US$" : "$"}${Number(pago.montoTotal).toLocaleString("es-AR")}`;
   const nombreMedio = pago.medioDeCobro === "PAYPAL" ? "PayPal" : "Mercado Pago";
   switch (pago.estado) {
     case "AUTORIZADO":

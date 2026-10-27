@@ -119,7 +119,7 @@ export default function IngresarVeterinarioPage() {
 
       <Link
         href="/ingresar"
-        style={{ fontSize: 13, opacity: 0.55, marginTop: 14, textDecoration: "underline" }}
+        style={{ fontSize: 13, opacity: 0.75, marginTop: 14, textDecoration: "underline" }}
       >
         ¿Sos dueño de una mascota? Ingresá acá
       </Link>

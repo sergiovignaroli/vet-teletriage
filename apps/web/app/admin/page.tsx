@@ -70,10 +70,10 @@ function Tarjeta({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        border: "1px solid rgba(64,53,47,0.15)",
+        border: "1px solid var(--borde)",
         borderRadius: 14,
         padding: 16,
-        background: "#fff",
+        background: "var(--card)",
         marginBottom: 12,
       }}
     >
@@ -208,7 +208,7 @@ export default function AdminPage() {
             right: 0,
             background: "none",
             border: "none",
-            opacity: 0.5,
+            opacity: 0.75,
             fontSize: 13,
             cursor: "pointer",
           }}
@@ -221,7 +221,7 @@ export default function AdminPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>
         Panel de administración
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.6, marginTop: 0, marginBottom: 16, textAlign: "center" }}>
+      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 16, textAlign: "center" }}>
         Solo excepciones — lo que no se resolvió solo.
       </p>
 
@@ -235,7 +235,7 @@ export default function AdminPage() {
         </Link>
       </div>
 
-      {cargando && <p style={{ fontSize: 14, opacity: 0.6 }}>Cargando…</p>}
+      {cargando && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 12 }} role="alert">
           {error}
@@ -246,7 +246,7 @@ export default function AdminPage() {
         Veterinarios pendientes de habilitar {pendientes && `(${pendientes.length})`}
       </h2>
       {pendientes && pendientes.length === 0 && (
-        <p style={{ fontSize: 13, opacity: 0.55, marginBottom: 20 }}>
+        <p style={{ fontSize: 13, opacity: 0.75, marginBottom: 20 }}>
           Ninguno — la verificación automática por Truora se está haciendo cargo sola.
         </p>
       )}
@@ -261,7 +261,7 @@ export default function AdminPage() {
       <AbrirDisputaIdentidad onAbrir={abrirDisputaManual} />
 
       {disputasIdentidad && disputasIdentidad.length === 0 && (
-        <p style={{ fontSize: 13, opacity: 0.55, marginBottom: 20 }}>Ninguna abierta.</p>
+        <p style={{ fontSize: 13, opacity: 0.75, marginBottom: 20 }}>Ninguna abierta.</p>
       )}
       {disputasIdentidad?.map((d) => (
         <DisputaIdentidadItem key={d.id} disputa={d} onResolver={resolverIdentidad} />
@@ -271,7 +271,7 @@ export default function AdminPage() {
         Disputas de calidad abiertas {disputasCalidad && `(${disputasCalidad.length})`}
       </h2>
       {disputasCalidad && disputasCalidad.length === 0 && (
-        <p style={{ fontSize: 13, opacity: 0.55, marginBottom: 20 }}>Ninguna abierta.</p>
+        <p style={{ fontSize: 13, opacity: 0.75, marginBottom: 20 }}>Ninguna abierta.</p>
       )}
       {disputasCalidad?.map((d) => (
         <DisputaCalidadItem key={d.id} disputa={d} onResolver={resolverCalidad} />
@@ -282,7 +282,7 @@ export default function AdminPage() {
       </h2>
       <Tarjeta>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Reconciliar pagos pendientes</div>
-        <p style={{ fontSize: 12, opacity: 0.6, margin: "0 0 10px" }}>
+        <p style={{ fontSize: 12, opacity: 0.75, margin: "0 0 10px" }}>
           Un caso cerrado normalmente liquida su pago solo. Si esa liquidación automática falló (Mercado Pago no
           respondió, el pago todavía no estaba confirmado, etc.), queda colgado — este botón reintenta todos los
           casos cerrados con un pago sin liquidar.
@@ -317,18 +317,18 @@ export default function AdminPage() {
       <h3 style={{ fontSize: 13, opacity: 0.7, fontWeight: 700, marginTop: 18, marginBottom: 8 }}>
         Pendientes de acción manual {pagosAccionManual && `(${pagosAccionManual.length})`}
       </h3>
-      <p style={{ fontSize: 12, opacity: 0.55, marginTop: 0, marginBottom: 10 }}>
+      <p style={{ fontSize: 12, opacity: 0.75, marginTop: 0, marginBottom: 10 }}>
         Reembolsos que no se pudieron automatizar sin arriesgar tocarle de más al vet o de menos al tutor — ver el
         detalle de cada uno.
       </p>
       {pagosAccionManual && pagosAccionManual.length === 0 && (
-        <p style={{ fontSize: 13, opacity: 0.55, marginBottom: 20 }}>Ninguno pendiente.</p>
+        <p style={{ fontSize: 13, opacity: 0.75, marginBottom: 20 }}>Ninguno pendiente.</p>
       )}
       {pagosAccionManual?.map((p) => (
         <Tarjeta key={p.id}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>
-            ${p.montoPendienteAccionManual}{" "}
-            <span style={{ fontWeight: 400, opacity: 0.6 }}>
+            ${Number(p.montoPendienteAccionManual).toLocaleString("es-AR")}{" "}
+            <span style={{ fontWeight: 400, opacity: 0.75 }}>
               ({p.caso.veterinario ? `${p.caso.veterinario.nombre} ${p.caso.veterinario.apellido}` : "vet"} · caso{" "}
               {p.casoId.slice(0, 8)}…)
             </span>
@@ -378,7 +378,7 @@ function AbrirDisputaIdentidad({ onAbrir }: { onAbrir: (email: string, motivo: s
         onClick={() => setAbierto(true)}
         style={{
           background: "none",
-          border: "1px dashed rgba(64,53,47,0.3)",
+          border: "1px dashed rgba(var(--texto-rgb), 0.3)",
           borderRadius: 12,
           padding: "8px 14px",
           fontSize: 12,
@@ -395,7 +395,7 @@ function AbrirDisputaIdentidad({ onAbrir }: { onAbrir: (email: string, motivo: s
   return (
     <Tarjeta>
       <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Abrir disputa de identidad manual</div>
-      <p style={{ fontSize: 12, opacity: 0.6, margin: "0 0 10px" }}>
+      <p style={{ fontSize: 12, opacity: 0.75, margin: "0 0 10px" }}>
         Suspende cautelarmente al veterinario apenas se envía — usalo solo ante una sospecha o denuncia real,
         no como prueba.
       </p>
@@ -434,7 +434,7 @@ function AbrirDisputaIdentidad({ onAbrir }: { onAbrir: (email: string, motivo: s
           type="button"
           onClick={() => setAbierto(false)}
           disabled={enviando}
-          style={{ background: "none", border: "none", opacity: 0.6, fontSize: 13, cursor: "pointer" }}
+          style={{ background: "none", border: "none", opacity: 0.75, fontSize: 13, cursor: "pointer" }}
         >
           Cancelar
         </button>
@@ -477,7 +477,7 @@ function PendienteItem({
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
         {v.nombre} {v.apellido}
       </div>
-      <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>{v.email}</div>
+      <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>{v.email}</div>
       <VencimientoLinea etiqueta={`Matrícula ${v.matriculaNumero} (${v.matriculaColegio})`} fecha={v.matriculaVenceEl} />
       <VencimientoLinea etiqueta={`Seguro (${v.seguroAseguradora})`} fecha={v.seguroVenceEl} />
       {error && (
@@ -527,7 +527,7 @@ function DisputaIdentidadItem({
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
         {disputa.veterinario.nombre} {disputa.veterinario.apellido}
       </div>
-      <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
+      <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>
         Abierta el {FORMATO_FECHA.format(new Date(disputa.abiertaEl))} · {disputa.veterinario.email}
       </div>
       <p style={{ fontSize: 13, margin: "0 0 10px" }}>{disputa.motivo}</p>
@@ -590,11 +590,11 @@ function DisputaCalidadItem({
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
         {disputa.caso.intake?.especie ?? "Caso"} · {disputa.caso.id.slice(0, 8)}
       </div>
-      <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
+      <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>
         Abierta el {FORMATO_FECHA.format(new Date(disputa.abiertaEl))}
       </div>
       {disputa.caso.intake?.motivoConsulta && (
-        <p style={{ fontSize: 12, opacity: 0.65, margin: "0 0 8px" }}>{disputa.caso.intake.motivoConsulta}</p>
+        <p style={{ fontSize: 12, opacity: 0.75, margin: "0 0 8px" }}>{disputa.caso.intake.motivoConsulta}</p>
       )}
       <p style={{ fontSize: 13, margin: "0 0 10px" }}>{disputa.motivo}</p>
       <textarea

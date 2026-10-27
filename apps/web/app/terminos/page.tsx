@@ -48,7 +48,7 @@ export default function TerminosPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Términos y Condiciones
       </h1>
-      <p style={{ fontSize: 12, opacity: 0.55, marginTop: 0, marginBottom: 24 }}>
+      <p style={{ fontSize: 12, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
         Última actualización: 30 de septiembre de 2026.
       </p>
 
@@ -137,11 +137,11 @@ export default function TerminosPage() {
       <Seccion titulo="6. Contacto">
         <p>
           Para consultas sobre estos términos, escribinos a <ContactoEmail config={config} /> o visitá nuestra{" "}
-          <Link href="/contacto" style={{ color: "var(--terracota)" }}>
+          <Link href="/contacto" style={{ color: "var(--esmeralda)" }}>
             página de contacto
           </Link>
           . Para saber cómo tratamos tus datos, ver nuestra{" "}
-          <Link href="/privacidad" style={{ color: "var(--terracota)" }}>
+          <Link href="/privacidad" style={{ color: "var(--esmeralda)" }}>
             Política de Privacidad
           </Link>
           .
@@ -156,7 +156,7 @@ export default function TerminosPage() {
 function ContactoEmail({ config }: { config: ConfiguracionPlataforma | null }) {
   if (!config?.emailContacto) return <>el email que figura en nuestra página de contacto</>;
   return (
-    <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--terracota)" }}>
+    <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--esmeralda)" }}>
       {config.emailContacto}
     </a>
   );
