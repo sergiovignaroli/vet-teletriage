@@ -13,7 +13,18 @@ export class ApiError extends Error {
   }
 }
 
-async function pedido<T>(path: string, init?: RequestInit): Promise<T> {
+// Renovación de la sesión del veterinario (Sergio, 2026-10-27): si un pedido
+// con token vuelve 401 (por ejemplo, porque la laptop estuvo dormida y el
+// token de 15 minutos venció), se pide una renovación y se reintenta UNA vez.
+// El renovador devuelve el token nuevo, o null si no corresponde renovar
+// (otro rol, o la sesión ya no es válida). Lo registra lib/sesion-veterinario.
+type Renovador = (tokenViejo: string) => Promise<string | null>;
+let renovadorVeterinario: Renovador | null = null;
+export function registrarRenovadorVeterinario(fn: Renovador | null) {
+  renovadorVeterinario = fn;
+}
+
+async function pedido<T>(path: string, init?: RequestInit, yaReintentado = false): Promise<T> {
   const respuesta = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
@@ -21,6 +32,21 @@ async function pedido<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   });
+
+  if (respuesta.status === 401 && !yaReintentado && renovadorVeterinario) {
+    const autorizacion = (init?.headers as Record<string, string> | undefined)?.Authorization;
+    const tokenViejo = autorizacion?.startsWith("Bearer ") ? autorizacion.slice(7) : null;
+    if (tokenViejo) {
+      const tokenNuevo = await renovadorVeterinario(tokenViejo).catch(() => null);
+      if (tokenNuevo) {
+        return pedido<T>(
+          path,
+          { ...init, headers: { ...(init?.headers as Record<string, string>), Authorization: `Bearer ${tokenNuevo}` } },
+          true,
+        );
+      }
+    }
+  }
 
   if (!respuesta.ok) {
     const cuerpo = await respuesta.json().catch(() => null);

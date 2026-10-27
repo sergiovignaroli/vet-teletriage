@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import type { PresenciaVeterinario } from "@prisma/client";
 import { VeterinariosService } from "./veterinarios.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
@@ -43,6 +44,22 @@ export class VeterinariosController {
   @Roles("VETERINARIO")
   desconectar(@CurrentUser() usuario: UsuarioAutenticado) {
     return this.veterinarios.desconectar(usuario.id);
+  }
+
+  // Los tres estados: CONECTADO, STAND_BY y DESCONECTADO (Sergio, 2026-10-27).
+  @Patch("presencia")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  presencia(@CurrentUser() usuario: UsuarioAutenticado, @Body("presencia") presencia: PresenciaVeterinario) {
+    return this.veterinarios.establecerPresencia(usuario.id, presencia);
+  }
+
+  // Latido del panel abierto, cada 30 segundos.
+  @Post("latido")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  latido(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.veterinarios.latido(usuario.id);
   }
 
   // Cola de excepciones del panel admin — veterinarios que NO se

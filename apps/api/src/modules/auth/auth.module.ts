@@ -12,9 +12,9 @@ import { RolesGuard } from "./roles.guard";
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      // 12h para veterinarios en jornada, igual de válido para el token de
-      // cliente de una sesión de teletriage puntual — no hay refresh token
-      // todavía; re-loguear cada 12h es una fricción aceptable para el MVP.
+      // 12h para clientes (sesión de teletriage puntual) y admin. Los
+      // veterinarios usan token de 15 minutos con renovación de 30 días
+      // (ver AuthService.emitirSesionVeterinario).
       signOptions: { expiresIn: "12h" },
     }),
   ],

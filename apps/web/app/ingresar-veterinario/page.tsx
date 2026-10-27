@@ -10,6 +10,9 @@ import { LegalFooter } from "../../components/LegalFooter";
 
 interface RespuestaLoginVeterinario {
   accessToken: string;
+  refreshToken: string;
+  accesoExpiraEnSegundos: number;
+  presencia: "CONECTADO" | "STAND_BY" | "DESCONECTADO";
   veterinarioId: string;
   nombre: string;
   apellido: string;
@@ -38,6 +41,9 @@ export default function IngresarVeterinarioPage() {
       });
       guardar({
         accessToken: respuesta.accessToken,
+        refreshToken: respuesta.refreshToken,
+        accesoVenceEl: Date.now() + respuesta.accesoExpiraEnSegundos * 1000,
+        presencia: respuesta.presencia,
         veterinarioId: respuesta.veterinarioId,
         nombre: respuesta.nombre,
         apellido: respuesta.apellido,

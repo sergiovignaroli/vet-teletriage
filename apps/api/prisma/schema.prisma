@@ -40,6 +40,18 @@ model Veterinario {
   estado            EstadoVeterinario @default(PENDIENTE_VERIFICACION)
   disponible        Boolean           @default(false)
 
+  // Presencia (Sergio, 2026-10-27): el veterinario elige entre Conectado,
+  // Stand by y Desconectado, y esa elección dura hasta que la cambie él (no
+  // se vence con la sesión). `disponible` se conserva a propósito, derivado:
+  // es true solo en CONECTADO, y es lo que ya leen la lista del cliente y el
+  // resto del código. `ultimaSenal` es el último latido del panel abierto: la
+  // lista del cliente solo incluye a quien tiene señal reciente, porque hasta
+  // que existan las notificaciones push nadie puede avisarle a un panel
+  // cerrado.
+  presencia         PresenciaVeterinario @default(DESCONECTADO)
+  ultimaSenal       DateTime?
+  sesionesRenovables SesionVeterinario[]
+
   // Onboarding de producto (no confundir con habilitación de la Sección 2):
   // recorrido guiado de 3 pantallas la primera vez que entra a la app.
   // false hasta que lo termine o lo salte — de ahí en más no se le vuelve
@@ -101,6 +113,29 @@ model Veterinario {
   actualizadoEl     DateTime @updatedAt
 
   @@index([disponible, latitud, longitud])
+}
+
+enum PresenciaVeterinario {
+  CONECTADO
+  STAND_BY
+  DESCONECTADO
+}
+
+// Sesión larga del veterinario (Sergio, 2026-10-27): el token de acceso dura
+// 15 minutos y esta fila permite renovarlo hasta 30 días sin volver a poner
+// la contraseña. Se guarda solo el hash del token de renovación; se rota en
+// cada uso, y si alguien presenta uno ya usado se revocan todas las sesiones.
+model SesionVeterinario {
+  id            String      @id @default(uuid())
+  veterinario   Veterinario @relation(fields: [veterinarioId], references: [id], onDelete: Cascade)
+  veterinarioId String
+  tokenHash     String      @unique
+  creadaEl      DateTime    @default(now())
+  venceEl       DateTime
+  ultimoUsoEl   DateTime?
+  revocadaEl    DateTime?
+
+  @@index([veterinarioId])
 }
 
 enum EstadoVeterinario {

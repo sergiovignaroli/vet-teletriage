@@ -35,7 +35,7 @@ export class DisputasService {
     // abrir la disputa, no al resolverla: es preventiva, no punitiva final.
     await this.prisma.veterinario.update({
       where: { id: veterinarioId },
-      data: { estado: "SUSPENDIDO_DISPUTA_IDENTIDAD", disponible: false },
+      data: { estado: "SUSPENDIDO_DISPUTA_IDENTIDAD", disponible: false, presencia: "DESCONECTADO" },
     });
 
     return disputa;
@@ -82,10 +82,11 @@ export class DisputasService {
         where: { id: disputa.veterinarioId },
         data:
           matriculaVigente && seguroVigente
-            ? { estado: "HABILITADO", disponible: true }
+            ? { estado: "HABILITADO", disponible: true, presencia: "CONECTADO" }
             : {
                 estado: matriculaVigente ? "SUSPENDIDO_SEGURO_VENCIDO" : "SUSPENDIDO_MATRICULA_VENCIDA",
                 disponible: false,
+                presencia: "DESCONECTADO",
               },
       });
     }

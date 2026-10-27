@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from "@nestjs/common";
+import { desdeSenalVigente, tieneSenalVigente } from "../../common/presencia";
 import { PrismaService } from "../../prisma.service";
 import { VideoService } from "../video/video.service";
 import { PagosService } from "../pagos/pagos.service";
@@ -125,6 +126,8 @@ export class CasosService {
       where: {
         disponible: true,
         estado: "HABILITADO",
+        // Solo quien tiene el panel abierto (latido reciente) — ver common/presencia.ts
+        ultimaSenal: { gte: desdeSenalVigente() },
         // Excluye a quien ya tiene un caso en curso — ver comentario arriba.
         casos: { none: { estado: { in: ["ASIGNADO", "EN_SESION"] } } },
       },
@@ -194,7 +197,7 @@ export class CasosService {
         casos: { where: { estado: { in: ["ASIGNADO", "EN_SESION"] } }, select: { id: true } },
       },
     });
-    if (!veterinario || !veterinario.disponible || veterinario.estado !== "HABILITADO") {
+    if (!veterinario || !veterinario.disponible || veterinario.estado !== "HABILITADO" || !tieneSenalVigente(veterinario.ultimaSenal)) {
       throw new BadRequestException("Ese veterinario ya no está disponible — elegí otro de la lista");
     }
     if (veterinario.casos.length > 0) {

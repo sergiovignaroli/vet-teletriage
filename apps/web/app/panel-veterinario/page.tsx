@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import type { CasoParaVeterinario, ClasificacionCierre } from "@vet-teletriage/types";
 import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
-import { useSesionVeterinario } from "../../lib/sesion-veterinario";
+import { useLatidoVeterinario, useSesionVeterinario } from "../../lib/sesion-veterinario";
+import type { Presencia } from "../../lib/sesion-veterinario";
 import { Onboarding } from "../../components/Onboarding";
 import { Logo } from "../../components/Logo";
 import { LegalFooter } from "../../components/LegalFooter";
@@ -37,12 +38,22 @@ const ETIQUETAS_CIERRE: Record<ClasificacionCierre, string> = {
   NO_COMPLETADO: "No se pudo completar el asesoramiento",
 };
 
+const OPCIONES_PRESENCIA: { valor: Presencia; etiqueta: string; ayuda: string }[] = [
+  { valor: "CONECTADO", etiqueta: "Conectado", ayuda: "Los clientes te ven en la lista y pueden elegirte." },
+  {
+    valor: "STAND_BY",
+    etiqueta: "Stand by",
+    ayuda: "Seguís con la sesión abierta, pero por ahora no aparecés en la lista de los clientes.",
+  },
+  { valor: "DESCONECTADO", etiqueta: "Desconectado", ayuda: "No aparecés en la lista de los clientes." },
+];
+
 export default function PanelVeterinarioPage() {
   const router = useRouter();
-  const { sesion, actualizarOnboarding, actualizarDisponible, actualizarMargen, cerrarSesion } =
+  const { sesion, actualizarOnboarding, actualizarPresencia, actualizarMargen, cerrarSesion, modificar } =
     useSesionVeterinario();
   const [enviandoOnboarding, setEnviandoOnboarding] = useState(false);
-  const [cambiandoConexion, setCambiandoConexion] = useState(false);
+  const [cambiandoConexion, setCambiandoConexion] = useState<Presencia | null>(null);
   const [errorConexion, setErrorConexion] = useState<string | null>(null);
 
   const [casos, setCasos] = useState<CasoParaVeterinario[] | null>(null);
@@ -97,18 +108,26 @@ export default function PanelVeterinarioPage() {
     cargarCasos();
   }, [sesion, cargarCasos]);
 
-  async function alternarConexion() {
-    if (!sesion) return;
+  // Latido: mientras estés Conectado o en Stand by con el panel abierto, el
+  // servidor sabe que seguís ahí. Si el estado real cambió por fuera (por
+  // ejemplo, una suspensión de la cuenta), el panel se corrige solo.
+  useLatidoVeterinario(sesion, (real) => {
+    if (sesion && (real.presencia !== sesion.presencia || real.estado !== sesion.estado)) {
+      modificar({ presencia: real.presencia, disponible: real.disponible, estado: real.estado });
+    }
+  });
+
+  async function cambiarPresencia(presencia: Presencia) {
+    if (!sesion || presencia === sesion.presencia) return;
     setErrorConexion(null);
-    setCambiandoConexion(true);
-    const conectando = !sesion.disponible;
+    setCambiandoConexion(presencia);
     try {
-      await apiPatch(conectando ? "/veterinarios/conectar" : "/veterinarios/desconectar", sesion.accessToken);
-      actualizarDisponible(conectando);
+      await apiPatch("/veterinarios/presencia", sesion.accessToken, { presencia });
+      actualizarPresencia(presencia);
     } catch (e) {
       setErrorConexion(e instanceof ApiError ? e.message : "No pudimos cambiar tu estado. Probá de nuevo.");
     } finally {
-      setCambiandoConexion(false);
+      setCambiandoConexion(null);
     }
   }
 
@@ -234,9 +253,6 @@ export default function PanelVeterinarioPage() {
 
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
           border: "1px solid var(--borde)",
           borderRadius: 14,
           padding: "12px 16px",
@@ -244,29 +260,38 @@ export default function PanelVeterinarioPage() {
           background: "var(--card)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              width: 9,
-              height: 9,
-              borderRadius: "50%",
-              background: sesion.disponible ? "var(--oliva)" : "rgba(var(--texto-rgb), 0.3)",
-              display: "inline-block",
-            }}
-          />
-          <span style={{ fontSize: 14, fontWeight: 700 }}>{sesion.disponible ? "Conectado" : "Desconectado"}</span>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Tu estado</div>
+        <div role="radiogroup" aria-label="Tu estado" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          {OPCIONES_PRESENCIA.map((o) => {
+            const elegida = sesion.presencia === o.valor;
+            const bloqueada = o.valor !== "DESCONECTADO" && sesion.estado !== "HABILITADO";
+            return (
+              <button
+                key={o.valor}
+                type="button"
+                role="radio"
+                aria-checked={elegida}
+                className={elegida ? "va-boton" : "va-boton va-boton-ghost"}
+                style={{ width: "100%", minHeight: 44, padding: "0 4px", fontSize: 11 }}
+                onClick={() => cambiarPresencia(o.valor)}
+                disabled={cambiandoConexion !== null || bloqueada}
+              >
+                {cambiandoConexion === o.valor ? "Un momento…" : o.etiqueta}
+              </button>
+            );
+          })}
         </div>
-        <button
-          type="button"
-          className={sesion.disponible ? "va-boton va-boton-ghost" : "va-boton"}
-          style={{ width: "auto", padding: "8px 16px", fontSize: 13 }}
-          onClick={alternarConexion}
-          disabled={cambiandoConexion || (!sesion.disponible && sesion.estado !== "HABILITADO")}
-        >
-          {cambiandoConexion ? "Un momento…" : sesion.disponible ? "Desconectarme" : "Conectarme"}
-        </button>
+        <p style={{ fontSize: 12.5, lineHeight: 1.45, color: "var(--muted)", margin: "10px 0 0" }}>
+          {OPCIONES_PRESENCIA.find((o) => o.valor === sesion.presencia)?.ayuda}
+        </p>
+        {sesion.presencia !== "DESCONECTADO" && (
+          <p style={{ fontSize: 12, lineHeight: 1.45, color: "var(--muted)", margin: "8px 0 0" }}>
+            Dejá esta pestaña abierta: por ahora, si la cerrás, dejás de aparecer a los 5 minutos. Tu sesión sigue
+            abierta hasta que salgas. Los avisos con la app cerrada llegan en una próxima etapa.
+          </p>
+        )}
       </div>
-      {!sesion.disponible && sesion.estado !== "HABILITADO" && (
+      {sesion.presencia === "DESCONECTADO" && sesion.estado !== "HABILITADO" && (
         <p style={{ fontSize: 12, color: "var(--terracota)", marginTop: -6, marginBottom: 16 }}>
           Todavía no podés conectarte — tu cuenta no está habilitada.
         </p>

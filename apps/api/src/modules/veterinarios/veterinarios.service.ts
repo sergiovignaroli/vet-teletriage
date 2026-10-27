@@ -1,5 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
+import { desdeSenalVigente } from "../../common/presencia";
+import type { PresenciaVeterinario } from "@prisma/client";
 import { MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
 
 @Injectable()
@@ -15,7 +17,7 @@ export class VeterinariosService {
     // memoria; cuando el volumen lo justifique, migrar a una consulta
     // PostGIS (ST_DWithin) directamente en la base.
     const candidatos = await this.prisma.veterinario.findMany({
-      where: { disponible: true, estado: "HABILITADO" },
+      where: { disponible: true, estado: "HABILITADO", ultimaSenal: { gte: desdeSenalVigente() } },
     });
 
     return candidatos
@@ -67,19 +69,49 @@ export class VeterinariosService {
   // esto no existía ningún endpoint para prender/apagar `disponible` — solo
   // se tocaba automáticamente por vencimiento o disputa de identidad.
   async conectar(veterinarioId: string) {
+    return this.establecerPresencia(veterinarioId, "CONECTADO");
+  }
+
+  async desconectar(veterinarioId: string) {
+    return this.establecerPresencia(veterinarioId, "DESCONECTADO");
+  }
+
+  // Los tres estados (Sergio, 2026-10-27). La elección dura hasta que el
+  // veterinario la cambie: no depende de la sesión. `disponible` se deriva:
+  // solo CONECTADO aparece hoy en la lista del cliente. STAND_BY recibirá
+  // solicitudes con aviso cuando exista el flujo de solicitudes (fase 2).
+  async establecerPresencia(veterinarioId: string, presencia: PresenciaVeterinario) {
+    if (!["CONECTADO", "STAND_BY", "DESCONECTADO"].includes(presencia)) {
+      throw new BadRequestException("Estado inválido: usá CONECTADO, STAND_BY o DESCONECTADO");
+    }
     const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
     if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
     // Sección 2: solo puede aparecer disponible quien está HABILITADO
     // (matrícula y seguro vigentes, identidad verificada) — un
     // PENDIENTE_VERIFICACION o un SUSPENDIDO_* no puede conectarse.
-    if (veterinario.estado !== "HABILITADO") {
+    if (presencia !== "DESCONECTADO" && veterinario.estado !== "HABILITADO") {
       throw new ForbiddenException("Tu cuenta todavía no está habilitada — no podés conectarte a tomar casos");
     }
-    return this.prisma.veterinario.update({ where: { id: veterinarioId }, data: { disponible: true } });
+    return this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: {
+        presencia,
+        disponible: presencia === "CONECTADO",
+        // Conectarse o pasar a stand by cuenta como señal; desconectarse no.
+        ...(presencia !== "DESCONECTADO" ? { ultimaSenal: new Date() } : {}),
+      },
+    });
   }
 
-  async desconectar(veterinarioId: string) {
-    return this.prisma.veterinario.update({ where: { id: veterinarioId }, data: { disponible: false } });
+  // Latido del panel abierto. Devuelve el estado real del servidor para que el
+  // panel se corrija solo si cambió por fuera (por ejemplo, una suspensión).
+  async latido(veterinarioId: string) {
+    const veterinario = await this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { ultimaSenal: new Date() },
+      select: { estado: true, presencia: true, disponible: true },
+    });
+    return veterinario;
   }
 
   // Habilitación manual por admin (Sergio, 2026-09-29) — vía el panel de
@@ -211,11 +243,11 @@ export class VeterinariosService {
   async revisarVencimientos(hoy: Date = new Date()) {
     await this.prisma.veterinario.updateMany({
       where: { matriculaVenceEl: { lt: hoy }, estado: "HABILITADO" },
-      data: { estado: "SUSPENDIDO_MATRICULA_VENCIDA", disponible: false },
+      data: { estado: "SUSPENDIDO_MATRICULA_VENCIDA", disponible: false, presencia: "DESCONECTADO" },
     });
     await this.prisma.veterinario.updateMany({
       where: { seguroVenceEl: { lt: hoy }, estado: "HABILITADO" },
-      data: { estado: "SUSPENDIDO_SEGURO_VENCIDO", disponible: false },
+      data: { estado: "SUSPENDIDO_SEGURO_VENCIDO", disponible: false, presencia: "DESCONECTADO" },
     });
   }
 

@@ -20,6 +20,17 @@ export class AuthController {
     return this.auth.loginVeterinario(body.email, body.password);
   }
 
+  // Públicos: el que sirve de credencial es el propio token de renovación.
+  @Post("veterinario/renovar")
+  renovarVeterinario(@Body("refreshToken") refreshToken: string) {
+    return this.auth.renovarSesionVeterinario(refreshToken);
+  }
+
+  @Post("veterinario/cerrar-sesion")
+  cerrarSesionVeterinario(@Body("refreshToken") refreshToken: string) {
+    return this.auth.cerrarSesionVeterinario(refreshToken);
+  }
+
   @Post("veterinario/revocar-sesiones")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")
