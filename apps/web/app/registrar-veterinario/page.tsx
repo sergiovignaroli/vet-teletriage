@@ -6,6 +6,7 @@ import { useState } from "react";
 import { apiPost, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { Logo } from "../../components/Logo";
+import { Foto } from "../../components/Foto";
 import { LegalFooter } from "../../components/LegalFooter";
 
 // Situación probable, la más grande que se encontró en toda la revisión
@@ -124,6 +125,29 @@ export default function RegistrarVeterinarioPage() {
         Con matrícula y seguro vigentes podés empezar a brindar asesoramiento online. Verificamos tu identidad y tus
         datos antes de habilitarte — mientras tanto tu cuenta queda pendiente de revisión.
       </p>
+
+      <Foto
+        src="/fotos/veterinario-escritorio.webp"
+        alt="Las manos de un veterinario con guardapolvo, en su escritorio, durante una videollamada en la laptop"
+        posicion="40% 50%"
+        className="va-banner-ancho"
+        style={{ borderRadius: 22, border: "1px solid var(--borde)", marginBottom: 8 }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            right: 10,
+            bottom: 8,
+            padding: "3px 9px",
+            borderRadius: 999,
+            background: "rgba(12,42,36,0.7)",
+            color: "var(--video-texto)",
+            fontSize: 11,
+          }}
+        >
+          Imagen ilustrativa
+        </span>
+      </Foto>
 
       <form
         onSubmit={(e) => {

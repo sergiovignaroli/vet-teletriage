@@ -16,24 +16,53 @@ import { Foto } from "../components/Foto";
 // serían datos inventados. Cuando exista un endpoint público de conectados,
 // se agrega ese dato real.
 
+// Cada paso lleva su miniatura. La del paso 02 es un dibujo propio (sin
+// caras ni estrellas): las imágenes de IA mostraban veterinarios con 5
+// estrellas, que eran calificaciones inventadas.
 const PASOS = [
   {
     n: "01",
+    foto: "/fotos/paso-1.webp",
+    alt: "Un celular con una lista de preguntas tildadas y un gatito que se asoma",
     titulo: "Contanos qué le pasa",
     texto: "Respondés unas preguntas cortas. Si hay señales de urgencia, te avisamos al instante.",
   },
   {
     n: "02",
+    foto: null,
+    alt: "",
     titulo: "Elegí con quién hablar",
     texto:
       "Ves quién está conectado, cómo lo calificaron otros tutores y cuánto cuesta en total. Pagás con Mercado Pago o PayPal.",
   },
   {
     n: "03",
+    foto: "/fotos/paso-3.webp",
+    alt: "Una laptop con una videollamada: un perro de un lado y un veterinario del otro",
     titulo: "Hablan por video",
     texto: "Entrás desde tu panel. Al terminar, calificás la atención con estrellas.",
   },
 ];
+
+// Tres filas con un círculo para elegir: "elegí con quién hablar". Dibujo
+// propio, a propósito sin caras, nombres ni estrellas.
+function DibujoElegir() {
+  return (
+    <svg viewBox="0 0 160 120" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+      <rect width="160" height="120" fill="#ede4d1" />
+      {[0, 1, 2].map((i) => (
+        <g key={i} transform={`translate(18 ${14 + i * 32})`}>
+          <rect width="124" height="26" rx="9" fill="#fbf8f0" stroke="#ddd3be" />
+          <circle cx="15" cy="13" r="8" fill={i === 1 ? "#0a6b52" : "#c9d6cc"} />
+          <rect x="32" y="7" width="52" height="5" rx="2.5" fill="#c9d6cc" />
+          <rect x="32" y="16" width="34" height="4" rx="2" fill="#dfe6dd" />
+          <circle cx="108" cy="13" r="6" fill={i === 1 ? "#0a6b52" : "none"} stroke="#0a6b52" strokeWidth="1.6" />
+          {i === 1 && <path d="M105 13l2.2 2.4 4-4.6" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />}
+        </g>
+      ))}
+    </svg>
+  );
+}
 
 export default function HomePage() {
   return (
@@ -126,9 +155,9 @@ export default function HomePage() {
 
           <div className="va-hero-media">
             <Foto
-              src="/fotos/hero-videollamada.webp"
-              alt="Una mujer abraza a su perro mientras habla con un veterinario por videollamada en la laptop"
-              posicion="62% 50%"
+              src="/fotos/hero-celular.webp"
+              alt="Una mujer en el sillón, con su gato en brazos, habla por videollamada con un veterinario desde el celular"
+              posicion="38% 50%"
               prioridad
               style={{
                 aspectRatio: "4 / 3",
@@ -184,19 +213,31 @@ export default function HomePage() {
           <div className="va-pasos">
             {PASOS.map((p) => (
               <div key={p.n} className="va-paso">
-                <div
-                  className="va-titular"
-                  style={{ fontSize: 24, color: "var(--esmeralda)", width: 44, flexShrink: 0 }}
-                >
-                  {p.n}
+                <div className="va-paso-cuerpo">
+                  <div
+                    className="va-titular"
+                    style={{ fontSize: 24, color: "var(--esmeralda)", width: 44, flexShrink: 0 }}
+                  >
+                    {p.n}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>{p.titulo}</div>
+                    <div style={{ fontSize: 14, lineHeight: 1.5, color: "var(--muted)", marginTop: 3 }}>{p.texto}</div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>{p.titulo}</div>
-                  <div style={{ fontSize: 14, lineHeight: 1.5, color: "var(--muted)", marginTop: 3 }}>{p.texto}</div>
-                </div>
+                {p.foto ? (
+                  <Foto src={p.foto} alt={p.alt} className="va-paso-mini" />
+                ) : (
+                  <div className="va-paso-mini va-paso-mini-dibujo" aria-hidden="true">
+                    <DibujoElegir />
+                  </div>
+                )}
               </div>
             ))}
           </div>
+          <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "10px 0 0" }}>
+            Imágenes ilustrativas.
+          </p>
         </section>
 
         <section className="va-franja" aria-labelledby="noche-titulo">

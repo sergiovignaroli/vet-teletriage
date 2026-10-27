@@ -287,9 +287,30 @@ main[style*="max-width"] .va-boton[style*="width: auto"] {
   flex: 1 1 280px;
   min-width: 0;
   display: flex;
+  align-items: center;
   gap: 16px;
   padding: 16px 0;
   border-top: 1px solid var(--borde);
+}
+
+.va-paso-cuerpo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 16px;
+}
+
+/* Miniatura del paso: cuadrada a la derecha en celular, grande arriba en laptop */
+.va-paso-mini {
+  flex: 0 0 auto;
+  width: 88px;
+  height: 88px;
+  border-radius: 18px;
+  border: 1px solid var(--borde);
+}
+
+.va-paso-mini-dibujo {
+  overflow: hidden;
 }
 
 /* ---------- foto (espacio reservado hasta que haya imagen real) ---------- */
@@ -375,4 +396,50 @@ main[style*="max-width"] .va-boton[style*="width: auto"] {
   .va-banner {
     aspect-ratio: 21 / 9;
   }
+}
+
+/* ---------- pasos con miniatura en laptop ---------- */
+
+@media (min-width: 900px) {
+  .va-paso {
+    flex-direction: column;
+    align-items: stretch;
+    border-top: none;
+    padding: 12px 0;
+    gap: 14px;
+  }
+
+  .va-paso-mini {
+    order: -1;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    border-radius: 22px;
+  }
+}
+
+/* ---------- banner ancho (registro de veterinarios) y estado vacío ---------- */
+
+.va-banner-ancho {
+  aspect-ratio: 16 / 9;
+}
+
+@media (min-width: 700px) {
+  .va-banner-ancho {
+    aspect-ratio: 2 / 1;
+  }
+}
+
+.va-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 8px 16px 20px;
+}
+
+.va-vacio img {
+  width: min(220px, 60%);
+  height: auto;
 }

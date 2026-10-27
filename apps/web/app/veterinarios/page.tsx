@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { apiGet, ApiError } from "../../lib/api";
 import { Logo } from "../../components/Logo";
 import { Foto } from "../../components/Foto";
+import { EstadoVacio } from "../../components/EstadoVacio";
 import { LegalFooter } from "../../components/LegalFooter";
 import { Avatar, Calificacion } from "../../components/Veterinario";
 
@@ -68,10 +69,10 @@ export default function DirectorioVeterinariosPage() {
       )}
       {!error && veterinarios === null && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
       {veterinarios && veterinarios.length === 0 && (
-        <p style={{ fontSize: 13, opacity: 0.75 }}>
+        <EstadoVacio>
           Todavía no tenemos veterinarios habilitados para mostrar acá — pero ya podés iniciar un asesoramiento
           y te conectamos apenas haya uno disponible.
-        </p>
+        </EstadoVacio>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>

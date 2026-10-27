@@ -7,6 +7,7 @@ import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
 import { Logo } from "../../../components/Logo";
 import { LegalFooter } from "../../../components/LegalFooter";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Avatar, Calificacion } from "../../../components/Veterinario";
 
 // Pantalla que reemplaza al viejo "te vamos a contactar por WhatsApp"
@@ -196,12 +197,12 @@ export default function ElegirVeterinarioPage() {
           style={{
             background: "rgba(var(--esmeralda-rgb), 0.1)",
             borderRadius: 14,
-            padding: "16px",
-            fontSize: 14,
           }}
         >
-          No hay ningún veterinario conectado en este momento. Tu asesoramiento queda registrado — te avisamos por
-          WhatsApp apenas se conecte alguno.
+          <EstadoVacio>
+            No hay ningún veterinario conectado en este momento. Tu asesoramiento queda registrado — te avisamos por
+            WhatsApp apenas se conecte alguno.
+          </EstadoVacio>
         </div>
       )}
 
