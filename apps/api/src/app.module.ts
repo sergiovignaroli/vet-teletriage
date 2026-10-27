@@ -6,6 +6,7 @@ import { DisputasModule } from "./modules/disputas/disputas.module";
 import { CalificacionesModule } from "./modules/calificaciones/calificaciones.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { IdentidadModule } from "./modules/identidad/identidad.module";
+import { NotificacionesModule } from "./modules/notificaciones/notificaciones.module";
 import { SolicitudesModule } from "./modules/solicitudes/solicitudes.module";
 import { ConfiguracionModule } from "./modules/configuracion/configuracion.module";
 
@@ -20,6 +21,7 @@ import { ConfiguracionModule } from "./modules/configuracion/configuracion.modul
     IdentidadModule,
     ConfiguracionModule,
     SolicitudesModule,
+    NotificacionesModule,
   ],
 })
 export class AppModule {}

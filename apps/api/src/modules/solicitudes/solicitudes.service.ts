@@ -12,6 +12,7 @@ import { PrismaService } from "../../prisma.service";
 import { CasosService } from "../casos/casos.service";
 import { tieneSenalVigente } from "../../common/presencia";
 import { EventosService } from "./eventos.service";
+import { NotificacionesService } from "../notificaciones/notificaciones.service";
 
 // Después de tantas solicitudes seguidas sin respuesta, el veterinario pasa
 // solo a Stand by (Sergio aprobó la regla el 2026-10-27).
@@ -27,6 +28,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly casos: CasosService,
     private readonly eventos: EventosService,
+    private readonly notificaciones: NotificacionesService,
   ) {}
 
   onModuleInit() {
@@ -74,13 +76,14 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
       include: {
         casos: { where: { estado: { in: ["ASIGNADO", "EN_SESION"] } }, select: { estado: true } },
         solicitudes: { where: { estado: "PENDIENTE" }, select: { id: true } },
+        pushSuscripciones: { select: { id: true }, take: 1 },
       },
     });
     const elegible =
       veterinario &&
       veterinario.estado === "HABILITADO" &&
       veterinario.presencia !== "DESCONECTADO" &&
-      tieneSenalVigente(veterinario.ultimaSenal);
+      tieneSenalVigente(veterinario.ultimaSenal, veterinario.pushSuscripciones.length > 0);
     if (!veterinario || !elegible) {
       throw new BadRequestException("Ese veterinario ya no está disponible — elegí otro de la lista");
     }
@@ -122,6 +125,9 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     anteriores.forEach((a) => this.eventos.emitir(a.veterinarioId, { tipo: "solicitud-cerrada", solicitudId: a.id }));
 
     this.eventos.emitir(veterinario.id, { tipo: "solicitud-nueva", solicitudId: solicitud.id });
+    // Además del canal en vivo: aviso push para quien tiene la pestaña cerrada
+    // o el celular bloqueado. No se espera: un fallo de push no frena la solicitud.
+    this.notificaciones.avisarSolicitudNueva(veterinario.id, segundos).catch(() => {});
     return this.paraCliente(solicitud);
   }
 

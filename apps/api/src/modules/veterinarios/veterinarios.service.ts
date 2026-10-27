@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
-import { desdeSenalVigente } from "../../common/presencia";
+import { filtroSenalVigente } from "../../common/presencia";
 import type { PresenciaVeterinario } from "@prisma/client";
 import { MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
 
@@ -17,7 +17,7 @@ export class VeterinariosService {
     // memoria; cuando el volumen lo justifique, migrar a una consulta
     // PostGIS (ST_DWithin) directamente en la base.
     const candidatos = await this.prisma.veterinario.findMany({
-      where: { disponible: true, estado: "HABILITADO", ultimaSenal: { gte: desdeSenalVigente() } },
+      where: { disponible: true, estado: "HABILITADO", ...filtroSenalVigente() },
     });
 
     return candidatos

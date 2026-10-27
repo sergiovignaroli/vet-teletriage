@@ -8,6 +8,7 @@ import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@v
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useLatidoVeterinario, useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { tocarAviso, useSolicitudesVeterinario, useSonidoActivo } from "../../lib/solicitudes-veterinario";
+import { useAvisosPush } from "../../lib/push";
 import { VentanaSolicitud } from "../../components/VentanaSolicitud";
 import type { Presencia } from "../../lib/sesion-veterinario";
 import { Onboarding } from "../../components/Onboarding";
@@ -113,6 +114,7 @@ export default function PanelVeterinarioPage() {
   // Solicitudes de atención: ventana emergente con sonido y vibración. Al
   // aceptar, el caso queda asignado y la lista se recarga.
   const { solicitud, respondiendo, error: errorSolicitud, responder } = useSolicitudesVeterinario(sesion, cargarCasos);
+  const push = useAvisosPush(sesion?.accessToken);
   const { activo: sonidoActivo, activar: activarSonidoAvisos } = useSonidoActivo();
 
   // Latido: mientras estés Conectado o en Stand by con el panel abierto, el
@@ -302,8 +304,9 @@ export default function PanelVeterinarioPage() {
         </p>
         {sesion.presencia !== "DESCONECTADO" && (
           <p style={{ fontSize: 12, lineHeight: 1.45, color: "var(--muted)", margin: "8px 0 0" }}>
-            Dejá esta pestaña abierta: por ahora, si la cerrás, dejás de aparecer a los 5 minutos. Tu sesión sigue
-            abierta hasta que salgas. Los avisos con la app cerrada llegan en una próxima etapa.
+            {push.estado === "activo"
+              ? "Con los avisos activados en este dispositivo, podés cerrar la pestaña: te llega una notificación cuando alguien te elige. Tu sesión sigue abierta hasta que salgas."
+              : "Dejá esta pestaña abierta: si la cerrás, dejás de aparecer a los 5 minutos. Activá los avisos de abajo para poder cerrarla. Tu sesión sigue abierta hasta que salgas."}
           </p>
         )}
         {sesion.presencia !== "DESCONECTADO" && (
@@ -330,6 +333,90 @@ export default function PanelVeterinarioPage() {
                 Activar el sonido de los avisos
               </button>
             )}
+          </div>
+        )}
+        {sesion.presencia !== "DESCONECTADO" && push.estado !== "cargando" && push.estado !== "no-configurado" && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--borde)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Avisos con la app cerrada</div>
+            {push.estado === "ios-instalar" && (
+              <p style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)", margin: 0 }}>
+                En iPhone, los avisos solo funcionan con la app instalada: tocá el botón Compartir del navegador,
+                elegí &ldquo;Agregar a pantalla de inicio&rdquo; y abrí la plataforma desde ese ícono.
+              </p>
+            )}
+            {push.estado === "no-soportado" && (
+              <p style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)", margin: 0 }}>
+                Este navegador no permite avisos con la app cerrada. Probá con Chrome, Edge, Firefox o Safari
+                actualizado.
+              </p>
+            )}
+            {push.estado === "bloqueado" && (
+              <p style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)", margin: 0 }}>
+                Bloqueaste las notificaciones de este sitio. Para activarlas, habilitalas desde los permisos del
+                navegador y volvé a esta pantalla.
+              </p>
+            )}
+            {(push.estado === "inactivo" || push.estado === "activo") && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                {push.estado === "inactivo" ? (
+                  <button
+                    type="button"
+                    className="va-boton"
+                    style={{ width: "auto", minHeight: 40, padding: "0 18px", fontSize: 12.5 }}
+                    onClick={push.activar}
+                    disabled={push.ocupado}
+                  >
+                    {push.ocupado ? "Un momento…" : "Activar avisos en este dispositivo"}
+                  </button>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 12.5, color: "var(--esmeralda)", fontWeight: 600 }}>
+                      Avisos activados en este dispositivo
+                    </span>
+                    <button
+                      type="button"
+                      className="va-boton va-boton-ghost"
+                      style={{ width: "auto", minHeight: 34, padding: "0 14px", fontSize: 12 }}
+                      onClick={push.probar}
+                    >
+                      Enviar aviso de prueba
+                    </button>
+                    <button
+                      type="button"
+                      className="va-boton va-boton-ghost"
+                      style={{ width: "auto", minHeight: 34, padding: "0 14px", fontSize: 12 }}
+                      onClick={push.desactivar}
+                      disabled={push.ocupado}
+                    >
+                      Desactivar
+                    </button>
+                  </>
+                )}
+                {push.puedeInstalar && (
+                  <button
+                    type="button"
+                    className="va-boton va-boton-ghost"
+                    style={{ width: "auto", minHeight: 34, padding: "0 14px", fontSize: 12 }}
+                    onClick={push.pedirInstalacion}
+                  >
+                    Instalar la app
+                  </button>
+                )}
+              </div>
+            )}
+            {push.mensajeProbar && (
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: "8px 0 0" }} role="status">
+                {push.mensajeProbar}
+              </p>
+            )}
+            {push.error && (
+              <p style={{ fontSize: 12, color: "var(--terracota)", margin: "8px 0 0" }} role="alert">
+                {push.error}
+              </p>
+            )}
+            <p style={{ fontSize: 11.5, lineHeight: 1.45, color: "var(--muted)", margin: "8px 0 0" }}>
+              El aviso usa el sonido de notificación de tu teléfono o computadora; no suena como una llamada.
+            </p>
           </div>
         )}
       </div>

@@ -13,8 +13,12 @@ const DESCRIPCION =
 // declara la imagen en vez de publicar una dirección de localhost.
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || process.env.RENDER_EXTERNAL_URL;
 
+export const viewport = { themeColor: "#0a6b52" };
+
 export const metadata = {
   title: TITULO,
+  icons: { apple: "/icons/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: TITULO, statusBarStyle: "default" as const },
   description: DESCRIPCION,
   ...(BASE
     ? {

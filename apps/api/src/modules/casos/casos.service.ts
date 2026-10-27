@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from "@nestjs/common";
-import { desdeSenalVigente } from "../../common/presencia";
+import { filtroSenalVigente } from "../../common/presencia";
 import { PrismaService } from "../../prisma.service";
 import { VideoService } from "../video/video.service";
 import { PagosService } from "../pagos/pagos.service";
@@ -132,7 +132,7 @@ export class CasosService {
         estado: "HABILITADO",
         presencia: { in: ["CONECTADO", "STAND_BY"] },
         // Solo quien tiene el panel abierto (latido reciente) — ver common/presencia.ts
-        ultimaSenal: { gte: desdeSenalVigente() },
+        ...filtroSenalVigente(),
         casos: { none: { estado: "ASIGNADO" } },
         solicitudes: { none: { estado: "PENDIENTE", venceEl: { gt: new Date() } } },
       },

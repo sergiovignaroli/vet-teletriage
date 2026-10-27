@@ -52,6 +52,7 @@ model Veterinario {
   ultimaSenal       DateTime?
   sesionesRenovables SesionVeterinario[]
   solicitudes       SolicitudAtencion[]
+  pushSuscripciones PushSuscripcion[]
 
   // Onboarding de producto (no confundir con habilitación de la Sección 2):
   // recorrido guiado de 3 pantallas la primera vez que entra a la app.
@@ -152,6 +153,21 @@ enum EstadoSolicitud {
 // toma o rechaza. Recién al tomarla se asigna el caso y se paga: una
 // solicitud rechazada, vencida o cancelada nunca cobra. Una sola solicitud
 // pendiente por veterinario, y una sola por caso.
+// Dispositivo del veterinario que activó los avisos push (un veterinario puede
+// tener varios: celular y laptop). El endpoint identifica al navegador.
+model PushSuscripcion {
+  id            String      @id @default(uuid())
+  veterinario   Veterinario @relation(fields: [veterinarioId], references: [id], onDelete: Cascade)
+  veterinarioId String
+  endpoint      String      @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  creadaEl      DateTime    @default(now())
+
+  @@index([veterinarioId])
+}
+
 model SolicitudAtencion {
   id            String          @id @default(uuid())
   caso          Caso            @relation(fields: [casoId], references: [id])

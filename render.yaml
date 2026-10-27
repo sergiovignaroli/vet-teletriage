@@ -54,6 +54,15 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
       # A completar en el dashboard de Render cuando existan — no bloquean
       # el arranque, cada una solo se usa cuando se llama a esa función.
+      # Avisos push al veterinario. Se generan una sola vez con
+      #   npx web-push generate-vapid-keys
+      # La clave pública puede ser pública; la privada NO se comparte ni se sube.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
       - key: WHATSAPP_CLOUD_API_TOKEN
         sync: false
       - key: WHATSAPP_CLOUD_API_PHONE_NUMBER_ID
