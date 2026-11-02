@@ -41,6 +41,10 @@ export function LegalFooter() {
       <Link href="/contacto" style={{ color: "inherit" }}>
         Contacto
       </Link>
+      {" · "}
+      <Link href="/datos-legales" style={{ color: "inherit" }}>
+        Datos legales
+      </Link>
       <br />
       © {anio} Videollamada Animal. Todos los derechos reservados.
       <br />
