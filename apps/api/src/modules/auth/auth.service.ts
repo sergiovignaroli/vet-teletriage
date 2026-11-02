@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, HttpException, HttpStatus, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { createHash, randomBytes, randomInt } from "crypto";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma.service";
+import { consumirLimite } from "../../common/limite-por-clave";
 import { enviarWhatsApp, enviarWhatsAppPlantilla, normalizarTelefono } from "../../common/whatsapp-cloud-api.util";
 
 const RONDAS_BCRYPT = 12;
@@ -164,7 +165,23 @@ export class AuthService {
       throw new BadRequestException("Número de teléfono inválido");
     }
 
-    const codigo = randomInt(100000, 999999).toString();
+    // Por número: 1 código cada 30 s y 5 por hora. Cada código es un mensaje
+    // de WhatsApp que paga la plataforma, y sin tope alguien podría usar la
+    // pantalla de ingreso para llenar de mensajes a una persona (o vaciar el
+    // saldo) cambiando de IP.
+    const esperar = consumirLimite(`otp:${telefono}`, {
+      maximo: 5,
+      ventanaMs: 60 * 60 * 1000,
+      espacioMinimoMs: 30 * 1000,
+    });
+    if (esperar !== null) {
+      throw new HttpException(
+        `Ya te enviamos un código. Esperá ${esperar} segundos antes de pedir otro.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const codigo = randomInt(100000, 1000000).toString();
     const otpCodeHash = await bcrypt.hash(codigo, RONDAS_BCRYPT);
     const otpExpiraEl = new Date(Date.now() + OTP_TTL_MINUTOS * 60 * 1000);
 

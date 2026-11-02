@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { VeterinariosModule } from "./modules/veterinarios/veterinarios.module";
 import { CasosModule } from "./modules/casos/casos.module";
 import { PagosModule } from "./modules/pagos/pagos.module";
@@ -12,6 +14,11 @@ import { ConfiguracionModule } from "./modules/configuracion/configuracion.modul
 
 @Module({
   imports: [
+    // Límite general por IP: 300 pedidos por minuto. Es generoso a propósito
+    // (las pantallas de espera consultan cada 2 s) — frena a un robot, no a
+    // una persona. Los endpoints sensibles (código por WhatsApp, logins,
+    // registro) tienen límites mucho más bajos, ver auth.controller.ts.
+    ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 300 }]),
     AuthModule,
     VeterinariosModule,
     CasosModule,
@@ -23,5 +30,6 @@ import { ConfiguracionModule } from "./modules/configuracion/configuracion.modul
     SolicitudesModule,
     NotificacionesModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
