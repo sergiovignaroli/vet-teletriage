@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "../../components/Logo";
 import { LegalFooter } from "../../components/LegalFooter";
+import { CUIT, DOMICILIO_COMERCIAL, NOMBRE_COMERCIAL, TELEFONO_ENLACE, TELEFONO_VISIBLE, TITULAR } from "../../lib/datos-legales";
 
 // Datos legales del titular de la plataforma (Sergio, 2026-11-02).
 //
@@ -13,9 +14,9 @@ import { LegalFooter } from "../../components/LegalFooter";
 // LegalFooter.tsx): queda fuera de la vista principal pero accesible.
 //
 // A propósito NO figura el domicilio real (particular) del titular: alcanza
-// con el domicilio comercial. Faltan todavía, y NO se inventan acá: un teléfono
-// de atención al cliente y el enlace del organismo de Defensa del Consumidor
-// (ver checklist en Notion, ítem A3).
+// con el domicilio comercial. Faltan todavía, y NO se inventan acá: el correo de
+// contacto (se carga desde el panel de admin) y el enlace del organismo de
+// Defensa del Consumidor (ver checklist en Notion, ítem A3).
 
 export const metadata = { title: "Datos legales · Videollamada Animal" };
 
@@ -41,10 +42,15 @@ export default function DatosLegalesPage() {
         Quién está detrás de Videollamada Animal.
       </p>
 
-      <Fila titulo="Titular (razón social)">Sergio Luis Vignaroli</Fila>
-      <Fila titulo="Nombre comercial">Videollamada Animal</Fila>
-      <Fila titulo="CUIT">20-31116126-2</Fila>
-      <Fila titulo="Domicilio comercial">Montevideo 2620, Rosario, Santa Fe, Argentina</Fila>
+      <Fila titulo="Titular (razón social)">{TITULAR}</Fila>
+      <Fila titulo="Nombre comercial">{NOMBRE_COMERCIAL}</Fila>
+      <Fila titulo="CUIT">{CUIT}</Fila>
+      <Fila titulo="Domicilio comercial">{DOMICILIO_COMERCIAL}</Fila>
+      <Fila titulo="Teléfono de atención">
+        <a href={TELEFONO_ENLACE} style={{ color: "var(--esmeralda)", textDecoration: "underline" }}>
+          {TELEFONO_VISIBLE}
+        </a>
+      </Fila>
       <Fila titulo="Contacto">
         <Link href="/contacto" style={{ color: "var(--esmeralda)", textDecoration: "underline" }}>
           Escribinos desde la página de contacto

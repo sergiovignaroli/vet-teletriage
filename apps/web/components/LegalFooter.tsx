@@ -17,10 +17,12 @@
 // desde cualquier parte de la app, sin duplicar el link pantalla por
 // pantalla.
 import Link from "next/link";
+import { RedesFooter } from "./RedesFooter";
 
 export function LegalFooter() {
   const anio = new Date().getFullYear();
   return (
+    <div>
     <p
       style={{
         fontSize: 12,
@@ -50,5 +52,7 @@ export function LegalFooter() {
       <br />
       Prohibida su reproducción total o parcial sin autorización expresa.
     </p>
+    <RedesFooter />
+    </div>
   );
 }
