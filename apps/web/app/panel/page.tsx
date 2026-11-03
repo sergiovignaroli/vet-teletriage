@@ -108,7 +108,7 @@ export default function PanelPage() {
   }
 
   return (
-    <Pantalla titulo="Mi panel" variante="menta" ancho={480} centrar salir={cerrarSesion}>
+    <Pantalla titulo="Mi panel" ayuda="/ayuda" variante="menta" ancho={480} centrar salir={cerrarSesion}>
       <h1 className="va-titular" style={{ fontSize: 24, marginBottom: 10 }}>
         ¿Qué necesitás hoy?
       </h1>

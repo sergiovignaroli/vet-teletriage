@@ -65,7 +65,7 @@ export default function ReportarProblemaPage() {
   }
 
   const envoltorio = (contenido: React.ReactNode) => (
-    <Pantalla titulo="Reportar un problema" variante="menta" ancho={420} volver="/panel" centrar>
+    <Pantalla titulo="Reportar un problema" ayuda="/ayuda" variante="menta" ancho={420} volver="/panel" centrar>
       <MarcaGrande />
       {contenido}
     </Pantalla>

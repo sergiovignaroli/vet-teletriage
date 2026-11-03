@@ -12,6 +12,7 @@ import { NotificacionesModule } from "./modules/notificaciones/notificaciones.mo
 import { SolicitudesModule } from "./modules/solicitudes/solicitudes.module";
 import { ConfiguracionModule } from "./modules/configuracion/configuracion.module";
 import { PreciosModule } from "./modules/precios/precios.module";
+import { AyudaModule } from "./modules/ayuda/ayuda.module";
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { PreciosModule } from "./modules/precios/precios.module";
     PreciosModule,
     SolicitudesModule,
     NotificacionesModule,
+    AyudaModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

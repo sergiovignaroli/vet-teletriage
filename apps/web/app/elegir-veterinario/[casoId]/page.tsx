@@ -289,7 +289,7 @@ export default function ElegirVeterinarioPage() {
     // conectado; en vez de mostrar eso como un error, se ofrece pagar en dólares.
     const soloPaypal = paypalUsdElegido != null && !!errorCheckout && errorCheckout.includes("Mercado Pago");
     return (
-      <Pantalla titulo="Tu pago" ancho={420} centrar>
+      <Pantalla titulo="Tu pago" ayuda="/ayuda" ancho={420} centrar>
         <h1 className="va-titular" style={{ fontSize: 22, margin: "12px 0 10px" }}>
           {errorCheckout ? "Falta un paso más" : "Te llevamos a pagar…"}
         </h1>
@@ -345,7 +345,7 @@ export default function ElegirVeterinarioPage() {
     const mm = Math.floor(segundosRestantes / 60);
     const ss = String(segundosRestantes % 60).padStart(2, "0");
     return (
-      <Pantalla titulo="Tu solicitud" variante="profundo" ancho={420} centrar>
+      <Pantalla titulo="Tu solicitud" ayuda="/ayuda" variante="profundo" ancho={420} centrar>
         {solicitud.estado === "POSTERGADA" ? (
           <>
             <h1 className="va-titular" style={{ fontSize: 22, margin: "16px 0 10px" }} aria-live="polite">
@@ -405,7 +405,7 @@ export default function ElegirVeterinarioPage() {
 
   if (solicitud && solicitud.estado === "PENDIENTE") {
     return (
-      <Pantalla titulo="Tu solicitud" variante="profundo" ancho={420} centrar>
+      <Pantalla titulo="Tu solicitud" ayuda="/ayuda" variante="profundo" ancho={420} centrar>
         <div style={{ paddingTop: 20 }}>
           <AnilloEspera restantes={segundosRestantes} total={Math.max(totalSegundos, segundosRestantes)} />
         </div>
@@ -440,7 +440,7 @@ export default function ElegirVeterinarioPage() {
   }
 
   return (
-    <Pantalla titulo="Elegí un veterinario" volver="/panel" ancho={480}>
+    <Pantalla titulo="Elegí un veterinario" ayuda="/ayuda" volver="/panel" ancho={480}>
       <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--muted)", margin: "0 0 14px" }}>
         Están conectados ahora. Cada uno es un profesional independiente. El total que ves es lo que vas a pagar: el
         honorario del veterinario más el cargo de servicio de la plataforma, que ves desglosado. No se cobra nada hasta

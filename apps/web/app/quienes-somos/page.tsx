@@ -2,7 +2,9 @@ import Link from "next/link";
 import "../portada.css";
 import { Foto } from "../../components/Foto";
 import { LegalFooter } from "../../components/LegalFooter";
+import { LogoIcon } from "../../components/Logo";
 import { NombreMarca } from "../../components/Marca";
+import { Sello } from "../../components/Sello";
 import { NOMBRE_CON_MARCA, SIMBOLO_MARCA } from "../../lib/datos-legales";
 
 // Vista aparte "Quiénes somos" (Sergio, 2026-11-02): antes estaba dentro de la
@@ -22,10 +24,14 @@ export default function QuienesSomosPage() {
     <main>
       <header style={{ background: "var(--esmeralda)", color: "#fff" }}>
         <div className="vp-wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, minHeight: 64 }}>
-          <Link href="/" className="vp-disp" style={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12, lineHeight: 1.3, textDecoration: "none", padding: "10px 0" }}>
-            Videollamada
-            <br />
-            Animal
+          <Link href="/" className="vp-disp" aria-label="Videollamada Animal, volver al inicio" style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12, lineHeight: 1.3, textDecoration: "none", padding: "10px 0" }}>
+            <LogoIcon size={36} tono="claro" />
+            <span>
+              Videollamada
+              <br />
+              Animal
+              <Sello />
+            </span>
           </Link>
           <Link href="/" style={{ fontWeight: 700, fontSize: 14, textDecoration: "underline", padding: "12px 4px" }}>
             Volver al inicio

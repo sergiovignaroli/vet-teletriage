@@ -127,7 +127,7 @@ function CobrosVeterinarioContenido() {
   const conectado = reciénConectado || estado?.mercadoPagoConectado;
 
   return (
-    <Pantalla titulo="Medios de cobro" variante="terracota" ancho={480} volver="/panel-veterinario">
+    <Pantalla titulo="Medios de cobro" ayuda="/veterinario/ayuda" variante="terracota" ancho={480} volver="/panel-veterinario">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Medios de cobro
       </h1>

@@ -24,10 +24,13 @@ interface PantallaProps {
   pie?: boolean;
   // Si viene, muestra "Cerrar sesión" en la barra (paneles con sesión).
   salir?: () => void;
+  // Si viene, muestra un botón chico "Ayuda" en la barra que lleva al centro de
+  // ayuda de ese rol (tutor: /ayuda, veterinario: /veterinario/ayuda).
+  ayuda?: string;
   children: ReactNode;
 }
 
-export function Pantalla({ titulo, volver, variante = "menta", ancho = 480, centrar = false, pie = true, salir, children }: PantallaProps) {
+export function Pantalla({ titulo, volver, variante = "menta", ancho = 480, centrar = false, pie = true, salir, ayuda, children }: PantallaProps) {
   const estilo = { "--va-ancho": `${ancho}px` } as CSSProperties;
   return (
     <div className="va-app" style={estilo}>
@@ -45,6 +48,12 @@ export function Pantalla({ titulo, volver, variante = "menta", ancho = 480, cent
             <button type="button" onClick={salir} className="va-barra-salir">
               Cerrar sesión
             </button>
+          )}
+          {ayuda && (
+            <Link href={ayuda} className="va-barra-ayuda" aria-label="Ayuda">
+              <span aria-hidden="true">?</span>
+              <span className="va-barra-ayuda-txt">Ayuda</span>
+            </Link>
           )}
           <span className="va-barra-marca">
             <span className="va-barra-nombre">

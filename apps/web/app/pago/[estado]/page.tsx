@@ -102,7 +102,7 @@ function ResultadoPagoContenido() {
   const copy = COPY[params.estado] ?? COPY.fallo;
 
   return (
-    <Pantalla titulo="Resultado del pago" variante="menta" ancho={420} centrar>
+    <Pantalla titulo="Resultado del pago" ayuda="/ayuda" variante="menta" ancho={420} centrar>
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }}>
         {copy.titulo}
       </h1>

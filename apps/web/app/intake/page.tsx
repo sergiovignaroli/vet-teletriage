@@ -84,7 +84,7 @@ export default function IntakePage() {
   }
 
   return (
-    <Pantalla titulo="Contanos qué pasa" variante="menta" ancho={480} volver="/panel">
+    <Pantalla titulo="Contanos qué pasa" ayuda="/ayuda" variante="menta" ancho={480} volver="/panel">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Contanos qué pasa
       </h1>

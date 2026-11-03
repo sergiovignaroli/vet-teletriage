@@ -312,7 +312,7 @@ export default function PanelVeterinarioPage() {
   }
 
   return (
-    <Pantalla titulo="Mi panel" variante="terracota" ancho={640} salir={cerrarSesion}>
+    <Pantalla titulo="Mi panel" ayuda="/veterinario/ayuda" variante="terracota" ancho={640} salir={cerrarSesion}>
       {solicitud && (
         <VentanaSolicitud
           solicitud={solicitud}

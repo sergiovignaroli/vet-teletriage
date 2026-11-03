@@ -131,7 +131,7 @@ export default function RegistrarVeterinarioPage() {
   }
 
   return (
-    <Pantalla titulo="Sumate como veterinario" variante="terracota" ancho={480} volver="/ingresar-veterinario">
+    <Pantalla titulo="Sumate como veterinario" ayuda="/veterinario/ayuda" variante="terracota" ancho={480} volver="/ingresar-veterinario">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Sumate como veterinario
       </h1>

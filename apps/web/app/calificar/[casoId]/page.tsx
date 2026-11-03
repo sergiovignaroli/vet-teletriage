@@ -76,7 +76,7 @@ export default function CalificarPage() {
 
   if (enviado) {
     return (
-      <Pantalla titulo="Calificar" variante="menta" ancho={420} volver="/panel" centrar>
+      <Pantalla titulo="Calificar" ayuda="/ayuda" variante="menta" ancho={420} volver="/panel" centrar>
       <MarcaGrande />
         <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }}>
           Gracias por calificar
@@ -93,7 +93,7 @@ export default function CalificarPage() {
 
   if (!caso || !caso.veterinario) {
     return (
-      <Pantalla titulo="Calificar" variante="menta" ancho={420} volver="/panel" centrar>
+      <Pantalla titulo="Calificar" ayuda="/ayuda" variante="menta" ancho={420} volver="/panel" centrar>
       <MarcaGrande />
         <p style={{ fontSize: 14, opacity: 0.7 }}>No encontramos ese asesoramiento.</p>
         <a href="/panel" className="va-boton" style={{ textDecoration: "none", marginTop: 20 }}>
@@ -105,7 +105,7 @@ export default function CalificarPage() {
 
   if (caso.yaCalificado) {
     return (
-      <Pantalla titulo="Calificar" variante="menta" ancho={420} volver="/panel" centrar>
+      <Pantalla titulo="Calificar" ayuda="/ayuda" variante="menta" ancho={420} volver="/panel" centrar>
       <MarcaGrande />
         <p style={{ fontSize: 14, opacity: 0.7 }}>Ya calificaste este asesoramiento — gracias.</p>
         <a href="/panel" className="va-boton" style={{ textDecoration: "none", marginTop: 20 }}>
@@ -118,7 +118,7 @@ export default function CalificarPage() {
   const estrellasAMostrar = estrellasHover || estrellas;
 
   return (
-    <Pantalla titulo="Calificar" variante="menta" ancho={420} volver="/panel" centrar>
+    <Pantalla titulo="Calificar" ayuda="/ayuda" variante="menta" ancho={420} volver="/panel" centrar>
       <MarcaGrande />
 
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>

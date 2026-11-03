@@ -738,3 +738,25 @@ model CambioPrecios {
   antes    Json
   despues  Json
 }
+
+// ---------------------------------------------------------------------------
+// Centro de ayuda (Sergio, 2026-11-03): las guías y preguntas frecuentes son
+// texto fijo en la web; esta tabla guarda solo las PREGUNTAS NUEVAS que un
+// tutor o un veterinario deja desde el botón "Ayuda". Las ve el administrador,
+// que puede contestarlas; la respuesta le aparece a quien preguntó dentro de
+// la propia plataforma (no se intercambian datos de contacto).
+// ---------------------------------------------------------------------------
+
+model PreguntaAyuda {
+  id                  String    @id @default(uuid())
+  rol                 String // "CLIENTE" | "VETERINARIO"
+  usuarioId           String // id del Cliente o del Veterinario según rol
+  texto               String
+  respuesta           String?
+  atendidaEl          DateTime?
+  atendidaPorAdminId  String?
+  creadaEl            DateTime  @default(now())
+
+  @@index([usuarioId])
+  @@index([atendidaEl, creadaEl])
+}

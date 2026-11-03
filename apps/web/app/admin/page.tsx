@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { FotosAdmin } from "../../components/FotosAdmin";
+import { PreguntasAyudaAdmin } from "../../components/PreguntasAyudaAdmin";
 import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { useSesionAdmin } from "../../lib/sesion-admin";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
@@ -259,6 +260,8 @@ export default function AdminPage() {
       ))}
 
       <FotosAdmin token={sesion.accessToken} />
+
+      <PreguntasAyudaAdmin token={sesion.accessToken} />
 
       <h2 className="va-etiqueta" style={{ marginTop: 28, marginBottom: 10 }}>
         Disputas de identidad abiertas {disputasIdentidad && `(${disputasIdentidad.length})`}
