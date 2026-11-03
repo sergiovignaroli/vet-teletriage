@@ -46,52 +46,51 @@ export function VentanaSolicitud({
     solicitud.pesoAproximadoKg != null ? `${solicitud.pesoAproximadoKg} kg` : null,
   ].filter(Boolean);
 
+  const urgente = segundos <= 15;
+
   return (
-    <div
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby="va-solicitud-titulo"
-      aria-live="assertive"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        background: "rgba(20, 48, 42, 0.55)",
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-        padding: 12,
-      }}
-    >
+    <div className="va-velo" style={{ zIndex: 1000 }}>
       <div
-        style={{
-          width: "100%",
-          maxWidth: 440,
-          background: "var(--bg, #f6f0e4)",
-          borderRadius: 22,
-          padding: "22px 20px 20px",
-          boxShadow: "0 18px 50px rgba(0,0,0,0.3)",
-          maxHeight: "92vh",
-          overflowY: "auto",
-        }}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="va-solicitud-titulo"
+        aria-live="assertive"
+        className="va-hoja"
+        style={{ zIndex: 1001 }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <span className="va-etiqueta" style={{ color: "var(--esmeralda)", letterSpacing: "0.1em" }}>
+        <div className="va-hoja-asa" aria-hidden="true" />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span className="va-etiqueta" style={{ color: "var(--alerta)" }}>
             Nueva consulta
           </span>
-          <span className="va-titular" style={{ fontSize: 22 }} aria-label="Tiempo para responder">
+          <span
+            aria-label="Tiempo para responder"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 14px",
+              borderRadius: 999,
+              background: urgente ? "var(--alerta)" : "var(--profundo)",
+              color: "#fff",
+              fontFamily: '"Unbounded", sans-serif',
+              fontWeight: 700,
+              fontSize: 15,
+            }}
+          >
+            <span className="va-punto" style={{ background: urgente ? "#fff" : "var(--menta)" }} />
             {mm}:{ss}
           </span>
         </div>
         <div
           aria-hidden
-          style={{ height: 5, borderRadius: 3, background: "var(--borde)", overflow: "hidden", marginBottom: 16 }}
+          style={{ height: 6, borderRadius: 3, background: "var(--card2)", overflow: "hidden", marginBottom: 16 }}
         >
           <div
             style={{
               height: "100%",
               width: `${Math.min(100, (segundos / total) * 100)}%`,
-              background: segundos <= 15 ? "var(--terracota)" : "var(--esmeralda)",
+              background: urgente ? "var(--alerta)" : "var(--esmeralda)",
               transition: "width 0.5s linear",
             }}
           />
@@ -100,14 +99,14 @@ export function VentanaSolicitud({
         <h2 id="va-solicitud-titulo" className="va-titular" style={{ fontSize: 20, margin: "0 0 6px" }}>
           Una persona quiere hablar con vos
         </h2>
-        <p style={{ fontSize: 14, margin: "0 0 10px", color: "var(--muted)" }}>{datos.join(" · ")}</p>
+        <p style={{ fontSize: 14, margin: "0 0 12px", color: "var(--muted)" }}>{datos.join(" · ")}</p>
 
         {solicitud.hayBanderaRoja && (
           <div
             style={{
-              background: "rgba(180, 67, 45, 0.1)",
-              border: "1px solid var(--terracota)",
-              borderRadius: 12,
+              background: "var(--alerta-fondo)",
+              border: "1px solid var(--alerta-borde)",
+              borderRadius: 14,
               padding: "10px 12px",
               marginBottom: 12,
               fontSize: 13.5,
@@ -117,7 +116,16 @@ export function VentanaSolicitud({
           </div>
         )}
 
-        <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 14,
+            lineHeight: 1.5,
+            marginBottom: 14,
+            padding: "12px 14px",
+            background: "var(--card2)",
+            borderRadius: 14,
+          }}
+        >
           <span className="va-etiqueta" style={{ color: "var(--muted)", display: "block", marginBottom: 2 }}>
             Motivo
           </span>
@@ -131,7 +139,7 @@ export function VentanaSolicitud({
         )}
 
         {error && (
-          <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 10 }} role="alert">
+          <p style={{ color: "var(--alerta)", fontSize: 13, marginBottom: 10 }} role="alert">
             {error}
           </p>
         )}
@@ -152,20 +160,20 @@ export function VentanaSolicitud({
         </div>
         {/* Con una posible emergencia no se puede postergar (decisión de Sergio, 27/10/2026). */}
         {!solicitud.hayBanderaRoja && (
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 12 }}>
             {!eligiendoHorario ? (
               <button
                 type="button"
-                className="va-boton va-boton-ghost"
+                className="va-chip-boton"
                 onClick={() => setEligiendoHorario(true)}
                 disabled={ocupado}
-                style={{ width: "100%", minHeight: 42, fontSize: 12.5 }}
+                style={{ width: "100%" }}
               >
                 Postergar: atenderla más tarde
               </button>
             ) : (
               <div>
-                <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "0 0 8px", textAlign: "center" }}>
+                <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 8px", textAlign: "center" }}>
                   Le proponemos a la persona atenderla en:
                 </p>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
@@ -173,8 +181,7 @@ export function VentanaSolicitud({
                     <button
                       key={m}
                       type="button"
-                      className="va-chip"
-                      style={{ cursor: "pointer" }}
+                      className="va-chip-boton"
                       disabled={ocupado}
                       onClick={() => onPostergar(m)}
                     >
@@ -185,7 +192,7 @@ export function VentanaSolicitud({
                 <button
                   type="button"
                   onClick={() => setEligiendoHorario(false)}
-                  style={{ background: "none", border: "none", fontSize: 12, textDecoration: "underline", margin: "8px auto 0", display: "block", cursor: "pointer" }}
+                  style={{ background: "none", border: "none", minHeight: 44, fontSize: 13, textDecoration: "underline", margin: "4px auto 0", display: "block", cursor: "pointer", color: "var(--texto)" }}
                 >
                   Volver
                 </button>
@@ -193,7 +200,7 @@ export function VentanaSolicitud({
             )}
           </div>
         )}
-        <p style={{ fontSize: 12, color: "var(--muted)", margin: "12px 0 0", textAlign: "center" }}>
+        <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "12px 0 0", textAlign: "center" }}>
           Si no respondés a tiempo, la persona elige a otro veterinario.
         </p>
       </div>

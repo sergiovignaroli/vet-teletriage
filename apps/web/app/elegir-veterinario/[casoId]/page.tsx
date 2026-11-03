@@ -6,8 +6,8 @@ import type { SolicitudParaCliente, VeterinarioParaElegir } from "@vet-teletriag
 import Link from "next/link";
 import { apiGet, apiPostAuth, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
-import { Logo } from "../../../components/Logo";
-import { LegalFooter } from "../../../components/LegalFooter";
+import { Pantalla } from "../../../components/Pantalla";
+import { AnilloEspera } from "../../../components/AnilloEspera";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Avatar, Calificacion } from "../../../components/Veterinario";
 
@@ -90,6 +90,8 @@ export default function ElegirVeterinarioPage() {
   const [solicitud, setSolicitud] = useState<SolicitudParaCliente | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState(0);
+  // Duración total de la espera (para dibujar el anillo): el mayor valor visto.
+  const [totalSegundos, setTotalSegundos] = useState(0);
   const [cancelando, setCancelando] = useState(false);
   const pagoIniciado = useRef(false);
   const claveStorage = `va_paypal_${casoId}`;
@@ -183,8 +185,11 @@ export default function ElegirVeterinarioPage() {
   // Cuenta regresiva (solo visual: quien decide el vencimiento es el servidor).
   useEffect(() => {
     if (!solicitud || (solicitud.estado !== "PENDIENTE" && solicitud.estado !== "POSTERGADA")) return;
-    const calcular = () =>
-      setSegundosRestantes(Math.max(0, Math.ceil((new Date(solicitud.venceEl).getTime() - Date.now()) / 1000)));
+    const calcular = () => {
+      const restantes = Math.max(0, Math.ceil((new Date(solicitud.venceEl).getTime() - Date.now()) / 1000));
+      setSegundosRestantes(restantes);
+      setTotalSegundos((t) => Math.max(t, restantes));
+    };
     calcular();
     const t = setInterval(calcular, 500);
     return () => clearInterval(t);
@@ -266,12 +271,11 @@ export default function ElegirVeterinarioPage() {
 
   if (casoAsignado) {
     return (
-      <main style={{ maxWidth: 420, margin: "0 auto", padding: "48px 22px", textAlign: "center" }}>
-        <Logo size="md" marginBottom={28} />
-        <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }}>
+      <Pantalla titulo="Tu pago" ancho={420} centrar>
+        <h1 className="va-titular" style={{ fontSize: 22, margin: "12px 0 10px" }}>
           {errorCheckout ? "Falta un paso más" : "Te llevamos a pagar…"}
         </h1>
-        <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 24 }}>
+        <p style={{ fontSize: 15, color: "var(--muted)", marginBottom: 24 }}>
           {errorCheckout
             ? "Ya elegiste veterinario — solo falta completar el pago para confirmar el asesoramiento."
             : "Ya elegiste veterinario. Te estamos redirigiendo a Mercado Pago para completar el pago."}
@@ -308,9 +312,7 @@ export default function ElegirVeterinarioPage() {
             </button>
           </div>
         )}
-
-        <LegalFooter />
-      </main>
+    </Pantalla>
     );
   }
 
@@ -320,20 +322,19 @@ export default function ElegirVeterinarioPage() {
     const mm = Math.floor(segundosRestantes / 60);
     const ss = String(segundosRestantes % 60).padStart(2, "0");
     return (
-      <main style={{ maxWidth: 420, margin: "0 auto", padding: "48px 22px", textAlign: "center" }}>
-        <Logo size="md" marginBottom={28} />
+      <Pantalla titulo="Tu solicitud" variante="profundo" ancho={420} centrar>
         {solicitud.estado === "POSTERGADA" ? (
           <>
-            <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }} aria-live="polite">
+            <h1 className="va-titular" style={{ fontSize: 22, margin: "16px 0 10px" }} aria-live="polite">
               {nombre} te propone otro horario
             </h1>
-            <p style={{ fontSize: 14, opacity: 0.85, marginBottom: 6 }}>
+            <p style={{ fontSize: 15, marginBottom: 6 }}>
               Ahora no puede atenderte. Te propone hacerlo <strong>{cuando}</strong>
             </p>
-            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+            <p style={{ fontSize: 13.5, color: "var(--muted)", marginBottom: 8 }}>
               No se te cobra nada ahora: el pago es a la hora acordada, cuando empieza tu consulta.
             </p>
-            <div className="va-titular" style={{ fontSize: 28, margin: "14px 0 18px" }} aria-label="Tiempo para responder">
+            <div className="va-titular" style={{ fontSize: 30, margin: "14px 0 18px" }} aria-label="Tiempo para responder">
               {mm}:{ss}
             </div>
             {error && (
@@ -352,74 +353,75 @@ export default function ElegirVeterinarioPage() {
           </>
         ) : (
           <>
-            <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }} aria-live="polite">
+            <h1 className="va-titular" style={{ fontSize: 22, margin: "16px 0 10px" }} aria-live="polite">
               Turno acordado con {nombre}
             </h1>
-            <p style={{ fontSize: 15, marginBottom: 8 }}>
+            <p style={{ fontSize: 16, marginBottom: 8 }}>
               <strong>{cuando}</strong>
             </p>
-            <p style={{ fontSize: 13.5, opacity: 0.85, marginBottom: 6 }}>
+            <p style={{ fontSize: 14, marginBottom: 6 }}>
               A esa hora volvé a esta pantalla (o a tu panel): vas a poder continuar al pago y empezar la consulta. Si
               tenés WhatsApp te avisamos cuando llegue el momento.
             </p>
-            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20 }}>
+            <p style={{ fontSize: 13.5, color: "var(--muted)", marginBottom: 20 }}>
               No se te cobra nada hasta entonces. Si cambiás de idea, cancelá cuando quieras sin costo.
             </p>
             <button type="button" className="va-boton va-boton-ghost" onClick={cancelarSolicitud} disabled={cancelando}>
               {cancelando ? "Un momento…" : "Cancelar el turno y elegir a otro"}
             </button>
             <p style={{ marginTop: 16 }}>
-              <Link href="/panel" style={{ fontSize: 13, textDecoration: "underline" }}>
+              <Link href="/panel" style={{ fontSize: 14, textDecoration: "underline" }}>
                 Ir a mi panel
               </Link>
             </p>
           </>
         )}
-        <LegalFooter />
-      </main>
+    </Pantalla>
     );
   }
 
   if (solicitud && solicitud.estado === "PENDIENTE") {
-    const mm = Math.floor(segundosRestantes / 60);
-    const ss = String(segundosRestantes % 60).padStart(2, "0");
     return (
-      <main style={{ maxWidth: 420, margin: "0 auto", padding: "48px 22px", textAlign: "center" }}>
-        <Logo size="md" marginBottom={28} />
-        <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }} aria-live="polite">
+      <Pantalla titulo="Tu solicitud" variante="profundo" ancho={420} centrar>
+        <div style={{ paddingTop: 20 }}>
+          <AnilloEspera restantes={segundosRestantes} total={Math.max(totalSegundos, segundosRestantes)} />
+        </div>
+        <h1 className="va-titular" style={{ fontSize: 22, margin: "22px 0 10px", textWrap: "balance" } as React.CSSProperties} aria-live="polite">
           Esperando a {solicitud.veterinario.nombre} {solicitud.veterinario.apellido}
         </h1>
-        <p style={{ fontSize: 14, opacity: 0.85, marginBottom: 6 }}>
+        <p style={{ fontSize: 16, color: "var(--muted)", marginBottom: 6 }}>
           Le avisamos que querés una consulta. Cuando acepte, seguís directo al pago.
         </p>
         {solicitud.vetEnConsulta && (
-          <p style={{ fontSize: 13.5, color: "var(--muted)", marginBottom: 6 }}>
+          <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 6 }}>
             Está atendiendo a otra persona en este momento, así que puede demorar un poco más en responder.
           </p>
         )}
-        <div className="va-titular" style={{ fontSize: 34, margin: "18px 0 6px" }} aria-label="Tiempo restante">
-          {mm}:{ss}
+        <div className="va-tarjeta" style={{ display: "flex", gap: 12, alignItems: "flex-start", textAlign: "left", padding: "14px 16px", margin: "20px 0 24px" }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--esmeralda)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none", marginTop: 1 }}>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v10M9.5 9.5C9.5 8.4 10.6 8 12 8s2.5.5 2.5 1.6c0 2.4-5 1.4-5 3.8 0 1.1 1.1 1.6 2.5 1.6s2.5-.4 2.5-1.5" />
+          </svg>
+          <p style={{ fontSize: 15, lineHeight: 1.5, margin: 0 }}>
+            <b>No se cobra nada</b> hasta que el veterinario acepte. Si rechaza o no responde, elegís a otro sin costo.
+          </p>
         </div>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 24 }}>
-          No se te cobra nada hasta que acepte. Si no responde a tiempo o no puede, te lo avisamos y elegís a otro.
-        </p>
         <button type="button" className="va-boton va-boton-ghost" onClick={cancelarSolicitud} disabled={cancelando}>
-          {cancelando ? "Un momento…" : "Cancelar y elegir a otro"}
+          {cancelando ? "Un momento…" : "Cancelar solicitud"}
         </button>
-        <LegalFooter />
-      </main>
+        <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--muted)", margin: "12px 0 0" }}>
+          Todo pasa dentro de la plataforma. No compartimos tus datos de contacto con el veterinario.
+        </p>
+    </Pantalla>
     );
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: "0 auto", padding: "40px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
-      <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
-        Elegí con quién hablar
-      </h1>
-      <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 0, marginBottom: 20 }}>
+    <Pantalla titulo="Elegí un veterinario" volver="/panel" ancho={480}>
+      <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--muted)", margin: "0 0 14px" }}>
         Están conectados ahora. Cada uno es un profesional independiente. El total que ves es lo que vas a pagar: el
-        honorario del veterinario más el cargo de servicio de la plataforma, que ves desglosado.
+        honorario del veterinario más el cargo de servicio de la plataforma, que ves desglosado. No se cobra nada hasta
+        que el veterinario acepte.
       </p>
 
       {aviso && (
@@ -427,7 +429,7 @@ export default function ElegirVeterinarioPage() {
           style={{
             background: "rgba(180, 67, 45, 0.08)",
             border: "1px solid var(--borde)",
-            borderRadius: 12,
+            borderRadius: 14,
             padding: "10px 14px",
             fontSize: 13.5,
             marginBottom: 14,
@@ -437,19 +439,14 @@ export default function ElegirVeterinarioPage() {
           {aviso}
         </p>
       )}
-      {cargando && <p style={{ fontSize: 14, opacity: 0.75 }}>Buscando veterinarios conectados…</p>}
+      {cargando && <p style={{ fontSize: 14, color: "var(--muted)" }}>Buscando veterinarios conectados…</p>}
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 12 }} role="alert">
           {error}
         </p>
       )}
       {!cargando && veterinarios && veterinarios.length === 0 && (
-        <div
-          style={{
-            background: "rgba(var(--esmeralda-rgb), 0.1)",
-            borderRadius: 14,
-          }}
-        >
+        <div className="va-tarjeta">
           <EstadoVacio>
             No hay ningún veterinario disponible en este momento. Probá de nuevo en unos minutos.
           </EstadoVacio>
@@ -457,86 +454,65 @@ export default function ElegirVeterinarioPage() {
       )}
 
       {veterinarios && veterinarios.length > 0 && (
-        <label
-          style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, lineHeight: 1.45, marginBottom: 16 }}
-        >
+        <label className="va-tarjeta" style={{ display: "flex", gap: 12, alignItems: "flex-start", fontSize: 14, lineHeight: 1.4, margin: "0 0 14px", padding: "12px 14px", cursor: "pointer" }}>
           <input
             type="checkbox"
             checked={acepto}
             onChange={(e) => setAcepto(e.target.checked)}
-            style={{ marginTop: 3, width: 18, height: 18, flexShrink: 0 }}
+            style={{ marginTop: 2, width: 24, height: 24, flexShrink: 0, accentColor: "var(--esmeralda)" }}
           />
           <span>
-            Acepto los{" "}
-            <Link href="/terminos" target="_blank" style={{ textDecoration: "underline" }}>
+            Leí y acepto los{" "}
+            <Link href="/terminos" target="_blank" style={{ fontWeight: 700, textDecoration: "underline" }}>
               Términos y Condiciones
+            </Link>{" "}
+            y la{" "}
+            <Link href="/privacidad" target="_blank" style={{ fontWeight: 700, textDecoration: "underline" }}>
+              Política de Privacidad
             </Link>
             . Al elegir un veterinario le enviamos tu solicitud; no se te cobra hasta que la acepte.
           </span>
         </label>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {veterinarios?.map((v) => (
-          <div key={v.id} className="va-tarjeta" style={{ padding: 16 }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <Avatar nombre={v.nombre} apellido={v.apellido} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>
-                  {v.nombre} {v.apellido}
-                </div>
-                <div style={{ marginTop: 4 }}>
-                  <Calificacion promedio={v.ratingPromedio ?? null} cantidad={v.cantidadCalificaciones} />
-                </div>
-                {(v.enConsulta || v.enStandBy) && (
-                  <div style={{ marginTop: 6, fontSize: 12.5, color: "var(--muted)" }}>
-                    {v.enConsulta ? "En consulta, puede demorar" : "Puede tardar un poco más en responder"}
-                  </div>
-                )}
+          <div key={v.id} className="va-vet" style={{ alignItems: "flex-start", flexWrap: "wrap" }}>
+            <Avatar nombre={v.nombre} apellido={v.apellido} size={48} />
+            <div style={{ minWidth: 0, flex: "1 1 150px" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.25 }}>
+                {v.nombre} {v.apellido}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, marginTop: 2 }}>
+                <span className={`va-punto ${v.enConsulta || v.enStandBy ? "va-punto-espera" : "va-punto-ok"}`} />
+                {v.enConsulta ? "En consulta, puede demorar" : v.enStandBy ? "Stand by · puede tardar un poco más" : "Conectado"}
+              </div>
+              <div style={{ marginTop: 3 }}>
+                <Calificacion promedio={v.ratingPromedio ?? null} cantidad={v.cantidadCalificaciones} />
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 18, marginTop: 6 }}>
+                ${v.costoTotal.toLocaleString("es-AR")}{" "}
+                <span style={{ fontWeight: 500, fontSize: 12, color: "var(--muted)" }}>costo total</span>
+              </div>
+              <div style={{ marginTop: 2, fontSize: 12, color: "var(--muted)", lineHeight: 1.4 }}>
+                Honorario del veterinario ${v.honorarioFinal.toLocaleString("es-AR")} + cargo de servicio $
+                {(v.costoTotal - v.honorarioFinal).toLocaleString("es-AR")}
+                <br />
+                {v.franja === "NOCTURNA" ? "Tarifa nocturna (noche, domingos y feriados)" : "Tarifa diurna"}
               </div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-end",
-                justifyContent: "space-between",
-                gap: 12,
-                marginTop: 14,
-                paddingTop: 14,
-                borderTop: "1px solid var(--borde)",
-              }}
+            <button
+              type="button"
+              className="va-elegir"
+              onClick={() => elegir(v.id)}
+              disabled={eligiendo !== null || !acepto}
+              title={acepto ? undefined : "Aceptá los Términos y Condiciones para continuar"}
             >
-              <div>
-                <div className="va-etiqueta" style={{ color: "var(--muted)", letterSpacing: "0.1em" }}>
-                  Costo total
-                </div>
-                <div className="va-titular" style={{ fontSize: 20, marginTop: 2 }}>
-                  ${v.costoTotal.toLocaleString("es-AR")}
-                </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
-                  Honorario del veterinario ${v.honorarioFinal.toLocaleString("es-AR")} + cargo de servicio $
-                  {(v.costoTotal - v.honorarioFinal).toLocaleString("es-AR")}
-                </div>
-                <div style={{ marginTop: 2, fontSize: 12, color: "var(--muted)" }}>
-                  {v.franja === "NOCTURNA" ? "Tarifa nocturna (noche, domingos y feriados)" : "Tarifa diurna"}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="va-boton"
-                style={{ width: "auto", minHeight: 46, padding: "0 28px" }}
-                onClick={() => elegir(v.id)}
-                disabled={eligiendo !== null || !acepto}
-                title={acepto ? undefined : "Aceptá los Términos y Condiciones para continuar"}
-              >
-                {eligiendo === v.id ? "…" : "Elegir"}
-              </button>
-            </div>
+              {eligiendo === v.id ? "…" : "Elegir"}
+            </button>
           </div>
         ))}
       </div>
-
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

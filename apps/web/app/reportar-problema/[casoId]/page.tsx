@@ -5,8 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { CasoParaCliente } from "@vet-teletriage/types";
 import { apiGet, apiPostAuth, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
-import { Logo } from "../../../components/Logo";
-import { LegalFooter } from "../../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
 // "Disputa de calidad" es el nombre interno (Sección 10 del contrato) — de
 // cara al cliente esto es "reportar un problema", nunca esa jerga. Como
@@ -66,22 +65,10 @@ export default function ReportarProblemaPage() {
   }
 
   const envoltorio = (contenido: React.ReactNode) => (
-    <main
-      style={{
-        maxWidth: 380,
-        margin: "0 auto",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: "0 22px",
-        textAlign: "center",
-      }}
-    >
-      <Logo size="md" marginBottom={28} />
+    <Pantalla titulo="Reportar un problema" variante="menta" ancho={420} volver="/panel" centrar>
+      <MarcaGrande />
       {contenido}
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 
   if (!sesion || caso === undefined) return null;

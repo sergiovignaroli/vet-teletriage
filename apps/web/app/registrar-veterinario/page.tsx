@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
-import { Logo } from "../../components/Logo";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 import { Foto } from "../../components/Foto";
-import { LegalFooter } from "../../components/LegalFooter";
 
 // Situación probable, la más grande que se encontró en toda la revisión
 // pantalla por pantalla del 2026-09-29: POST /auth/veterinario/registrar
@@ -45,6 +44,7 @@ export default function RegistrarVeterinarioPage() {
   const [seguroPoliza, setSeguroPoliza] = useState("");
   const [seguroVenceEl, setSeguroVenceEl] = useState("");
 
+  const [aceptoConvenio, setAceptoConvenio] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +62,8 @@ export default function RegistrarVeterinarioPage() {
     !matriculaVenceEl ||
     !seguroAseguradora ||
     !seguroPoliza ||
-    !seguroVenceEl;
+    !seguroVenceEl ||
+    !aceptoConvenio;
 
   interface RespuestaRegistroVeterinario {
     accessToken: string;
@@ -96,6 +97,7 @@ export default function RegistrarVeterinarioPage() {
         seguroAseguradora,
         seguroPoliza,
         seguroVenceEl,
+        aceptoConvenio: true,
       });
       guardar({
         accessToken: respuesta.accessToken,
@@ -122,14 +124,12 @@ export default function RegistrarVeterinarioPage() {
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: "0 auto", padding: "40px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Sumate como veterinario" variante="terracota" ancho={480} volver="/ingresar-veterinario">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Sumate como veterinario
       </h1>
       <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
-        Con matrícula y seguro vigentes podés empezar a brindar asesoramiento online. Verificamos tu identidad y tus
-        datos antes de habilitarte — mientras tanto tu cuenta queda pendiente de revisión.
+        Con matrícula y seguro vigentes podés empezar a brindar asesoramiento online. Revisamos tus datos y tu documentación antes de habilitarte — mientras tanto tu cuenta queda pendiente de revisión.
       </p>
 
       <Foto
@@ -161,7 +161,7 @@ export default function RegistrarVeterinarioPage() {
           registrar();
         }}
       >
-        <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 20, marginBottom: 10 }}>Tus datos</h2>
+        <h2 className="va-etiqueta" style={{ marginTop: 20, marginBottom: 10 }}>Tus datos</h2>
         <Campo etiqueta="Nombre" value={nombre} onChange={setNombre} autoComplete="given-name" />
         <Campo etiqueta="Apellido" value={apellido} onChange={setApellido} autoComplete="family-name" />
         <Campo etiqueta="Email" value={email} onChange={setEmail} type="email" autoComplete="email" />
@@ -183,19 +183,43 @@ export default function RegistrarVeterinarioPage() {
           error={passwordsNoCoinciden ? "Las contraseñas no coinciden" : undefined}
         />
 
-        <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 24, marginBottom: 10 }}>
+        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 10 }}>
           Matrícula profesional
         </h2>
         <Campo etiqueta="Número de matrícula" value={matriculaNumero} onChange={setMatriculaNumero} />
         <Campo etiqueta="Colegio / jurisdicción" value={matriculaColegio} onChange={setMatriculaColegio} />
         <Campo etiqueta="Vencimiento de la matrícula" value={matriculaVenceEl} onChange={setMatriculaVenceEl} type="date" />
 
-        <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 24, marginBottom: 10 }}>
+        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 10 }}>
           Seguro de responsabilidad civil profesional
         </h2>
         <Campo etiqueta="Aseguradora" value={seguroAseguradora} onChange={setSeguroAseguradora} />
         <Campo etiqueta="Número de póliza" value={seguroPoliza} onChange={setSeguroPoliza} />
         <Campo etiqueta="Vencimiento del seguro" value={seguroVenceEl} onChange={setSeguroVenceEl} type="date" />
+
+        <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, lineHeight: 1.5, marginTop: 22 }}>
+          <input
+            type="checkbox"
+            checked={aceptoConvenio}
+            onChange={(e) => setAceptoConvenio(e.target.checked)}
+            style={{ width: 20, height: 20, marginTop: 1, flex: "none" }}
+          />
+          <span>
+            Leí y acepto el{" "}
+            <Link href="/convenio-veterinario" target="_blank" style={{ color: "var(--esmeralda)", fontWeight: 700 }}>
+              Convenio de adhesión
+            </Link>
+            , los{" "}
+            <Link href="/terminos" target="_blank" style={{ color: "var(--esmeralda)", fontWeight: 700 }}>
+              Términos y Condiciones
+            </Link>{" "}
+            y la{" "}
+            <Link href="/privacidad" target="_blank" style={{ color: "var(--esmeralda)", fontWeight: 700 }}>
+              Política de Privacidad
+            </Link>
+            .
+          </span>
+        </label>
 
         {error && (
           <p style={{ color: "var(--terracota)", fontSize: 13, marginTop: 12 }} role="alert">
@@ -215,8 +239,7 @@ export default function RegistrarVeterinarioPage() {
         ¿Ya tenés cuenta? Ingresá acá
       </Link>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }
 

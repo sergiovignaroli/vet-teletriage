@@ -10,8 +10,7 @@ import { CLAVES_TARIFA } from "@vet-teletriage/types";
 import type { ClaveTarifa, ModoPrecio, TarifaCelda, TarifasPais } from "@vet-teletriage/types";
 import { apiDelete, apiGet, apiPostAuth, apiPut, ApiError } from "../../../lib/api";
 import { useSesionAdmin } from "../../../lib/sesion-admin";
-import { Logo } from "../../../components/Logo";
-import { LegalFooter } from "../../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
 interface PanelTarifas {
   pais: string;
@@ -134,8 +133,7 @@ export default function AdminTarifasPage() {
       panel.tarifas.URGENCIA_NOCTURNA.aconsejado === panel.tarifas.URGENCIA_DIURNA.aconsejado);
 
   return (
-    <main style={{ maxWidth: 560, margin: "0 auto", padding: "32px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Tarifas" variante="profundo" ancho={560} volver="/admin/precios">
       <Link href="/admin/precios" style={{ fontSize: 12, opacity: 0.75, display: "inline-block", marginBottom: 14 }}>
         ← Volver a Precios y configuración
       </Link>
@@ -385,7 +383,6 @@ export default function AdminTarifasPage() {
           </Seccion>
         </>
       )}
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

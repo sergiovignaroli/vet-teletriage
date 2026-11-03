@@ -26,14 +26,12 @@ import { useParams, useRouter } from "next/navigation";
 import { apiGet, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
 import { useSesionVeterinario } from "../../../lib/sesion-veterinario";
-import { Logo } from "../../../components/Logo";
+import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
-// El componente <Logo> está pensado para pantallas centradas sobre fondo
-// crema (dibuja el ícono y el texto en marrón oscuro, fijo) — en la barra
-// superior oscura de la llamada en vivo eso quedaría invisible. Por eso
-// acá arriba se usa solo el nombre en blanco, no el componente completo;
-// <Logo> sigue usándose tal cual en las pantallas de aviso de más abajo,
-// que sí son de fondo claro.
+// El logo de las pantallas claras (ícono y texto en verde oscuro) quedaría
+// invisible en la barra superior oscura de la llamada en vivo. Por eso
+// acá arriba se usa solo el nombre en blanco, no el componente completo.
+// Las pantallas de aviso de más abajo usan el marco común (Pantalla).
 function MarcaEnOscuro() {
   return <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>Videollamada Animal</span>;
 }
@@ -310,26 +308,15 @@ function BotonRedondo({
 
 function PantallaAviso({ titulo, mensaje, volverA }: { titulo: string; mensaje?: string; volverA: string }) {
   return (
-    <main
-      style={{
-        maxWidth: 380,
-        margin: "0 auto",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: "0 22px",
-        textAlign: "center",
-      }}
-    >
-      <Logo size="md" marginBottom={28} />
+    <Pantalla titulo="Videollamada" variante="profundo" ancho={420} centrar>
+      <MarcaGrande />
       <h1 className="va-titular" style={{ fontSize: 20, marginBottom: 8 }}>
         {titulo}
       </h1>
-      {mensaje && <p style={{ fontSize: 14, opacity: 0.75, marginBottom: 24 }}>{mensaje}</p>}
+      {mensaje && <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 24 }}>{mensaje}</p>}
       <a href={volverA} className="va-boton" style={{ textDecoration: "none" }}>
         Volver
       </a>
-    </main>
+    </Pantalla>
   );
 }

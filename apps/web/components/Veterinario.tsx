@@ -9,15 +9,14 @@ export function Avatar({ nombre, apellido, size = 52 }: { nombre: string; apelli
   return (
     <div
       aria-hidden="true"
-      className="va-titular"
       style={{
+        fontWeight: 800,
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "var(--card2)",
-        border: "1px solid var(--borde)",
-        color: "var(--esmeralda)",
-        fontSize: Math.round(size * 0.31),
+        background: "var(--esmeralda)",
+        color: "#fff",
+        fontSize: Math.round(size * 0.36),
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

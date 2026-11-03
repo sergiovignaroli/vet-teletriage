@@ -107,7 +107,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
       veterinario.estado === "HABILITADO" &&
       veterinario.presencia !== "DESCONECTADO" &&
       tieneSenalVigente(veterinario.ultimaSenal, veterinario.pushSuscripciones.length > 0);
-    if (!veterinario || !elegible) {
+    if (!veterinario || !elegible || !(veterinario.mercadoPagoAccessToken || veterinario.paypalEmail)) {
       throw new BadRequestException("Ese veterinario ya no está disponible — elegí otro de la lista");
     }
     // Una sola solicitud pendiente por veterinario, y nadie con un cliente ya
@@ -226,6 +226,17 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
 
   async aceptar(solicitudId: string, veterinarioId: string) {
     const solicitud = await this.propiaPendiente(solicitudId, veterinarioId);
+    // Sin cuenta de cobro no se puede aceptar: el caso quedaría asignado y la
+    // persona no podría pagar (H-03).
+    const cobro = await this.prisma.veterinario.findUnique({
+      where: { id: veterinarioId },
+      select: { mercadoPagoAccessToken: true, paypalEmail: true },
+    });
+    if (!cobro?.mercadoPagoAccessToken && !cobro?.paypalEmail) {
+      throw new BadRequestException(
+        "Para aceptar consultas primero conectá tu cuenta de cobro (Mercado Pago o PayPal) en Medios de cobro",
+      );
+    }
     // Toma atómica: solo pasa a ACEPTADA si sigue pendiente y no venció.
     const ahora = new Date();
     const tomada = await this.prisma.solicitudAtencion.updateMany({

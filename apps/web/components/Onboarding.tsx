@@ -6,7 +6,8 @@
 // diseño visual de referencia.
 
 import { useState } from "react";
-import { Logo } from "./Logo";
+import { LogoIcon } from "./Logo";
+import { Foto } from "./Foto";
 import { LegalFooter } from "./LegalFooter";
 
 interface Props {
@@ -17,6 +18,19 @@ interface Props {
   // /panel.
   variante?: "cliente" | "veterinario";
 }
+
+// Fotos que ya están en el sitio (public/fotos), una por pantalla. Las que
+// muestran personas llevan el rótulo "Imagen ilustrativa".
+const FOTOS_CLIENTE = [
+  { src: "/fotos/hero-celular.webp", alt: "Una mujer con su gato en brazos, en videollamada con un veterinario", persona: true },
+  { src: "/fotos/paso-1.webp", alt: "Un celular con preguntas tildadas y un gatito", persona: false },
+  { src: "/fotos/paso-3.webp", alt: "Una laptop con un perro y un veterinario en videollamada", persona: true },
+];
+const FOTOS_VETERINARIO = [
+  { src: "/fotos/veterinario-escritorio.webp", alt: "Manos de un veterinario sobre su escritorio durante una videollamada", persona: true },
+  { src: "/fotos/mascotas.webp", alt: "Perro, gato, cobayo y periquito juntos", persona: false },
+  { src: "/fotos/paso-3.webp", alt: "Una laptop con un perro y un veterinario en videollamada", persona: true },
+];
 
 const PANTALLAS_CLIENTE = [
   {
@@ -61,101 +75,59 @@ export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props
   const pantallaFinal = variante === "veterinario" ? PANTALLA_FINAL_VETERINARIO : PANTALLA_FINAL_CLIENTE;
   const esUltimoPaso = paso === PANTALLAS.length; // la 3ra "pantalla" es el CTA final, no una card de PANTALLAS
 
+  const fotos = variante === "veterinario" ? FOTOS_VETERINARIO : FOTOS_CLIENTE;
+  const foto = fotos[Math.min(paso, fotos.length - 1)];
+  const textoPaso = esUltimoPaso ? pantallaFinal : PANTALLAS[paso];
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--crema)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        textAlign: "center",
-        padding: "40px 24px",
-        zIndex: 50,
-      }}
-    >
-      {/* Logo siempre centrado (Sergio, 2026-09-29) — "Saltar" va en la
-          esquina para no competir por el centro con la marca. */}
-      <div style={{ position: "relative", width: "100%", maxWidth: 340 }}>
-        {!esUltimoPaso && (
-          <button
-            type="button"
-            onClick={onTerminar}
-            disabled={enviando}
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              background: "none",
-              border: "none",
-              opacity: 0.75,
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
-            Saltar
-          </button>
-        )}
-        <Logo size="sm" marginBottom={0} />
-      </div>
-
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 340 }}>
-        {!esUltimoPaso ? (
-          <>
-            <h1 className="va-titular" style={{ fontSize: 26, margin: "0 0 12px", lineHeight: 1.25 }}>
-              {PANTALLAS[paso].titulo}
-            </h1>
-            <p style={{ fontSize: 15, opacity: 0.72, lineHeight: 1.55, margin: 0 }}>{PANTALLAS[paso].texto}</p>
-          </>
-        ) : (
-          <>
-            <h1 className="va-titular" style={{ fontSize: 26, margin: "0 0 12px", lineHeight: 1.25 }}>
-              {pantallaFinal.titulo}
-            </h1>
-            <p style={{ fontSize: 15, opacity: 0.72, lineHeight: 1.55, margin: 0 }}>{pantallaFinal.texto}</p>
-          </>
-        )}
-      </div>
-
-      <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: i === paso ? "var(--oliva)" : "rgba(var(--texto-rgb), .25)",
-            }}
-          />
-        ))}
-      </div>
-
-      <div style={{ width: "100%", maxWidth: 340 }}>
-        {!esUltimoPaso ? (
-          <button type="button" className="va-boton" onClick={() => setPaso((p) => p + 1)}>
-            Siguiente
-          </button>
-        ) : (
-          <>
-            <button type="button" className="va-boton" onClick={onTerminar} disabled={enviando}>
-              {enviando ? "Un momento…" : pantallaFinal.boton}
+    <div className="va-bienvenida" role="dialog" aria-label="Bienvenida">
+      <div className="va-bienvenida-in">
+        <div className="va-bienvenida-top">
+          <span className="va-bienvenida-marca">
+            <LogoIcon size={34} tono="claro" />
+            <span>Videollamada Animal</span>
+          </span>
+          {!esUltimoPaso && (
+            <button type="button" onClick={onTerminar} disabled={enviando} className="va-bienvenida-saltar">
+              Saltar
             </button>
-            <button
-              type="button"
-              className="va-boton va-boton-ghost"
-              style={{ marginTop: 10 }}
-              onClick={() => setPaso(0)}
-              disabled={enviando}
-            >
-              Ver cómo funciona de nuevo
-            </button>
-          </>
-        )}
-      </div>
+          )}
+        </div>
 
-      <LegalFooter />
+        <Foto src={foto.src} alt={foto.alt} className="va-bienvenida-foto" prioridad>
+          {foto.persona && <span className="vp-ilustrativa">Imagen ilustrativa</span>}
+        </Foto>
+
+        <div className="va-bienvenida-texto">
+          <h1>{textoPaso.titulo}</h1>
+          <p>{textoPaso.texto}</p>
+        </div>
+
+        <div className="va-bienvenida-puntos" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className={i === paso ? "activo" : ""} />
+          ))}
+        </div>
+
+        <div className="va-bienvenida-acciones">
+          {!esUltimoPaso ? (
+            <button type="button" className="va-bienvenida-boton" onClick={() => setPaso((p) => p + 1)}>
+              Siguiente
+            </button>
+          ) : (
+            <>
+              <button type="button" className="va-bienvenida-boton" onClick={onTerminar} disabled={enviando}>
+                {enviando ? "Un momento…" : pantallaFinal.boton}
+              </button>
+              <button type="button" className="va-bienvenida-otra" onClick={() => setPaso(0)} disabled={enviando}>
+                Ver cómo funciona de nuevo
+              </button>
+            </>
+          )}
+        </div>
+
+        <LegalFooter />
+      </div>
     </div>
   );
 }

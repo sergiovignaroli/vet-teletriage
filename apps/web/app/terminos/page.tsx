@@ -21,9 +21,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
+import { CARGO_NO_COMPLETADO, CARGO_NO_COMPLETADO_USD } from "@vet-teletriage/types";
 import { apiGet } from "../../lib/api";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
+import { Pantalla } from "../../components/Pantalla";
+import { TELEFONO_ENLACE, TELEFONO_VISIBLE } from "../../lib/datos-legales";
 
 interface ResumenPrecios {
   modo: "FIJO" | "BANDA" | "LIBRE";
@@ -63,8 +64,7 @@ export default function TerminosPage() {
   }, []);
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Legal" variante="menta" ancho={640} volver="/">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Términos y Condiciones
       </h1>
@@ -165,11 +165,20 @@ export default function TerminosPage() {
 
       <Seccion titulo="6. Pagos, cancelaciones y reembolsos">
         <p>
-          El pago se procesa una vez que el veterinario aceptó la solicitud, antes de que comience el asesoramiento.
-          Si el veterinario cierra el asesoramiento como resuelto por orientación o como derivado a una emergencia,
-          no corresponde reembolso: el servicio se considera prestado. Si el asesoramiento no pudo completarse por
-          un motivo atribuible a la plataforma o al veterinario, se reembolsa el monto correspondiente conforme a
-          la política vigente, informada en cada caso puntual.
+          El pago se procesa una vez que el veterinario aceptó la solicitud, antes de que comience el asesoramiento, a
+          través de Mercado Pago (en pesos argentinos) o, si lo elegís, de PayPal (en dólares estadounidenses, a un valor
+          fijo que ves antes de confirmar). Solo pueden recibir solicitudes los veterinarios que tienen su cuenta de cobro
+          conectada.
+        </p>
+        <p>
+          Si el veterinario cierra el asesoramiento como resuelto por orientación o como derivado a una emergencia, no
+          corresponde reembolso: el servicio se considera prestado.
+        </p>
+        <p>
+          Si el asesoramiento no pudo completarse y el veterinario lo cierra como no completado, te devolvemos todo lo
+          que pagaste menos un cargo fijo de {pesos(CARGO_NO_COMPLETADO)} (US${CARGO_NO_COMPLETADO_USD} si pagaste en
+          dólares), que cubre el tiempo y los costos del intento. Si el motivo es atribuible a la plataforma, se te
+          reembolsa el monto correspondiente conforme a la política vigente, informada en cada caso puntual.
         </p>
       </Seccion>
 
@@ -185,7 +194,7 @@ export default function TerminosPage() {
 
       <Seccion titulo="8. Contacto">
         <p>
-          Para consultas sobre estos términos, escribinos a <ContactoEmail config={config} /> o visitá nuestra{" "}
+          Para consultas sobre estos términos, contactanos en <ContactoEmail config={config} /> o visitá nuestra{" "}
           <Link href="/contacto" style={{ color: "var(--esmeralda)" }}>
             página de contacto
           </Link>
@@ -197,13 +206,12 @@ export default function TerminosPage() {
         </p>
       </Seccion>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }
 
 function ContactoEmail({ config }: { config: ConfiguracionPlataforma | null }) {
-  if (!config?.emailContacto) return <>el email que figura en nuestra página de contacto</>;
+  if (!config?.emailContacto) return <a href={TELEFONO_ENLACE} style={{ color: "var(--esmeralda)" }}>{TELEFONO_VISIBLE}</a>;
   return (
     <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--esmeralda)" }}>
       {config.emailContacto}

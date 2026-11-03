@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiGet, ApiError } from "../../lib/api";
-import { Logo } from "../../components/Logo";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 import { Foto } from "../../components/Foto";
 import { EstadoVacio } from "../../components/EstadoVacio";
-import { LegalFooter } from "../../components/LegalFooter";
 import { Avatar, Calificacion } from "../../components/Veterinario";
 
 interface VeterinarioDirectorio {
@@ -45,13 +44,12 @@ export default function DirectorioVeterinariosPage() {
   }, []);
 
   return (
-    <main style={{ maxWidth: 960, margin: "0 auto", padding: "40px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Veterinarios" variante="menta" ancho={960} volver="/">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Nuestros veterinarios
       </h1>
       <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
-        Todos matriculados y verificados. El rating es de dueños reales, después de cada asesoramiento.
+        Matrícula y seguro presentados y revisados antes de habilitarlos. El rating es de dueños reales, después de cada asesoramiento.
       </p>
 
       <Foto
@@ -103,7 +101,6 @@ export default function DirectorioVeterinariosPage() {
         Hablar con un veterinario
       </Link>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

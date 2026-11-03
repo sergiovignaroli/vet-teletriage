@@ -26,6 +26,13 @@ export class DisputasService {
     const veterinario = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId } });
     if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
 
+    // Una sola disputa abierta por veterinario: abrir otra encima no aporta
+    // nada y confunde al resolver (H-21).
+    const yaAbierta = await this.prisma.disputaIdentidad.findFirst({
+      where: { veterinarioId, estado: "ABIERTA" },
+    });
+    if (yaAbierta) throw new BadRequestException("Ese veterinario ya tiene una disputa de identidad abierta");
+
     const disputa = await this.prisma.disputaIdentidad.create({
       data: { veterinarioId, motivo, abiertaPorAdminId: adminId },
     });

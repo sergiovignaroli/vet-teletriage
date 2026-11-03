@@ -12,8 +12,8 @@
 :root {
   /* paleta G */
   --bg: #f6f0e4;
-  --card: rgba(255, 255, 255, 0.66);
-  --card-solida: #fbf8f1;
+  --card: #fbf8f0;
+  --card-solida: #fbf8f0;
   --card2: #ede4d1;
   --borde: #ddd3be;
   --borde-campo: #8c8a78;
@@ -26,6 +26,11 @@
   --azul-rgb: 42, 111, 168;
   --alerta: #b4432d;
   --alerta-rgb: 180, 67, 45;
+  --menta: #7fd8b8;
+  --profundo: #0b3a30;
+  --punto-ok: #0a6b52;
+  --punto-espera: #d9a441;
+  --punto-off: #8a968f;
   --alerta-fondo: rgba(180, 67, 45, 0.1);
   --alerta-borde: rgba(180, 67, 45, 0.45);
 
@@ -62,10 +67,6 @@ body {
   font-family: "Figtree", system-ui, sans-serif;
   line-height: 1.45;
   background-color: var(--bg);
-  background-image:
-    radial-gradient(circle at 88% 0%, rgba(var(--esmeralda-rgb), 0.2) 0, rgba(var(--esmeralda-rgb), 0) 46%),
-    radial-gradient(circle at 0% 38%, rgba(var(--azul-rgb), 0.14) 0, rgba(var(--azul-rgb), 0) 44%);
-  background-repeat: no-repeat;
 }
 
 a {
@@ -121,10 +122,10 @@ textarea {
   min-height: 56px;
   padding: 0 28px;
   background: var(--accent);
-  color: var(--crema);
+  color: #fff;
   font-family: "Unbounded", sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
@@ -148,7 +149,7 @@ textarea {
 
 /* Botones compactos (los que venían con width: auto): en listas y paneles
    no tienen que ser tan altos como el botón principal. */
-main[style*="max-width"] .va-boton[style*="width: auto"] {
+.va-cuerpo .va-boton[style*="width: auto"] {
   min-height: 44px;
   font-size: 13px;
 }
@@ -161,8 +162,11 @@ main[style*="max-width"] .va-boton[style*="width: auto"] {
 
 .va-boton-ghost {
   background: transparent;
-  border: 1.5px solid var(--texto);
+  border: 2px solid var(--texto);
   color: var(--texto);
+  font-family: "Figtree", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 15px;
 }
 
 .va-boton-ghost:hover:not(:disabled) {
@@ -191,9 +195,7 @@ main[style*="max-width"] .va-boton[style*="width: auto"] {
 .va-tarjeta {
   background: var(--card);
   border: 1px solid var(--borde);
-  border-radius: 22px;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  border-radius: 20px;
 }
 
 .va-chip {
@@ -349,22 +351,6 @@ main[style*="max-width"] .va-boton[style*="width: auto"] {
   .va-hero {
     padding: 32px 0 56px;
   }
-
-  /* Las pantallas angostas (formularios, login, paneles) estaban pegadas a
-     una columna de celular sobre un fondo vacío. En laptop se enmarcan como
-     una tarjeta de vidrio centrada, sin tocar su contenido ni su lógica. */
-  main[style*="max-width"] {
-    background: var(--card);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    border: 1px solid var(--borde);
-    border-radius: 32px;
-    box-shadow: 0 30px 80px -44px rgba(var(--esmeralda-rgb), 0.45);
-    margin: 56px auto !important;
-    padding: 48px 44px 40px !important;
-    min-height: 0 !important;
-    justify-content: flex-start !important;
-  }
 }
 
 /* ---------- fotos: franja nocturna del home y banner del directorio ---------- */
@@ -442,4 +428,461 @@ main[style*="max-width"] .va-boton[style*="width: auto"] {
 .va-vacio img {
   width: min(220px, 60%);
   height: auto;
+}
+
+
+/* ======================================================================
+   Marco de pantallas internas (diseño de celular aprobado)
+   ====================================================================== */
+
+.va-app {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.va-barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.va-barra-menta {
+  background: var(--menta);
+  color: var(--profundo);
+}
+
+.va-barra-profundo {
+  background: var(--profundo);
+  color: #f6f0e4;
+}
+
+.va-barra-terracota {
+  background: var(--alerta);
+  color: #fff;
+}
+
+.va-barra-in {
+  width: 100%;
+  max-width: calc(var(--va-ancho, 480px) + 32px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.va-barra-volver {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  color: inherit;
+  text-decoration: none;
+}
+
+.va-barra-titulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 12px;
+  font-family: "Unbounded", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.va-barra-volver + .va-barra-titulo {
+  padding-left: 0;
+}
+
+.va-barra-salir {
+  flex: none;
+  background: transparent;
+  border: 1.5px solid currentColor;
+  color: inherit;
+  border-radius: 999px;
+  min-height: 36px;
+  padding: 0 14px;
+  font: 700 12px "Figtree", sans-serif;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.va-barra-marca {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 8px;
+}
+
+.va-barra-nombre {
+  display: none;
+  font-family: "Unbounded", sans-serif;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.va-cuerpo {
+  width: 100%;
+  max-width: calc(var(--va-ancho, 480px) + 32px);
+  margin: 0 auto;
+  padding: 18px 16px 40px;
+}
+
+.va-centrado {
+  text-align: center;
+}
+
+.va-marca-grande {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 26px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.va-marca-detalle {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--esmeralda);
+}
+
+@media (min-width: 760px) {
+  .va-barra {
+    height: 72px;
+  }
+
+  .va-barra-nombre {
+    display: inline;
+  }
+
+  .va-barra-titulo {
+    font-size: 17px;
+  }
+
+  .va-cuerpo {
+    padding-top: 28px;
+  }
+}
+
+/* ---------- selector de disponibilidad (Conectado / Stand by / Desconectado) ---------- */
+
+.va-seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--card2);
+}
+
+.va-seg-op {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--texto);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.va-seg-op[aria-pressed="true"] {
+  background: var(--esmeralda);
+  color: #fff;
+}
+
+.va-seg-op:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- puntos de estado y chips de acción ---------- */
+
+.va-punto {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--punto-off);
+}
+
+.va-punto-ok {
+  background: var(--punto-ok);
+}
+
+.va-punto-espera {
+  background: var(--punto-espera);
+}
+
+.va-chip-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--texto);
+  background: transparent;
+  color: var(--texto);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ---------- veterinario en la lista de elegir ---------- */
+
+.va-vet {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--borde);
+  border-radius: 20px;
+}
+
+.va-vet-elegido {
+  border: 2px solid var(--esmeralda);
+}
+
+.va-elegir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 2px solid var(--esmeralda);
+  background: transparent;
+  color: var(--esmeralda);
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.va-elegir:hover:not(:disabled) {
+  background: var(--esmeralda);
+  color: #fff;
+}
+
+.va-elegir:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------- hoja inferior (aviso de nueva consulta) ---------- */
+
+.va-velo {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(11, 58, 48, 0.55);
+}
+
+.va-hoja {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  max-height: 92vh;
+  overflow-y: auto;
+  margin: 0 auto;
+  max-width: 560px;
+  padding: 20px 20px 24px;
+  background: var(--card);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, 0.5);
+}
+
+.va-hoja-asa {
+  width: 44px;
+  height: 5px;
+  margin: 0 auto 14px;
+  border-radius: 3px;
+  background: var(--borde);
+}
+
+/* ---------- anillo de cuenta regresiva (espera) ---------- */
+
+@keyframes va-girar {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.va-orbita {
+  transform-origin: 100px 100px;
+  animation: va-girar 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .va-orbita {
+    animation: none;
+  }
+}
+
+/* ---------- bienvenida (primer ingreso), verde profundo como la portada de celular ---------- */
+
+.va-bienvenida {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+  background: var(--profundo);
+  color: #f6f0e4;
+}
+
+.va-bienvenida-in {
+  max-width: 440px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 18px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.va-bienvenida-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.va-bienvenida-marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Unbounded", sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.va-bienvenida-saltar {
+  background: transparent;
+  color: var(--menta);
+  border: 1.5px solid var(--menta);
+  border-radius: 999px;
+  min-height: 38px;
+  padding: 0 16px;
+  font: 700 13px "Figtree", sans-serif;
+  cursor: pointer;
+}
+
+.va-bienvenida-foto {
+  border-radius: 22px;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border: 1px solid var(--video-borde);
+}
+
+.va-bienvenida-texto h1 {
+  font-family: "Unbounded", sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 4px 0 10px;
+}
+
+.va-bienvenida-texto p {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: #cfe3da;
+}
+
+.va-bienvenida-puntos {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.va-bienvenida-puntos span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(246, 240, 228, 0.3);
+}
+
+.va-bienvenida-puntos span.activo {
+  width: 26px;
+  border-radius: 999px;
+  background: var(--menta);
+}
+
+.va-bienvenida-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.va-bienvenida-boton {
+  min-height: 56px;
+  border: none;
+  border-radius: 999px;
+  background: var(--menta);
+  color: var(--profundo);
+  font-family: "Unbounded", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.va-bienvenida-boton:disabled,
+.va-bienvenida-otra:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.va-bienvenida-otra {
+  min-height: 48px;
+  border-radius: 999px;
+  background: transparent;
+  color: #f6f0e4;
+  border: 1.5px solid rgba(246, 240, 228, 0.45);
+  font: 700 14px "Figtree", sans-serif;
+  cursor: pointer;
+}
+
+/* el pie legal usa estas variables: sobre verde profundo tienen que ser claras */
+.va-bienvenida {
+  --muted: #a9c7be;
+  --texto: #f6f0e4;
+  --esmeralda: #7fd8b8;
+  --borde: rgba(246, 240, 228, 0.3);
+}
+
+.va-bienvenida .vp-ilustrativa {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(11, 58, 48, 0.8);
+  color: #f6f0e4;
+  font-size: 12px;
 }

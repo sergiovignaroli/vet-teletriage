@@ -23,9 +23,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { apiGet } from "../../lib/api";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
-import { CUIT, DOMICILIO_COMERCIAL, TITULAR } from "../../lib/datos-legales";
+import { Pantalla } from "../../components/Pantalla";
+import { CUIT, DOMICILIO_COMERCIAL, TELEFONO_ENLACE, TELEFONO_VISIBLE, TITULAR } from "../../lib/datos-legales";
 
 export default function PrivacidadPage() {
   const [config, setConfig] = useState<ConfiguracionPlataforma | null>(null);
@@ -46,8 +45,7 @@ export default function PrivacidadPage() {
   }, []);
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Legal" variante="menta" ancho={640} volver="/">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Política de Privacidad
       </h1>
@@ -151,7 +149,23 @@ export default function PrivacidadPage() {
         </p>
       </Seccion>
 
-      <Seccion titulo="6. Cuánto tiempo guardamos tus datos">
+      <Seccion titulo="6. Dónde se tratan tus datos (transferencia internacional)">
+        <p>
+          Para prestar el servicio usamos proveedores tecnológicos que alojan o procesan datos fuera de la República
+          Argentina, en particular en los Estados Unidos de América: el servicio de alojamiento donde corre la plataforma,
+          el servicio de videollamada en vivo (Agora), el servicio de mensajería (WhatsApp, de Meta), el medio de pago
+          PayPal y los servicios de notificaciones de los navegadores. Esos países pueden no contar con un nivel de
+          protección equivalente al de la normativa argentina. Por eso, al aceptar esta política autorizás expresamente
+          esa transferencia, que se realiza con proveedores que prevén medidas de seguridad y confidencialidad. Podés
+          revocar tu consentimiento contactándonos en <ContactoEmail config={config} />; en ese caso no vamos a poder
+          prestarte el servicio.
+        </p>
+        <p>
+          La plataforma no recolecta tu ubicación geográfica: no usamos el GPS de tu dispositivo.
+        </p>
+      </Seccion>
+
+      <Seccion titulo="7. Cuánto tiempo guardamos tus datos">
         <p>
           Guardamos tus datos mientras tengas una cuenta activa y por el plazo adicional que exijan nuestras
           obligaciones legales, impositivas o contables (por ejemplo, los comprobantes de pago). Si pedís la
@@ -159,17 +173,17 @@ export default function PrivacidadPage() {
         </p>
       </Seccion>
 
-      <Seccion titulo="7. Tus derechos">
+      <Seccion titulo="8. Tus derechos">
         <p>
           Como titular de tus datos, tenés derecho a acceder a ellos, rectificarlos si están mal, pedir su
           supresión, y revocar el consentimiento que hayas dado — todo esto conforme a la Ley 25.326. También
           podés hacer una denuncia ante la Agencia de Acceso a la Información Pública, el organismo de control
           de esta ley en Argentina, si considerás que no la estamos cumpliendo. Para ejercer cualquiera de estos
-          derechos, escribinos a <ContactoEmail config={config} />.
+          derechos, contactanos en <ContactoEmail config={config} />.
         </p>
       </Seccion>
 
-      <Seccion titulo="8. Seguridad">
+      <Seccion titulo="9. Seguridad">
         <p>
           Usamos conexión cifrada (HTTPS) en toda la plataforma, y el acceso a la videollamada se controla con
           un token que solo es válido para las dos partes del asesoramiento puntual y por tiempo limitado.
@@ -177,23 +191,23 @@ export default function PrivacidadPage() {
         </p>
       </Seccion>
 
-      <Seccion titulo="9. Menores de edad">
+      <Seccion titulo="10. Menores de edad">
         <p>
           Este servicio está pensado para personas mayores de 18 años. Si sos menor de edad, necesitás que un
           adulto responsable solicite el asesoramiento por vos.
         </p>
       </Seccion>
 
-      <Seccion titulo="10. Cambios a esta política">
+      <Seccion titulo="11. Cambios a esta política">
         <p>
           Podemos actualizar esta política a medida que la plataforma cambie. La fecha de "última actualización"
           al principio de esta página siempre refleja la versión vigente.
         </p>
       </Seccion>
 
-      <Seccion titulo="11. Contacto">
+      <Seccion titulo="12. Contacto">
         <p>
-          Para cualquier consulta sobre esta Política de Privacidad o sobre tus datos, escribinos a{" "}
+          Para cualquier consulta sobre esta Política de Privacidad o sobre tus datos, contactanos en{" "}
           <ContactoEmail config={config} /> o visitá nuestra{" "}
           <Link href="/contacto" style={{ color: "var(--esmeralda)" }}>
             página de contacto
@@ -206,13 +220,12 @@ export default function PrivacidadPage() {
         </p>
       </Seccion>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }
 
 function ContactoEmail({ config }: { config: ConfiguracionPlataforma | null }) {
-  if (!config?.emailContacto) return <>través de los medios que figuran en nuestra página de contacto</>;
+  if (!config?.emailContacto) return <a href={TELEFONO_ENLACE} style={{ color: "var(--esmeralda)" }}>{TELEFONO_VISIBLE}</a>;
   return (
     <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--esmeralda)" }}>
       {config.emailContacto}

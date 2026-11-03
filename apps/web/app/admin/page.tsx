@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
+import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { useSesionAdmin } from "../../lib/sesion-admin";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-AR", {
   day: "2-digit",
@@ -194,36 +194,39 @@ export default function AdminPage() {
     setDisputasCalidad((prev) => prev?.filter((d) => d.id !== id) ?? prev);
   }
 
+  // Aviso si falta el email de contacto: aparece en Términos, Privacidad y
+  // Contacto, y es el canal para ejercer derechos sobre los datos.
+  const [sinEmailContacto, setSinEmailContacto] = useState(false);
+  useEffect(() => {
+    apiGet<ConfiguracionPlataforma>("/configuracion")
+      .then((c) => setSinEmailContacto(!c.emailContacto))
+      .catch(() => {});
+  }, []);
+
   if (!sesion) return null;
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 22px 60px" }}>
-      <div style={{ position: "relative", marginBottom: 20 }}>
-        <button
-          type="button"
-          onClick={cerrarSesion}
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            background: "none",
-            border: "none",
-            opacity: 0.75,
-            fontSize: 13,
-            cursor: "pointer",
-          }}
-        >
-          Cerrar sesión
-        </button>
-        <Logo size="sm" marginBottom={0} />
-      </div>
-
+    <Pantalla titulo="Administración" variante="profundo" ancho={640} salir={cerrarSesion}>
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>
         Panel de administración
       </h1>
       <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 16, textAlign: "center" }}>
         Solo excepciones — lo que no se resolvió solo.
       </p>
+
+      {sinEmailContacto && (
+        <div className="va-tarjeta" style={{ padding: 14, marginBottom: 16, borderColor: "var(--alerta-borde)", textAlign: "left" }}>
+          <div className="va-etiqueta" style={{ color: "var(--alerta)" }}>Falta un dato</div>
+          <p style={{ fontSize: 13.5, margin: "6px 0 0", lineHeight: 1.5 }}>
+            Todavía no cargaste el email de contacto. Los usuarios lo necesitan para ejercer sus derechos sobre sus datos.
+            Cargalo en{" "}
+            <Link href="/admin/precios" style={{ color: "var(--esmeralda)", fontWeight: 700 }}>
+              Precios y configuración
+            </Link>
+            .
+          </p>
+        </div>
+      )}
 
       <div style={{ textAlign: "center", marginBottom: 24 }}>
         <Link
@@ -242,7 +245,7 @@ export default function AdminPage() {
         </p>
       )}
 
-      <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginBottom: 10 }}>
+      <h2 className="va-etiqueta" style={{ marginBottom: 10 }}>
         Veterinarios pendientes de habilitar {pendientes && `(${pendientes.length})`}
       </h2>
       {pendientes && pendientes.length === 0 && (
@@ -254,7 +257,7 @@ export default function AdminPage() {
         <PendienteItem key={v.id} veterinario={v} onHabilitar={habilitar} />
       ))}
 
-      <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 28, marginBottom: 10 }}>
+      <h2 className="va-etiqueta" style={{ marginTop: 28, marginBottom: 10 }}>
         Disputas de identidad abiertas {disputasIdentidad && `(${disputasIdentidad.length})`}
       </h2>
 
@@ -267,7 +270,7 @@ export default function AdminPage() {
         <DisputaIdentidadItem key={d.id} disputa={d} onResolver={resolverIdentidad} />
       ))}
 
-      <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 28, marginBottom: 10 }}>
+      <h2 className="va-etiqueta" style={{ marginTop: 28, marginBottom: 10 }}>
         Disputas de calidad abiertas {disputasCalidad && `(${disputasCalidad.length})`}
       </h2>
       {disputasCalidad && disputasCalidad.length === 0 && (
@@ -277,7 +280,7 @@ export default function AdminPage() {
         <DisputaCalidadItem key={d.id} disputa={d} onResolver={resolverCalidad} />
       ))}
 
-      <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 28, marginBottom: 10 }}>
+      <h2 className="va-etiqueta" style={{ marginTop: 28, marginBottom: 10 }}>
         Mantenimiento de pagos
       </h2>
       <Tarjeta>
@@ -337,8 +340,7 @@ export default function AdminPage() {
         </Tarjeta>
       ))}
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }
 

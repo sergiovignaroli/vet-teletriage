@@ -4,8 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../../lib/api";
 import { useSesionAdmin } from "../../../lib/sesion-admin";
-import { Logo } from "../../../components/Logo";
-import { LegalFooter } from "../../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
 interface RespuestaLoginAdmin {
   accessToken: string;
@@ -36,19 +35,8 @@ export default function IngresarAdminPage() {
   }
 
   return (
-    <main
-      style={{
-        maxWidth: 380,
-        margin: "0 auto",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: "0 22px",
-        textAlign: "center",
-      }}
-    >
-      <Logo tagline="Administración" />
+    <Pantalla titulo="Administración" variante="profundo" ancho={420} centrar>
+      <MarcaGrande detalle="Administración" />
 
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 8 }}>
         Panel de administración
@@ -91,7 +79,6 @@ export default function IngresarAdminPage() {
         </button>
       </form>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

@@ -2,14 +2,20 @@
 // (ladrillo) adentro: "la videollamada" + "el animal" en un solo dibujo. Es el
 // mismo trazo de siempre; en la dirección G (2026-10-27) solo cambian los
 // colores para acompañar la paleta nueva.
-export function LogoIcon({ size = 40 }: { size?: number }) {
+// tono="claro": para fondos oscuros o de color (barra superior verde profundo
+// o terracota): trazo crema, perro menta y gato salmón — los mismos colores del
+// logo sobre fondo oscuro de la portada.
+export function LogoIcon({ size = 40, tono = "oscuro" }: { size?: number; tono?: "oscuro" | "claro" }) {
+  const trazo = tono === "claro" ? "#F6F0E4" : "#14302A";
+  const perro = tono === "claro" ? "#7FD8B8" : "#0A6B52";
+  const gato = tono === "claro" ? "#F0A58F" : "#B4432D";
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 64 64"
       fill="none"
-      stroke="#14302A"
+      stroke={trazo}
       strokeWidth={2.6}
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -17,24 +23,24 @@ export function LogoIcon({ size = 40 }: { size?: number }) {
     >
       <rect x="5" y="11" width="54" height="36" rx="7" />
       <path d="M22 54h20M32 47v7" strokeWidth={2.4} />
-      <circle cx="58" cy="14" r="3" fill="#0A6B52" stroke="none" />
-      <path d="M14,24 C8,25 6,33 11,40 C14,35 15,29 14,24 Z" fill="#0A6B52" stroke="none" />
-      <path d="M27,24 C32,26 33,32 28,37 C26,32 26,28 27,24 Z" fill="#0A6B52" stroke="none" />
-      <circle cx="20" cy="31" r="8" stroke="#0A6B52" strokeWidth={2.3} />
-      <circle cx="17.3" cy="29.5" r="0.9" fill="#0A6B52" stroke="none" />
-      <circle cx="22.3" cy="29.5" r="0.9" fill="#0A6B52" stroke="none" />
-      <circle cx="20" cy="33.5" r="1" fill="#0A6B52" stroke="none" />
+      <circle cx="58" cy="14" r="3" fill={perro} stroke="none" />
+      <path d="M14,24 C8,25 6,33 11,40 C14,35 15,29 14,24 Z" fill={perro} stroke="none" />
+      <path d="M27,24 C32,26 33,32 28,37 C26,32 26,28 27,24 Z" fill={perro} stroke="none" />
+      <circle cx="20" cy="31" r="8" stroke={perro} strokeWidth={2.3} />
+      <circle cx="17.3" cy="29.5" r="0.9" fill={perro} stroke="none" />
+      <circle cx="22.3" cy="29.5" r="0.9" fill={perro} stroke="none" />
+      <circle cx="20" cy="33.5" r="1" fill={perro} stroke="none" />
       <path
         d="M20 34.5 L20 36 M20 36 Q17.5 37.5 16.5 36.5 M20 36 Q22.5 37.5 23.5 36.5"
-        stroke="#0A6B52"
+        stroke={perro}
         strokeWidth={1.6}
       />
-      <path d="M38 22 L35.5 14 L42 19.5 Z" fill="#B4432D" stroke="none" />
-      <path d="M50 22 L53 14 L46 19.5 Z" fill="#B4432D" stroke="none" />
-      <circle cx="44" cy="29" r="7" stroke="#B4432D" strokeWidth={2.3} />
-      <circle cx="41.5" cy="28.5" r="0.8" fill="#B4432D" stroke="none" />
-      <circle cx="46.5" cy="28.5" r="0.8" fill="#B4432D" stroke="none" />
-      <path d="M43 31.5 L44 32.5 L45 31.5" stroke="#B4432D" strokeWidth={1.6} />
+      <path d="M38 22 L35.5 14 L42 19.5 Z" fill={gato} stroke="none" />
+      <path d="M50 22 L53 14 L46 19.5 Z" fill={gato} stroke="none" />
+      <circle cx="44" cy="29" r="7" stroke={gato} strokeWidth={2.3} />
+      <circle cx="41.5" cy="28.5" r="0.8" fill={gato} stroke="none" />
+      <circle cx="46.5" cy="28.5" r="0.8" fill={gato} stroke="none" />
+      <path d="M43 31.5 L44 32.5 L45 31.5" stroke={gato} strokeWidth={1.6} />
     </svg>
   );
 }

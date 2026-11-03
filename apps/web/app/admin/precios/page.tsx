@@ -11,8 +11,7 @@ import { useRouter } from "next/navigation";
 import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { apiGet, apiPatch, ApiError } from "../../../lib/api";
 import { useSesionAdmin } from "../../../lib/sesion-admin";
-import { Logo } from "../../../components/Logo";
-import { LegalFooter } from "../../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
 type FormState = {
   [K in keyof ConfiguracionPlataforma]: string;
@@ -143,8 +142,7 @@ export default function AdminPreciosPage() {
   if (!sesion) return null;
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Precios y configuración" variante="profundo" ancho={520} volver="/admin">
       <Link href="/admin" style={{ fontSize: 12, opacity: 0.75, display: "inline-block", marginBottom: 14 }}>
         ← Volver al panel
       </Link>
@@ -298,7 +296,6 @@ export default function AdminPreciosPage() {
         </>
       )}
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

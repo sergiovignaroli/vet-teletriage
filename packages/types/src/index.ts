@@ -424,6 +424,13 @@ export interface VeterinarioParaElegir {
 // Términos hay que subir esta fecha.
 export const VERSION_TERMINOS = "2026-11-03";
 
+// Convenio de adhesión del veterinario (H-01 del libro legal, 2026-11-03): se
+// acepta al registrarse junto con los Términos y la Política de Privacidad, y
+// se registra versión, fecha e IP. ⚠ Texto a revisar por el abogado antes de
+// lanzar; si cambia, subir esta versión (el panel vuelve a pedir la
+// aceptación).
+export const VERSION_CONVENIO_VETERINARIO = "2026-11-03";
+
 // Tiempo que tiene el veterinario para responder una solicitud (Sergio,
 // 2026-10-27): 90 segundos si está libre, 2 minutos si está en una consulta.
 export const SOLICITUD_SEGUNDOS_LIBRE = 90;

@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./jwt-auth.guard";
@@ -14,8 +14,11 @@ export class AuthController {
   // Anti spam de altas: 5 registros por hora por IP.
   @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @Post("veterinario/registrar")
-  registrarVeterinario(@Body() body: Parameters<AuthService["registrarVeterinario"]>[0]) {
-    return this.auth.registrarVeterinario(body);
+  registrarVeterinario(
+    @Body() body: Parameters<AuthService["registrarVeterinario"]>[0],
+    @Req() req: { ip?: string },
+  ) {
+    return this.auth.registrarVeterinario({ ...body, ip: req.ip });
   }
 
   // Anti fuerza bruta: 10 intentos por minuto por IP.

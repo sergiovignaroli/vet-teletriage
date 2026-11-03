@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 import { CUIT, DOMICILIO_COMERCIAL, NOMBRE_COMERCIAL, TELEFONO_ENLACE, TELEFONO_VISIBLE, TITULAR } from "../../lib/datos-legales";
 
 // Datos legales del titular de la plataforma (Sergio, 2026-11-02).
@@ -33,8 +32,7 @@ function Fila({ titulo, children }: { titulo: string; children: React.ReactNode 
 
 export default function DatosLegalesPage() {
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Legal" variante="menta" ancho={640} volver="/">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Datos legales
       </h1>
@@ -70,7 +68,6 @@ export default function DatosLegalesPage() {
         .
       </p>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

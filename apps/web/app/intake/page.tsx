@@ -6,8 +6,7 @@ import type { BanderasRojasIntake, CasoResumen } from "@vet-teletriage/types";
 import { hayBanderaRoja } from "@vet-teletriage/types";
 import { apiPostAuth, ApiError } from "../../lib/api";
 import { useSesionCliente } from "../../lib/sesion";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 
 // Sección 9 del contrato: Capa 1 = screening automático de banderas rojas.
 // Etiquetas en lenguaje simple para el dueño de la mascota, no jerga clínica.
@@ -85,14 +84,13 @@ export default function IntakePage() {
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: "0 auto", padding: "40px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Contanos qué pasa" variante="menta" ancho={480} volver="/panel">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Contanos qué pasa
       </h1>
 
       <section>
-        <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 24, marginBottom: 10 }}>
+        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 10 }}>
           Primero, algunas preguntas rápidas
         </h2>
         {BANDERAS.map(({ campo, etiqueta }) => (
@@ -145,7 +143,7 @@ export default function IntakePage() {
       )}
 
       <section>
-        <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 24, marginBottom: 10 }}>
+        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 10 }}>
           Contanos un poco más
         </h2>
         <label style={{ display: "block", margin: "8px 0", fontSize: 14, fontWeight: 600 }}>
@@ -185,7 +183,6 @@ export default function IntakePage() {
         {enviando ? "Enviando…" : "Ver veterinarios disponibles"}
       </button>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

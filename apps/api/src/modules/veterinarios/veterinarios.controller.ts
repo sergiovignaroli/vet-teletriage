@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import type { PresenciaVeterinario } from "@prisma/client";
 import { VeterinariosService } from "./veterinarios.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -86,6 +86,27 @@ export class VeterinariosController {
   @Roles("VETERINARIO")
   miEstadoDeCobro(@CurrentUser() usuario: UsuarioAutenticado) {
     return this.veterinarios.miEstadoDeCobro(usuario.id);
+  }
+
+  // Convenio de adhesión: ver si el veterinario ya aceptó la versión vigente y
+  // aceptarla (los que se registraron antes de que existiera, o cuando cambia
+  // el texto). El id sale del JWT.
+  @Get("convenio")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  estadoConvenio(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.veterinarios.estadoConvenio(usuario.id);
+  }
+
+  @Post("convenio/aceptar")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  aceptarConvenio(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body("version") version: string,
+    @Req() req: { ip?: string },
+  ) {
+    return this.veterinarios.aceptarConvenio(usuario.id, version, req.ip);
   }
 
   @Patch("margen")

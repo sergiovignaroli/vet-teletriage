@@ -2,6 +2,7 @@ import { BadRequestException, HttpException, HttpStatus, Injectable, Unauthorize
 import { JwtService } from "@nestjs/jwt";
 import { createHash, randomBytes, randomInt } from "crypto";
 import * as bcrypt from "bcryptjs";
+import { VERSION_CONVENIO_VETERINARIO } from "@vet-teletriage/types";
 import { PrismaService } from "../../prisma.service";
 import { consumirLimite } from "../../common/limite-por-clave";
 import { enviarWhatsApp, enviarWhatsAppPlantilla, normalizarTelefono } from "../../common/whatsapp-cloud-api.util";
@@ -20,6 +21,17 @@ const GRACIA_ROTACION_MS = 30 * 1000;
 
 const hashDeToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
+// El formulario manda la fecha como "AAAA-MM-DD" (campo de fecha del navegador)
+// y Prisma exige un DateTime completo: se convierte acá y, si no es una fecha
+// real, se responde un error claro en vez de un 500.
+function fechaValida(valor: Date | string | undefined, que: string): Date {
+  const f = valor instanceof Date ? valor : new Date(String(valor ?? ""));
+  if (Number.isNaN(f.getTime())) {
+    throw new BadRequestException(`Revisá ${que}: no es una fecha válida`);
+  }
+  return f;
+}
+
 interface RegistrarVeterinarioInput {
   nombre: string;
   apellido: string;
@@ -29,10 +41,14 @@ interface RegistrarVeterinarioInput {
   dniONumero: string;
   matriculaNumero: string;
   matriculaColegio: string;
-  matriculaVenceEl: Date;
+  // Llegan como texto por JSON ("AAAA-MM-DD" del formulario, o ISO completo).
+  matriculaVenceEl: Date | string;
   seguroAseguradora: string;
   seguroPoliza: string;
-  seguroVenceEl: Date;
+  seguroVenceEl: Date | string;
+  // Obligatorio: acepta el convenio, los Términos y la Política de Privacidad.
+  aceptoConvenio?: boolean;
+  ip?: string;
 }
 
 @Injectable()
@@ -48,6 +64,13 @@ export class AuthService {
   // PENDIENTE_VERIFICACION hasta que Truora apruebe la identidad).
   // -------------------------------------------------------------------------
   async registrarVeterinario(input: RegistrarVeterinarioInput) {
+    if (input.aceptoConvenio !== true) {
+      throw new BadRequestException(
+        "Para registrarte tenés que aceptar el convenio, los Términos y Condiciones y la Política de Privacidad",
+      );
+    }
+    const matriculaVenceEl = fechaValida(input.matriculaVenceEl, "el vencimiento de la matrícula");
+    const seguroVenceEl = fechaValida(input.seguroVenceEl, "el vencimiento del seguro");
     const yaExiste = await this.prisma.veterinario.findUnique({ where: { email: input.email } });
     if (yaExiste) throw new BadRequestException("Ya existe un veterinario con ese email");
 
@@ -63,10 +86,13 @@ export class AuthService {
         dniONumero: input.dniONumero,
         matriculaNumero: input.matriculaNumero,
         matriculaColegio: input.matriculaColegio,
-        matriculaVenceEl: input.matriculaVenceEl,
+        matriculaVenceEl,
         seguroAseguradora: input.seguroAseguradora,
         seguroPoliza: input.seguroPoliza,
-        seguroVenceEl: input.seguroVenceEl,
+        seguroVenceEl,
+        convenioVersion: VERSION_CONVENIO_VETERINARIO,
+        convenioAceptadoEl: new Date(),
+        convenioIp: input.ip ?? null,
       },
     });
 

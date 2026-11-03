@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/com
 import { PrismaService } from "../../prisma.service";
 import { filtroSenalVigente } from "../../common/presencia";
 import type { PresenciaVeterinario } from "@prisma/client";
-import { MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
+import { MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN, VERSION_CONVENIO_VETERINARIO } from "@vet-teletriage/types";
 
 @Injectable()
 export class VeterinariosService {
@@ -172,16 +172,40 @@ export class VeterinariosService {
   // veterinario supiera si su cuenta ya está conectada o no — sin esto, la
   // pantalla /veterinario/cobros no tiene cómo mostrar el estado real, solo
   // el botón para conectar. Expone lo mínimo (nunca el access_token).
+  async estadoConvenio(veterinarioId: string) {
+    const v = await this.prisma.veterinario.findUniqueOrThrow({
+      where: { id: veterinarioId },
+      select: { convenioVersion: true, convenioAceptadoEl: true },
+    });
+    return {
+      version: VERSION_CONVENIO_VETERINARIO,
+      aceptado: v.convenioVersion === VERSION_CONVENIO_VETERINARIO && v.convenioAceptadoEl != null,
+    };
+  }
+
+  async aceptarConvenio(veterinarioId: string, version: string, ip?: string) {
+    if (version !== VERSION_CONVENIO_VETERINARIO) {
+      throw new BadRequestException("El texto del convenio cambió — volvé a abrirlo y leelo de nuevo");
+    }
+    await this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { convenioVersion: VERSION_CONVENIO_VETERINARIO, convenioAceptadoEl: new Date(), convenioIp: ip ?? null },
+    });
+    return this.estadoConvenio(veterinarioId);
+  }
+
   async miEstadoDeCobro(veterinarioId: string) {
     const veterinario = await this.prisma.veterinario.findUnique({
       where: { id: veterinarioId },
-      select: { medioDeCobro: true, mercadoPagoOAuthId: true, paypalEmail: true },
+      select: { medioDeCobro: true, mercadoPagoOAuthId: true, mercadoPagoAccessToken: true, paypalEmail: true },
     });
     if (!veterinario) throw new BadRequestException("Veterinario no encontrado");
     return {
       medioDeCobro: veterinario.medioDeCobro,
       mercadoPagoConectado: veterinario.mercadoPagoOAuthId != null,
       paypalEmail: veterinario.paypalEmail,
+      // Puede recibir consultas: tiene al menos una forma de cobrar conectada.
+      puedeCobrar: veterinario.mercadoPagoAccessToken != null || veterinario.paypalEmail != null,
     };
   }
 

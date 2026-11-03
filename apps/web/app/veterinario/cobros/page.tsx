@@ -4,8 +4,7 @@ import { Suspense, useCallback, useEffect, useState, type FormEvent } from "reac
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPatch, ApiError } from "../../../lib/api";
 import { useSesionVeterinario } from "../../../lib/sesion-veterinario";
-import { Logo } from "../../../components/Logo";
-import { LegalFooter } from "../../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
 // Situación probable, la segunda más grande de la revisión de 2026-09-29
 // (después de /registrar-veterinario): pagos.service.ts ya tenía toda la
@@ -128,8 +127,7 @@ function CobrosVeterinarioContenido() {
   const conectado = reciénConectado || estado?.mercadoPagoConectado;
 
   return (
-    <main style={{ maxWidth: 420, margin: "0 auto", padding: "40px 22px 60px" }}>
-      <Logo size="sm" marginBottom={20} />
+    <Pantalla titulo="Medios de cobro" variante="terracota" ancho={480} volver="/panel-veterinario">
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Medios de cobro
       </h1>
@@ -254,7 +252,6 @@ function CobrosVeterinarioContenido() {
         </div>
       )}
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

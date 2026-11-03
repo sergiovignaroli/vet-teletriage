@@ -1,3 +1,4 @@
+import { cifrarToken, descifrarToken } from "../../common/cifrado-tokens.util";
 import { BadRequestException, ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import {
@@ -229,8 +230,15 @@ export class PagosService {
     return { initPoint: orden.urlAprobacion };
   }
 
+  // Devuelve al veterinario con sus tokens YA descifrados (en la base están
+  // cifrados — ver common/cifrado-tokens.util.ts); quien llama los usa tal cual.
   private async asegurarTokenMercadoPagoVigente(veterinarioId: string) {
-    const veterinario = await this.prisma.veterinario.findUniqueOrThrow({ where: { id: veterinarioId } });
+    const guardado = await this.prisma.veterinario.findUniqueOrThrow({ where: { id: veterinarioId } });
+    const veterinario = {
+      ...guardado,
+      mercadoPagoAccessToken: descifrarToken(guardado.mercadoPagoAccessToken),
+      mercadoPagoRefreshToken: descifrarToken(guardado.mercadoPagoRefreshToken),
+    };
     if (!veterinario.mercadoPagoRefreshToken || !veterinario.mercadoPagoTokenVenceEl) return veterinario;
     // Margen de 5 minutos para no arrancar un checkout con un token que
     // vence en el medio del armado de la preferencia.
@@ -238,14 +246,20 @@ export class PagosService {
     if (!porVencer) return veterinario;
 
     const token = await refrescarTokenMercadoPago(veterinario.mercadoPagoRefreshToken);
-    return this.prisma.veterinario.update({
+    await this.prisma.veterinario.update({
       where: { id: veterinarioId },
       data: {
-        mercadoPagoAccessToken: token.access_token,
-        mercadoPagoRefreshToken: token.refresh_token,
+        mercadoPagoAccessToken: cifrarToken(token.access_token),
+        mercadoPagoRefreshToken: cifrarToken(token.refresh_token),
         mercadoPagoTokenVenceEl: new Date(Date.now() + token.expires_in * 1000),
       },
     });
+    return {
+      ...veterinario,
+      mercadoPagoAccessToken: token.access_token,
+      mercadoPagoRefreshToken: token.refresh_token,
+      mercadoPagoTokenVenceEl: new Date(Date.now() + token.expires_in * 1000),
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -697,8 +711,8 @@ export class PagosService {
       where: { id: veterinarioId },
       data: {
         mercadoPagoOAuthId: String(token.user_id),
-        mercadoPagoAccessToken: token.access_token,
-        mercadoPagoRefreshToken: token.refresh_token,
+        mercadoPagoAccessToken: cifrarToken(token.access_token),
+        mercadoPagoRefreshToken: cifrarToken(token.refresh_token),
         mercadoPagoTokenVenceEl: new Date(Date.now() + token.expires_in * 1000),
         medioDeCobro: "MERCADO_PAGO",
       },

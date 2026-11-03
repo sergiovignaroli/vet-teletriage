@@ -9,8 +9,7 @@
 import { useEffect, useState } from "react";
 import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { apiGet } from "../../lib/api";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 import { TELEFONO_ENLACE, TELEFONO_VISIBLE } from "../../lib/datos-legales";
 
 const REDES: Array<{ campo: keyof ConfiguracionPlataforma; etiqueta: string }> = [
@@ -38,19 +37,8 @@ export default function ContactoPage() {
 
   const redesCargadas = config ? REDES.filter(({ campo }) => Boolean(config[campo])) : [];
   return (
-    <main
-      style={{
-        maxWidth: 380,
-        margin: "0 auto",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: "0 22px",
-        textAlign: "center",
-      }}
-    >
-      <Logo tagline="Teleasesoramiento veterinario" size="lg" marginBottom={32} />
+    <Pantalla titulo="Ayuda" variante="menta" ancho={420} volver="/" centrar>
+      <MarcaGrande detalle="Teleasesoramiento veterinario" />
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 16 }}>
         Contacto
       </h1>
@@ -87,7 +75,6 @@ export default function ContactoPage() {
         </div>
       )}
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

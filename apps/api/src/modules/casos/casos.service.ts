@@ -133,6 +133,9 @@ export class CasosService {
       where: {
         estado: "HABILITADO",
         presencia: { in: ["CONECTADO", "STAND_BY"] },
+        // Solo quien puede cobrar: sin cuenta de cobro conectada (Mercado Pago
+        // o PayPal) el caso quedaría trabado después de que acepte (H-03).
+        AND: [{ OR: [{ mercadoPagoAccessToken: { not: null } }, { paypalEmail: { not: null } }] }],
         // Solo quien tiene el panel abierto (latido reciente) — ver common/presencia.ts
         ...filtroSenalVigente(),
         casos: { none: { estado: "ASIGNADO" } },

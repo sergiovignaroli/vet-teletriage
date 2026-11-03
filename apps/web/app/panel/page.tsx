@@ -7,8 +7,7 @@ import type { CasoParaCliente, SolicitudParaCliente } from "@vet-teletriage/type
 import { apiGet, apiPatch, ApiError } from "../../lib/api";
 import { useSesionCliente } from "../../lib/sesion";
 import { Onboarding } from "../../components/Onboarding";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-AR", {
   day: "2-digit",
@@ -27,6 +26,17 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   EN_SESION: "En sesión ahora",
   CERRADO: "Asesoramiento finalizado",
   CANCELADO_FALLA_PLATAFORMA: "Cancelado",
+};
+
+// Punto de color de cada asesoramiento (mismo criterio que en el resto de la
+// plataforma: verde = en curso, ámbar = esperando, gris = terminado).
+const PUNTO_ESTADO: Record<string, string> = {
+  INTAKE: "var(--punto-espera)",
+  BANDERA_ROJA_MOSTRADA: "var(--punto-espera)",
+  ASIGNADO: "var(--punto-espera)",
+  EN_SESION: "var(--punto-ok)",
+  CERRADO: "var(--punto-off)",
+  CANCELADO_FALLA_PLATAFORMA: "var(--punto-off)",
 };
 
 export default function PanelPage() {
@@ -97,13 +107,11 @@ export default function PanelPage() {
   }
 
   return (
-    <main style={{ maxWidth: 420, margin: "0 auto", padding: "40px 22px", textAlign: "center" }}>
-      <Logo size="md" marginBottom={28} />
-
+    <Pantalla titulo="Mi panel" variante="menta" ancho={480} centrar salir={cerrarSesion}>
       <h1 className="va-titular" style={{ fontSize: 24, marginBottom: 10 }}>
         ¿Qué necesitás hoy?
       </h1>
-      <p style={{ fontSize: 14, opacity: 0.7, marginBottom: 28 }}>
+      <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 28 }}>
         Contanos qué le pasa a tu mascota y te conectamos con un veterinario matriculado.
       </p>
 
@@ -129,15 +137,7 @@ export default function PanelPage() {
         Iniciar un asesoramiento
       </Link>
 
-      <button
-        type="button"
-        onClick={cerrarSesion}
-        style={{ background: "none", border: "none", opacity: 0.75, fontSize: 13, marginTop: 24, marginBottom: 8, cursor: "pointer" }}
-      >
-        Cerrar sesión
-      </button>
-
-      <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginTop: 24, marginBottom: 10, textAlign: "left" }}>
+      <h2 className="va-etiqueta" style={{ marginTop: 32, marginBottom: 10, textAlign: "left" }}>
         Mis asesoramientos
       </h2>
 
@@ -167,7 +167,17 @@ export default function PanelPage() {
               <strong style={{ fontSize: 14 }}>{caso.intake.especie}</strong>
               <span style={{ fontSize: 11, opacity: 0.75 }}>{FORMATO_FECHA.format(new Date(caso.creadoEl))}</span>
             </div>
-            <p style={{ fontSize: 12, opacity: 0.75, margin: "0 0 6px" }}>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 8px", display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  flex: "none",
+                  background: PUNTO_ESTADO[caso.estado] ?? "var(--punto-off)",
+                }}
+              />
               {ETIQUETA_ESTADO[caso.estado] ?? caso.estado}
               {caso.veterinario && (
                 <>
@@ -200,7 +210,7 @@ export default function PanelPage() {
                 </a>
               ) : (
                 <span style={{ fontSize: 12, opacity: 0.75 }}>
-                  Tu veterinario te va a contactar por WhatsApp para la videollamada.
+                  La videollamada se abre desde acá en cuanto tu veterinario la inicie.
                 </span>
               ))}
 
@@ -233,7 +243,6 @@ export default function PanelPage() {
         ))}
       </div>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

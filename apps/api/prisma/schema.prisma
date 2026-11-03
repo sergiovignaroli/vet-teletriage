@@ -88,6 +88,10 @@ model Veterinario {
   // Aceptación del aviso sobre qué tipo de servicio es (nunca lo ve el tutor).
   avisoPreciosVersion    String?
   avisoPreciosAceptadoEl DateTime?
+  // Aceptación del convenio de adhesión (junto con Términos y Privacidad).
+  convenioVersion        String?
+  convenioAceptadoEl     DateTime?
+  convenioIp             String?
 
   // Premio por volumen (Sergio, 2026-09-30): contador que solo sube, nunca
   // baja — se incrementa en CasosService.cerrar() cada vez que un caso de

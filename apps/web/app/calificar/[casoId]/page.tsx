@@ -5,8 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { CasoParaCliente } from "@vet-teletriage/types";
 import { apiGet, apiPostAuth, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
-import { Logo } from "../../../components/Logo";
-import { LegalFooter } from "../../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
 // Cierra el circuito de calificación (Sergio, 2026-09-29): sin esta
 // pantalla, POST /calificaciones existía en el backend pero nada en la app
@@ -77,8 +76,8 @@ export default function CalificarPage() {
 
   if (enviado) {
     return (
-      <main style={{ maxWidth: 380, margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 22px", textAlign: "center" }}>
-        <Logo size="md" marginBottom={28} />
+      <Pantalla titulo="Calificar" variante="menta" ancho={420} volver="/panel" centrar>
+      <MarcaGrande />
         <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }}>
           Gracias por calificar
         </h1>
@@ -88,42 +87,39 @@ export default function CalificarPage() {
         <a href="/panel" className="va-boton" style={{ textDecoration: "none" }}>
           Volver al inicio
         </a>
-        <LegalFooter />
-      </main>
+        </Pantalla>
     );
   }
 
   if (!caso || !caso.veterinario) {
     return (
-      <main style={{ maxWidth: 380, margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 22px", textAlign: "center" }}>
-        <Logo size="md" marginBottom={28} />
+      <Pantalla titulo="Calificar" variante="menta" ancho={420} volver="/panel" centrar>
+      <MarcaGrande />
         <p style={{ fontSize: 14, opacity: 0.7 }}>No encontramos ese asesoramiento.</p>
         <a href="/panel" className="va-boton" style={{ textDecoration: "none", marginTop: 20 }}>
           Volver al inicio
         </a>
-        <LegalFooter />
-      </main>
+        </Pantalla>
     );
   }
 
   if (caso.yaCalificado) {
     return (
-      <main style={{ maxWidth: 380, margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 22px", textAlign: "center" }}>
-        <Logo size="md" marginBottom={28} />
+      <Pantalla titulo="Calificar" variante="menta" ancho={420} volver="/panel" centrar>
+      <MarcaGrande />
         <p style={{ fontSize: 14, opacity: 0.7 }}>Ya calificaste este asesoramiento — gracias.</p>
         <a href="/panel" className="va-boton" style={{ textDecoration: "none", marginTop: 20 }}>
           Volver al inicio
         </a>
-        <LegalFooter />
-      </main>
+        </Pantalla>
     );
   }
 
   const estrellasAMostrar = estrellasHover || estrellas;
 
   return (
-    <main style={{ maxWidth: 380, margin: "0 auto", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 22px", textAlign: "center" }}>
-      <Logo size="md" marginBottom={28} />
+    <Pantalla titulo="Calificar" variante="menta" ancho={420} volver="/panel" centrar>
+      <MarcaGrande />
 
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         ¿Cómo te fue con {caso.veterinario.nombre}?
@@ -176,7 +172,6 @@ export default function CalificarPage() {
         {enviando ? "Enviando…" : "Enviar calificación"}
       </button>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

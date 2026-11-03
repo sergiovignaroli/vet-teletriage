@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 
 interface RespuestaLoginVeterinario {
   accessToken: string;
@@ -61,19 +60,8 @@ export default function IngresarVeterinarioPage() {
   }
 
   return (
-    <main
-      style={{
-        maxWidth: 380,
-        margin: "0 auto",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: "0 22px",
-        textAlign: "center",
-      }}
-    >
-      <Logo tagline="Panel de veterinarios" />
+    <Pantalla titulo="Ingresar" variante="terracota" ancho={420} volver="/" centrar>
+      <MarcaGrande detalle="Panel de veterinarios" />
 
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 8 }}>
         Ingresá a tu cuenta
@@ -118,19 +106,18 @@ export default function IngresarVeterinarioPage() {
 
       <Link
         href="/registrar-veterinario"
-        style={{ fontSize: 13, opacity: 0.7, marginTop: 20, textDecoration: "underline", fontWeight: 700 }}
+        style={{ display: "block", fontSize: 13.5, color: "var(--esmeralda)", marginTop: 22, textDecoration: "underline", fontWeight: 700 }}
       >
         ¿Todavía no tenés cuenta? Registrate acá
       </Link>
 
       <Link
         href="/ingresar"
-        style={{ fontSize: 13, opacity: 0.75, marginTop: 14, textDecoration: "underline" }}
+        style={{ display: "block", fontSize: 13.5, color: "var(--muted)", marginTop: 14, textDecoration: "underline" }}
       >
         ¿Sos dueño de una mascota? Ingresá acá
       </Link>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }

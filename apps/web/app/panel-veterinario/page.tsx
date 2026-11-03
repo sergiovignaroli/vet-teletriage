@@ -13,8 +13,7 @@ import { useAvisosPush } from "../../lib/push";
 import { VentanaSolicitud } from "../../components/VentanaSolicitud";
 import type { Presencia } from "../../lib/sesion-veterinario";
 import { Onboarding } from "../../components/Onboarding";
-import { Logo } from "../../components/Logo";
-import { LegalFooter } from "../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 
 const FORMATO_FECHA = new Intl.DateTimeFormat("es-AR", {
   day: "2-digit",
@@ -30,6 +29,17 @@ const FORMATO_HORA = new Intl.DateTimeFormat("es-AR", {
   hour: "2-digit",
   minute: "2-digit",
 });
+
+// Cómo se le cuenta al veterinario el estado de su cuenta (nunca el nombre técnico).
+const ETIQUETA_CUENTA: Record<string, string> = {
+  PENDIENTE_VERIFICACION: "Pendiente de verificación",
+  HABILITADO: "Habilitado",
+  SUSPENDIDO_MATRICULA_VENCIDA: "Suspendido: matrícula vencida",
+  SUSPENDIDO_SEGURO_VENCIDO: "Suspendido: seguro vencido",
+  SUSPENDIDO_DISPUTA_IDENTIDAD: "Suspendido: verificación de identidad en revisión",
+  SUSPENDIDO_INCUMPLIMIENTO: "Suspendido",
+  DESVINCULADO: "Desvinculado",
+};
 
 const ETIQUETA_ESTADO: Record<string, string> = {
   INTAKE: "Nuevo",
@@ -73,6 +83,14 @@ export default function PanelVeterinarioPage() {
   const [errorCasos, setErrorCasos] = useState<string | null>(null);
 
 
+  // Cobro conectado y convenio aceptado: sin cobro conectado no pueden elegirte;
+  // sin convenio vigente hay que aceptarlo antes de recibir consultas.
+  const [puedeCobrar, setPuedeCobrar] = useState<boolean | null>(null);
+  const [convenio, setConvenio] = useState<{ version: string; aceptado: boolean } | null>(null);
+  const [tildeConvenio, setTildeConvenio] = useState(false);
+  const [aceptandoConvenio, setAceptandoConvenio] = useState(false);
+  const [errorConvenio, setErrorConvenio] = useState<string | null>(null);
+
   const [iniciando, setIniciando] = useState<string | null>(null);
   const [errorIniciar, setErrorIniciar] = useState<string | null>(null);
 
@@ -112,6 +130,34 @@ export default function PanelVeterinarioPage() {
     if (!sesion || !sesion.onboardingCompletado) return;
     cargarCasos();
   }, [sesion, cargarCasos]);
+
+  useEffect(() => {
+    if (!sesion || !sesion.onboardingCompletado) return;
+    apiGet<{ puedeCobrar: boolean }>("/veterinarios/mi-cobro", sesion.accessToken)
+      .then((r) => setPuedeCobrar(r.puedeCobrar))
+      .catch(() => {});
+    apiGet<{ version: string; aceptado: boolean }>("/veterinarios/convenio", sesion.accessToken)
+      .then(setConvenio)
+      .catch(() => {});
+  }, [sesion]);
+
+  async function aceptarConvenio() {
+    if (!sesion || !convenio) return;
+    setAceptandoConvenio(true);
+    setErrorConvenio(null);
+    try {
+      const r = await apiPostAuth<{ version: string; aceptado: boolean }>(
+        "/veterinarios/convenio/aceptar",
+        sesion.accessToken,
+        { version: convenio.version },
+      );
+      setConvenio(r);
+    } catch (e) {
+      setErrorConvenio(e instanceof ApiError ? e.message : "No pudimos registrar la aceptación. Probá de nuevo.");
+    } finally {
+      setAceptandoConvenio(false);
+    }
+  }
 
   // Solicitudes de atención: ventana emergente con sonido y vibración. Al
   // aceptar, el caso queda asignado y la lista se recarga.
@@ -264,7 +310,7 @@ export default function PanelVeterinarioPage() {
   }
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 22px 60px" }}>
+    <Pantalla titulo="Mi panel" variante="terracota" ancho={640} salir={cerrarSesion}>
       {solicitud && (
         <VentanaSolicitud
           solicitud={solicitud}
@@ -275,35 +321,55 @@ export default function PanelVeterinarioPage() {
           onPostergar={(minutos) => responder("postergar", minutos)}
         />
       )}
-      {/* La marca siempre centrada (pedido explícito de Sergio, 2026-09-29),
-          aunque este panel necesite además un link de "Cerrar sesión" —
-          por eso va en una esquina, no compitiendo por el centro con el logo. */}
-      <div style={{ position: "relative", marginBottom: 20 }}>
-        <button
-          type="button"
-          onClick={cerrarSesion}
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            background: "none",
-            border: "none",
-            opacity: 0.75,
-            fontSize: 13,
-            cursor: "pointer",
-          }}
-        >
-          Cerrar sesión
-        </button>
-        <Logo size="sm" marginBottom={0} />
-      </div>
-
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>
         Hola, {sesion.nombre}
       </h1>
       <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 16, textAlign: "center" }}>
-        Estado de tu cuenta: {sesion.estado}
+        <span className={`va-punto ${sesion.estado === "HABILITADO" ? "va-punto-ok" : "va-punto-espera"}`} style={{ marginRight: 8 }} />
+        Tu cuenta: {ETIQUETA_CUENTA[sesion.estado] ?? sesion.estado}
       </p>
+
+      {convenio && !convenio.aceptado && (
+        <div className="va-tarjeta" style={{ padding: 16, marginBottom: 12, borderColor: "var(--alerta-borde)" }}>
+          <div className="va-etiqueta" style={{ color: "var(--alerta)" }}>Falta un paso</div>
+          <p style={{ fontSize: 14, margin: "6px 0 10px", lineHeight: 1.5 }}>
+            Para recibir consultas tenés que aceptar el{" "}
+            <Link href="/convenio-veterinario" target="_blank" style={{ color: "var(--esmeralda)", fontWeight: 700 }}>
+              Convenio de adhesión para veterinarios
+            </Link>
+            .
+          </p>
+          <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, marginBottom: 12 }}>
+            <input
+              type="checkbox"
+              checked={tildeConvenio}
+              onChange={(e) => setTildeConvenio(e.target.checked)}
+              style={{ width: 20, height: 20, marginTop: 1, flex: "none" }}
+            />
+            Leí y acepto el convenio.
+          </label>
+          {errorConvenio && (
+            <p style={{ color: "var(--alerta)", fontSize: 13, margin: "0 0 10px" }} role="alert">
+              {errorConvenio}
+            </p>
+          )}
+          <button type="button" className="va-boton" onClick={aceptarConvenio} disabled={!tildeConvenio || aceptandoConvenio}>
+            {aceptandoConvenio ? "Un momento…" : "Aceptar el convenio"}
+          </button>
+        </div>
+      )}
+
+      {sesion.estado === "HABILITADO" && puedeCobrar === false && (
+        <div className="va-tarjeta" style={{ padding: 16, marginBottom: 12, borderColor: "var(--alerta-borde)" }}>
+          <div className="va-etiqueta" style={{ color: "var(--alerta)" }}>Todavía no te pueden elegir</div>
+          <p style={{ fontSize: 14, margin: "6px 0 12px", lineHeight: 1.5 }}>
+            Para aparecer en la lista y recibir consultas, primero conectá tu cuenta de cobro (Mercado Pago o PayPal).
+          </p>
+          <Link href="/veterinario/cobros" className="va-boton" style={{ textDecoration: "none" }}>
+            Conectar mi cuenta de cobro
+          </Link>
+        </div>
+      )}
 
       <div
         style={{
@@ -315,22 +381,28 @@ export default function PanelVeterinarioPage() {
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Tu estado</div>
-        <div role="radiogroup" aria-label="Tu estado" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+        <div role="group" aria-label="Tu estado" className="va-seg">
           {OPCIONES_PRESENCIA.map((o) => {
             const elegida = sesion.presencia === o.valor;
             const bloqueada = o.valor !== "DESCONECTADO" && sesion.estado !== "HABILITADO";
+            const punto = o.valor === "CONECTADO" ? "va-punto-ok" : o.valor === "STAND_BY" ? "va-punto-espera" : "";
             return (
               <button
                 key={o.valor}
                 type="button"
-                role="radio"
-                aria-checked={elegida}
-                className={elegida ? "va-boton" : "va-boton va-boton-ghost"}
-                style={{ width: "100%", minHeight: 44, padding: "0 4px", fontSize: 11 }}
+                className="va-seg-op"
+                aria-pressed={elegida}
                 onClick={() => cambiarPresencia(o.valor)}
                 disabled={cambiandoConexion !== null || bloqueada}
               >
-                {cambiandoConexion === o.valor ? "Un momento…" : o.etiqueta}
+                {cambiandoConexion === o.valor ? (
+                  "Un momento…"
+                ) : (
+                  <>
+                    <span className={`va-punto ${punto}`} style={elegida ? { background: "#fff" } : undefined} />
+                    {o.etiqueta}
+                  </>
+                )}
               </button>
             );
           })}
@@ -565,16 +637,17 @@ export default function PanelVeterinarioPage() {
       {/* Precios propios (Sergio, 2026-11-03): cuatro precios — normal y
           urgencia, diurno y nocturno — dentro de la banda que define la
           plataforma. Reemplaza al margen sobre un precio base. */}
-      <MisPrecios token={sesion.accessToken} />
+      {sesion.estado === "HABILITADO" && <MisPrecios token={sesion.accessToken} />}
 
       <Link
         href="/veterinario/cobros"
-        style={{ fontSize: 13, opacity: 0.75, display: "block", marginBottom: 24, textDecoration: "underline" }}
+        className="va-chip-boton"
+        style={{ marginBottom: 24, textDecoration: "none" }}
       >
-        Medios de cobro — conectá tu cuenta de Mercado Pago
+        Medios de cobro: Mercado Pago o PayPal
       </Link>
 
-      <h2 style={{ fontSize: 15, opacity: 0.75, fontWeight: 700, marginBottom: 10 }}>Mis casos</h2>
+      <h2 className="va-etiqueta" style={{ marginBottom: 10 }}>Mis casos</h2>
 
       {cargandoCasos && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
       {errorCasos && (
@@ -711,8 +784,7 @@ export default function PanelVeterinarioPage() {
         )}
       </div>
 
-      <LegalFooter />
-    </main>
+    </Pantalla>
   );
 }
 

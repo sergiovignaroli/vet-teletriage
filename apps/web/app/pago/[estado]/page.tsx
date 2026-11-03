@@ -5,8 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { CasoParaCliente } from "@vet-teletriage/types";
 import { apiGet, apiPostAuth, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
-import { Logo } from "../../../components/Logo";
-import { LegalFooter } from "../../../components/LegalFooter";
+import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
 // Pantallas de resultado post-Mercado Pago (Sergio, 2026-09-29) — antes los
 // tres back_urls (éxito/pendiente/fallo) de la preferencia apuntaban los
@@ -31,7 +30,7 @@ export default function ResultadoPagoPage() {
 const COPY: Record<string, { titulo: string; texto: string }> = {
   exito: {
     titulo: "¡Listo! Tu pago se confirmó",
-    texto: "Guardamos tu asesoramiento — ya podés esperar a que tu veterinario te contacte para la videollamada.",
+    texto: "Guardamos tu asesoramiento — la videollamada se abre desde tu panel en cuanto tu veterinario la inicie.",
   },
   pendiente: {
     titulo: "Tu pago quedó pendiente de acreditación",
@@ -103,16 +102,17 @@ function ResultadoPagoContenido() {
   const copy = COPY[params.estado] ?? COPY.fallo;
 
   return (
-    <main style={{ maxWidth: 420, margin: "0 auto", padding: "48px 22px", textAlign: "center" }}>
-      <Logo size="md" marginBottom={28} />
+    <Pantalla titulo="Resultado del pago" variante="menta" ancho={420} centrar>
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 10 }}>
         {copy.titulo}
       </h1>
-      <p style={{ fontSize: 14, opacity: 0.8, marginBottom: 20 }}>{copy.texto}</p>
+      <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 20 }}>{copy.texto}</p>
 
       {!casoId && (
-        <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 16 }} role="alert">
-          No pudimos identificar de qué asesoramiento se trata este pago.
+        <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 16 }} role="status">
+          {params.estado === "fallo"
+            ? "No pudimos identificar de qué asesoramiento se trata este pago. Entrá a tu panel para reintentarlo."
+            : "Mirá el estado de tu asesoramiento en tu panel."}
         </p>
       )}
       {error && (
@@ -153,14 +153,10 @@ function ResultadoPagoContenido() {
         </>
       )}
 
-      <p style={{ marginTop: 20 }}>
-        <a href="/panel" style={{ fontSize: 13 }}>
-          Ver mis asesoramientos
-        </a>
-      </p>
-
-      <LegalFooter />
-    </main>
+      <a href="/panel" className="va-boton va-boton-ghost" style={{ marginTop: 20, textDecoration: "none" }}>
+        Ver mis asesoramientos
+      </a>
+    </Pantalla>
   );
 }
 
