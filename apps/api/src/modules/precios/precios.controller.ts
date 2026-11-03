@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
-import type { ClaveTarifa, TarifaCelda } from "@vet-teletriage/types";
+import type { ClaveTarifa, ModoPrecio, TarifaCelda } from "@vet-teletriage/types";
 import { PreciosService } from "./precios.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
@@ -29,8 +29,11 @@ export class PreciosController {
 
   @Put("mis-precios")
   @Roles("VETERINARIO")
-  guardarMisPrecios(@CurrentUser() usuario: UsuarioAutenticado, @Body() cuerpo: Partial<Record<ClaveTarifa, number | null>>) {
-    return this.precios.guardarMisPrecios(usuario.id, cuerpo ?? {});
+  guardarMisPrecios(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() cuerpo: { precios?: Partial<Record<ClaveTarifa, number | null>>; confirmar?: boolean },
+  ) {
+    return this.precios.guardarMisPrecios(usuario.id, cuerpo?.precios ?? {}, cuerpo?.confirmar === true);
   }
 
   // --- Dueño ---------------------------------------------------------------
@@ -56,6 +59,12 @@ export class PreciosController {
     @Body() cuerpo: { pais: string; porcentaje: number; claves?: ClaveTarifa[]; aplicar?: boolean },
   ) {
     return this.precios.ajustePorcentual(admin.id, cuerpo.pais, cuerpo.porcentaje, cuerpo.claves, cuerpo.aplicar === true);
+  }
+
+  @Put("admin/modo")
+  @Roles("ADMIN")
+  modo(@CurrentUser() admin: UsuarioAutenticado, @Body() cuerpo: { pais: string; modo: ModoPrecio }) {
+    return this.precios.guardarModo(admin.id, cuerpo.pais, cuerpo.modo);
   }
 
   @Put("admin/comision")
@@ -92,5 +101,18 @@ export class PreciosController {
   @Roles("ADMIN")
   historial() {
     return this.precios.historial();
+  }
+}
+
+// Lo único de los precios que es público: cómo se fijan (para que los Términos
+// digan siempre lo que de verdad rige) y la comisión. Nada por veterinario.
+@Controller("precios-publico")
+export class PreciosPublicoController {
+  constructor(private readonly precios: PreciosService) {}
+
+  @Get()
+  async resumen(@Query("pais") pais = "AR") {
+    const p = await this.precios.panel(pais);
+    return { pais: p.pais, modo: p.modo, porcentajePlataforma: p.porcentajePlataforma, cargoMinimoDiurno: p.cargoMinimoDiurno, cargoMinimoNocturno: p.cargoMinimoNocturno };
   }
 }

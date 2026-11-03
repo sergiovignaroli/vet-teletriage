@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
 import { PreciosService } from "./precios.service";
-import { PreciosController } from "./precios.controller";
+import { PreciosController, PreciosPublicoController } from "./precios.controller";
 import { PrismaService } from "../../prisma.service";
 import { ConfiguracionModule } from "../configuracion/configuracion.module";
 
 @Module({
   imports: [ConfiguracionModule],
-  controllers: [PreciosController],
+  controllers: [PreciosController, PreciosPublicoController],
   providers: [PreciosService, PrismaService],
   exports: [PreciosService],
 })

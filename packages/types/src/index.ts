@@ -162,12 +162,56 @@ export function franjaEnZona(instante: Date, regla: ReglaFranja): FranjaHoraria 
   return p.minutos >= minutosDeHora(regla.inicioDiurno) && p.minutos <= minutosDeHora(regla.finDiurno) ? "DIURNA" : "NOCTURNA";
 }
 
-// El veterinario elige su precio; si no eligió, rige el aconsejado. En
-// cualquier caso queda dentro de la banda: si el dueño sube el piso, nadie
-// queda por debajo sin tener que reescribir lo que cada uno guardó.
-export function precioEfectivo(celda: TarifaCelda, precioPropio: number | null | undefined): number {
-  const base = precioPropio == null ? celda.aconsejado : precioPropio;
-  return Math.round(Math.min(celda.techo, Math.max(celda.piso, base)));
+// Cómo se fijan los precios en un país (el dueño lo cambia desde el panel, sin
+// tocar código). Las tres opciones usan los mismos tres números de la banda:
+//  - FIJO:  todos cobran el precio aconsejado; el veterinario no elige.
+//  - BANDA: el veterinario elige, pero solo entre piso y techo (se rechaza
+//           lo que quede afuera).
+//  - LIBRE: el veterinario elige el suyo; piso y techo son una zona SUGERIDA:
+//           salirse pide una confirmación, no se prohíbe. Solo hay un tope
+//           técnico contra errores de tipeo.
+export type ModoPrecio = "FIJO" | "BANDA" | "LIBRE";
+export const MODOS_PRECIO: ModoPrecio[] = ["FIJO", "BANDA", "LIBRE"];
+// Tope técnico del modo LIBRE: un precio por encima de N veces el aconsejado
+// se rechaza como error de tipeo (un cero de más), no como regla de precios.
+export const LIMITE_TECNICO_MULTIPLO = 10;
+
+// El veterinario elige su precio; si no eligió, rige el aconsejado. Siempre
+// devuelve un precio válido para el modo vigente, aunque lo guardado haya
+// quedado desactualizado (por ejemplo, si el dueño cambió de modo o subió el
+// piso): no hace falta reescribir lo que cada veterinario guardó.
+export function precioEfectivo(celda: TarifaCelda, precioPropio: number | null | undefined, modo: ModoPrecio = "BANDA"): number {
+  if (modo === "FIJO" || precioPropio == null) return Math.round(celda.aconsejado);
+  if (modo === "BANDA") return Math.round(Math.min(celda.techo, Math.max(celda.piso, precioPropio)));
+  // LIBRE: se respeta lo que puso, salvo que sea imposible (≤ 0 o pasado del tope técnico).
+  if (!(precioPropio > 0) || precioPropio > celda.aconsejado * LIMITE_TECNICO_MULTIPLO) return Math.round(celda.aconsejado);
+  return Math.round(precioPropio);
+}
+
+export type ResultadoValidacionPrecio =
+  | { estado: "ok" }
+  | { estado: "rechazado"; motivo: string }
+  | { estado: "pide_confirmacion"; motivo: string };
+
+// Qué hacer con un precio que el veterinario quiere guardar, según el modo.
+export function validarPrecioPropio(celda: TarifaCelda, valor: number, modo: ModoPrecio): ResultadoValidacionPrecio {
+  if (modo === "FIJO") return { estado: "rechazado", motivo: "En este momento los precios los fija la plataforma." };
+  if (typeof valor !== "number" || !Number.isFinite(valor) || valor <= 0) {
+    return { estado: "rechazado", motivo: "El precio tiene que ser un número mayor a 0" };
+  }
+  if (modo === "BANDA") {
+    if (valor < celda.piso || valor > celda.techo) {
+      return { estado: "rechazado", motivo: `El precio tiene que estar entre ${celda.piso} y ${celda.techo}` };
+    }
+    return { estado: "ok" };
+  }
+  if (valor > celda.aconsejado * LIMITE_TECNICO_MULTIPLO) {
+    return { estado: "rechazado", motivo: "Ese precio es demasiado alto: revisá que no tenga un cero de más" };
+  }
+  if (valor < celda.piso || valor > celda.techo) {
+    return { estado: "pide_confirmacion", motivo: `Está fuera de la zona sugerida (${celda.piso} a ${celda.techo}). ¿Confirmás este precio?` };
+  }
+  return { estado: "ok" };
 }
 
 // Comisión: porcentaje del honorario, con un mínimo fijo.
@@ -194,14 +238,17 @@ export function motivoCeldaInvalida(celda: TarifaCelda): string | null {
 // Aviso que el veterinario ve y acepta antes de poner su propio precio
 // (nunca lo ve el tutor). Si cambia el texto, hay que subir la versión.
 // ⚠ Texto a revisar por el abogado antes de lanzar.
-export const VERSION_AVISO_PRECIOS = "2026-11-03";
+export const VERSION_AVISO_PRECIOS = "2026-11-03b";
 export const TEXTO_AVISO_PRECIOS =
   "El servicio que prestás en esta plataforma es de orientación y triage por videollamada, no una consulta clínica. " +
   "Por eso el valor tiene que ser accesible para el tutor. Te recomendamos verificar con tu colegio veterinario si su " +
-  "nomenclador contempla este tipo de servicio. Vos decidís tu precio dentro del rango que se muestra.";
+  "nomenclador contempla este tipo de servicio. Sos un profesional independiente: elegís tu precio según las condiciones " +
+  "que se muestran abajo, tus horarios, y podés rechazar solicitudes sin dar explicaciones. No hay exclusividad ni " +
+  "cantidad mínima de consultas: podés atender por otros medios y en otras plataformas.";
 
 // Lo que devuelve GET /veterinarios/mis-precios.
 export interface MisPreciosVeterinario {
+  modo: ModoPrecio;
   moneda: string;
   zonaHoraria: string;
   porcentajePlataforma: number;
@@ -375,7 +422,7 @@ export interface VeterinarioParaElegir {
 // Versión vigente de los Términos y Condiciones. Se guarda con cada
 // aceptación (SolicitudAtencion.terminosVersion): al cambiar el texto de los
 // Términos hay que subir esta fecha.
-export const VERSION_TERMINOS = "2026-10-27";
+export const VERSION_TERMINOS = "2026-11-03";
 
 // Tiempo que tiene el veterinario para responder una solicitud (Sergio,
 // 2026-10-27): 90 segundos si está libre, 2 minutos si está en una consulta.

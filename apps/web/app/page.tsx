@@ -518,8 +518,8 @@ export default function HomePage() {
           </Link>
         </nav>
         <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--muted)", maxWidth: 720, margin: "20px auto 0", textAlign: "center" }}>
-          Videollamada Animal es una plataforma intermediaria. Los veterinarios ejercen su profesión de forma independiente,
-          bajo su matrícula y su responsabilidad. El servicio es una orientación a distancia y no reemplaza un examen presencial.
+          Videollamada Animal es una plataforma tecnológica que conecta dueños de mascotas con veterinarios matriculados. Cada
+          veterinario ejerce su profesión de forma independiente, bajo su matrícula y su responsabilidad. El servicio es una orientación a distancia y no reemplaza un examen presencial.
         </p>
         <LegalFooter />
       </footer>

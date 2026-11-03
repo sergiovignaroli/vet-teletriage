@@ -247,25 +247,6 @@ export default function AdminPreciosPage() {
             </Campo>
           </Seccion>
 
-          <Seccion titulo="Premio por volumen">
-            <Campo etiqueta="Sesiones cerradas para calificar" ayuda="A partir de superar este número">
-              <input
-                className="va-input"
-                type="number"
-                value={form.umbralSesionesVeterano}
-                onChange={(e) => actualizarCampo("umbralSesionesVeterano", e.target.value)}
-              />
-            </Campo>
-            <Campo etiqueta="Premio (%)" ayuda="Se suma arriba del margen propio del veterinario — lo paga el cliente, automático">
-              <input
-                className="va-input"
-                type="number"
-                value={form.bonusVeteranoPorcentaje}
-                onChange={(e) => actualizarCampo("bonusVeteranoPorcentaje", e.target.value)}
-              />
-            </Campo>
-          </Seccion>
-
           <Seccion titulo="Contacto y redes">
             <Campo etiqueta="Email de contacto" ayuda="Se muestra en la pantalla de Contacto">
               <input

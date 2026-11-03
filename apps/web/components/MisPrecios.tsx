@@ -1,10 +1,11 @@
 "use client";
 
 // Precios propios del veterinario (Sergio, 2026-11-03). Cuatro precios —
-// consulta normal y urgencia, diurno y nocturno— dentro de la banda que
-// define la plataforma. Antes de poner el propio, el veterinario lee y acepta
-// un aviso sobre qué tipo de servicio es (solo lo ve él, nunca el tutor).
-// El texto del aviso viene del servidor: no está escrito acá.
+// consulta normal y urgencia, diurno y nocturno—. Qué puede hacer depende del
+// modo que fija el dueño: FIJO (no elige), BANDA (solo entre piso y techo) o
+// LIBRE (elige; fuera de la zona sugerida debe confirmar). Antes de poner el
+// propio, lee y acepta un aviso (solo lo ve él, nunca el tutor). El texto del
+// aviso viene del servidor: no está escrito acá.
 import { useCallback, useEffect, useState } from "react";
 import { cargoPlataformaPorcentual } from "@vet-teletriage/types";
 import type { ClaveTarifa, MisPreciosVeterinario } from "@vet-teletriage/types";
@@ -38,6 +39,7 @@ export function MisPrecios({ token }: { token: string }) {
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [leyo, setLeyo] = useState(false);
+  const [porConfirmar, setPorConfirmar] = useState<string | null>(null);
 
   const aplicar = useCallback((d: MisPreciosVeterinario) => {
     setDatos(d);
@@ -64,25 +66,27 @@ export function MisPrecios({ token }: { token: string }) {
     }
   }
 
-  async function guardar() {
+  async function guardar(confirmar = false) {
     if (!datos) return;
     setError(null);
     setGuardado(false);
-    const cuerpo: Partial<Record<ClaveTarifa, number | null>> = {};
+    const precios: Partial<Record<ClaveTarifa, number | null>> = {};
     for (const c of datos.celdas) {
       const texto = (valores[c.clave] ?? "").trim();
-      cuerpo[c.clave] = texto === "" ? null : Number(texto);
       if (texto !== "" && !Number.isFinite(Number(texto))) {
         setError("Poné solo números en los precios.");
         return;
       }
+      precios[c.clave] = texto === "" ? null : Number(texto);
     }
     setGuardando(true);
     try {
-      aplicar(await apiPut<MisPreciosVeterinario>("/precios/mis-precios", token, cuerpo));
+      aplicar(await apiPut<MisPreciosVeterinario>("/precios/mis-precios", token, { precios, confirmar }));
       setGuardado(true);
+      setPorConfirmar(null);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No pudimos guardar tus precios. Probá de nuevo.");
+      if (e instanceof ApiError && e.status === 409) setPorConfirmar(e.message);
+      else setError(e instanceof ApiError ? e.message : "No pudimos guardar tus precios. Probá de nuevo.");
     } finally {
       setGuardando(false);
     }
@@ -106,13 +110,20 @@ export function MisPrecios({ token }: { token: string }) {
   }
 
   const aceptado = datos.aviso.aceptado;
+  const fijo = datos.modo === "FIJO";
+  const libre = datos.modo === "LIBRE";
 
   return (
     <div style={caja}>
       <div style={{ fontSize: 14, fontWeight: 700 }}>Tus precios</div>
       <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0 12px" }}>
-        Elegís cuánto cobrar dentro del rango. El tutor ve tu precio más un cargo de servicio de la plataforma
-        ({datos.porcentajePlataforma} %, con un mínimo). Ahora rige la tarifa{" "}
+        {fijo
+          ? "Por ahora los precios los fija la plataforma y son iguales para todos."
+          : libre
+            ? "Vos decidís cuánto cobrar por cada servicio. Mostramos una zona sugerida; podés salirte de ella si lo confirmás."
+            : "Elegís cuánto cobrar dentro del rango."}{" "}
+        El tutor ve tu precio más un cargo de servicio de la plataforma ({datos.porcentajePlataforma} %, con un mínimo).
+        Ahora rige la tarifa{" "}
         <b>{datos.franjaAhora === "NOCTURNA" ? "nocturna" : "diurna"}</b>.
       </p>
 
@@ -152,7 +163,7 @@ export function MisPrecios({ token }: { token: string }) {
             const celda = datos.celdas.find((c) => c.clave === clave)!;
             const texto = (valores[clave] ?? "").trim();
             const numero = texto === "" ? celda.aconsejado : Number(texto);
-            const fuera = Number.isFinite(numero) && (numero < celda.piso || numero > celda.techo);
+            const fuera = !fijo && Number.isFinite(numero) && (numero < celda.piso || numero > celda.techo);
             const minimo = clave.endsWith("DIURNA") ? datos.cargoMinimoDiurno : datos.cargoMinimoNocturno;
             const cargo = Number.isFinite(numero) ? cargoPlataformaPorcentual(numero, datos.porcentajePlataforma, minimo) : 0;
             return (
@@ -164,20 +175,23 @@ export function MisPrecios({ token }: { token: string }) {
                   inputMode="numeric"
                   value={valores[clave] ?? ""}
                   placeholder={`Aconsejado ${celda.aconsejado}`}
-                  disabled={!aceptado}
+                  disabled={!aceptado || fijo}
                   onChange={(e) => {
                     setValores((v) => ({ ...v, [clave]: e.target.value }));
                     setGuardado(false);
+                    setPorConfirmar(null);
                   }}
                 />
                 <div style={{ fontSize: 11.5, color: fuera ? "var(--terracota)" : "var(--muted)", marginTop: 4 }}>
-                  Aconsejado {moneda(celda.aconsejado)} · rango {moneda(celda.piso)} a {moneda(celda.techo)}
-                  {fuera && " — fuera del rango"}
+                  {fijo
+                    ? `Precio fijado por la plataforma: ${moneda(celda.aconsejado)}`
+                    : `Aconsejado ${moneda(celda.aconsejado)} · ${libre ? "zona sugerida" : "rango"} ${moneda(celda.piso)} a ${moneda(celda.techo)}`}
+                  {fuera && (libre ? " — fuera de la zona sugerida" : " — fuera del rango")}
                 </div>
-                {!fuera && Number.isFinite(numero) && (
+                {(!fuera || libre) && Number.isFinite(numero) && (
                   <div style={{ fontSize: 11.5, color: "var(--muted)" }}>
-                    El tutor paga {moneda(numero + cargo)}: tu honorario {moneda(numero)} + {moneda(cargo)} de cargo de
-                    servicio. Mercado Pago descuenta su propia comisión de tu cobro.
+                    El tutor paga {moneda((fijo ? celda.aconsejado : numero) + cargo)}: honorario{" "}
+                    {moneda(fijo ? celda.aconsejado : numero)} + {moneda(cargo)} de cargo de servicio. Mercado Pago descuenta su propia comisión de tu cobro.
                   </div>
                 )}
               </div>
@@ -186,18 +200,30 @@ export function MisPrecios({ token }: { token: string }) {
         </div>
       ))}
 
-      <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 0 10px" }}>
-        Si dejás un precio vacío, rige el aconsejado.
-      </p>
-      <button
-        type="button"
-        className="va-boton"
-        style={{ width: "auto", padding: "0 20px" }}
-        onClick={guardar}
-        disabled={!aceptado || guardando}
-      >
-        {guardando ? "…" : "Guardar precios"}
-      </button>
+      {!fijo && (
+        <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "0 0 10px" }}>
+          Si dejás un precio vacío, rige el aconsejado.
+        </p>
+      )}
+      {porConfirmar && (
+        <div style={{ border: "1px solid var(--alerta-borde)", background: "var(--alerta-fondo)", borderRadius: 12, padding: 12, marginBottom: 10 }}>
+          <p style={{ fontSize: 13, lineHeight: 1.5, margin: "0 0 8px" }}>{porConfirmar}</p>
+          <button type="button" className="va-boton" style={{ width: "auto", padding: "0 18px" }} disabled={guardando} onClick={() => guardar(true)}>
+            Confirmar y guardar
+          </button>
+        </div>
+      )}
+      {!fijo && !porConfirmar && (
+        <button
+          type="button"
+          className="va-boton"
+          style={{ width: "auto", padding: "0 20px" }}
+          onClick={() => guardar(false)}
+          disabled={!aceptado || guardando}
+        >
+          {guardando ? "…" : "Guardar precios"}
+        </button>
+      )}
       {guardado && <span style={{ fontSize: 12.5, marginLeft: 10 }}>Guardado.</span>}
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 12.5, marginTop: 8 }} role="alert">

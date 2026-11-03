@@ -686,6 +686,15 @@ model TarifaPais {
 
 // Cuándo es de día y cuándo de noche en cada país, y en qué moneda se cobra.
 // zonaHoraria es un nombre IANA (nunca un desfase fijo).
+// Cómo se fijan los precios en un país: FIJO (la plataforma fija uno solo),
+// BANDA (el veterinario elige entre piso y techo) o LIBRE (el veterinario
+// elige; piso y techo son solo una zona sugerida). Se cambia desde el panel.
+enum ModoPrecio {
+  FIJO
+  BANDA
+  LIBRE
+}
+
 model ReglaPais {
   pais            String  @id
   zonaHoraria     String
@@ -694,6 +703,7 @@ model ReglaPais {
   finDiurno       String // "HH:MM", inclusive
   domingoNocturno Boolean @default(true)
   feriadoNocturno Boolean @default(true)
+  modoPrecio      ModoPrecio @default(LIBRE)
 }
 
 // Feriados por país, cargados y mantenidos por el dueño desde el panel.

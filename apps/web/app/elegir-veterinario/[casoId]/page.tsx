@@ -418,7 +418,8 @@ export default function ElegirVeterinarioPage() {
         Elegí con quién hablar
       </h1>
       <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 0, marginBottom: 20 }}>
-        Están conectados ahora. El precio que ves es el total que vas a pagar — ya incluye el cargo de plataforma.
+        Están conectados ahora. Cada uno es un profesional independiente. El total que ves es lo que vas a pagar: el
+        honorario del veterinario más el cargo de servicio de la plataforma, que ves desglosado.
       </p>
 
       {aviso && (
@@ -513,6 +514,10 @@ export default function ElegirVeterinarioPage() {
                   ${v.costoTotal.toLocaleString("es-AR")}
                 </div>
                 <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
+                  Honorario del veterinario ${v.honorarioFinal.toLocaleString("es-AR")} + cargo de servicio $
+                  {(v.costoTotal - v.honorarioFinal).toLocaleString("es-AR")}
+                </div>
+                <div style={{ marginTop: 2, fontSize: 12, color: "var(--muted)" }}>
                   {v.franja === "NOCTURNA" ? "Tarifa nocturna (noche, domingos y feriados)" : "Tarifa diurna"}
                 </div>
               </div>

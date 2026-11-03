@@ -11,8 +11,13 @@
 // de venir a editarlo a mano.
 //
 // OJO (para quien retome esto): este texto es un borrador de partida
-// razonable, no una revisión legal — antes de depender de él para
-// limitar responsabilidad de verdad, conviene que lo revise un abogado.
+// razonable, NO una revisión legal. Reescrito el 2026-11-03 según la
+// investigación de riesgos (ver el dossier en Notion): describe qué hace la
+// plataforma y qué no, sin prometer más de lo que se hace, y no intenta
+// "eximir" de todo (en una relación de consumo esas cláusulas suelen caerse y
+// pueden volverse en contra). Los montos y el modo de precios se traen en vivo
+// de la API para que el texto no quede desactualizado. Antes de lanzar:
+// revisión de abogado. Si cambia el texto, subir VERSION_TERMINOS.
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
@@ -20,15 +25,30 @@ import { apiGet } from "../../lib/api";
 import { Logo } from "../../components/Logo";
 import { LegalFooter } from "../../components/LegalFooter";
 
+interface ResumenPrecios {
+  modo: "FIJO" | "BANDA" | "LIBRE";
+  porcentajePlataforma: number;
+  cargoMinimoDiurno: number;
+  cargoMinimoNocturno: number;
+}
+
 function pesos(valor: number) {
   return `$${valor.toLocaleString("es-AR")}`;
 }
 
 export default function TerminosPage() {
   const [config, setConfig] = useState<ConfiguracionPlataforma | null>(null);
+  const [precios, setPrecios] = useState<ResumenPrecios | null>(null);
 
   useEffect(() => {
     let cancelado = false;
+    apiGet<ResumenPrecios>("/precios-publico?pais=AR")
+      .then((r) => {
+        if (!cancelado) setPrecios(r);
+      })
+      .catch(() => {
+        // sin datos, la sección de precios se muestra sin números
+      });
     apiGet<ConfiguracionPlataforma>("/configuracion")
       .then((c) => {
         if (!cancelado) setConfig(c);
@@ -49,22 +69,24 @@ export default function TerminosPage() {
         Términos y Condiciones
       </h1>
       <p style={{ fontSize: 12, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
-        Última actualización: 27 de octubre de 2026.
+        Última actualización: 3 de noviembre de 2026.
       </p>
 
       <Seccion titulo="1. Qué es Videollamada Animal">
         <p>
-          Videollamada Animal es una plataforma tecnológica que conecta, en todo el territorio de la República
-          Argentina, a dueños de mascotas con veterinarios matriculados de forma independiente, para brindar{" "}
-          <strong>asesoramiento y orientación veterinaria a distancia</strong>. La plataforma actúa como
-          intermediaria: facilita el contacto, el cobro y la videollamada entre las partes, pero no presta ella
-          misma el servicio profesional veterinario.
+          Videollamada Animal es una plataforma tecnológica que pone en contacto a dueños de mascotas con veterinarios
+          matriculados que ejercen de forma independiente, para brindar{" "}
+          <strong>asesoramiento y orientación veterinaria a distancia</strong>. La plataforma ofrece la tecnología para
+          encontrarse, la videollamada, el cobro y la atención de reclamos; el asesoramiento en sí lo brinda el
+          veterinario que vos elegís, no la plataforma.
         </p>
         <p>
-          La plataforma, el cliente (dueño de la mascota) y el veterinario actúan como partes independientes en
-          esta relación — cada veterinario ejerce su profesión de manera autónoma, bajo su propia matrícula y
-          responsabilidad profesional, y la plataforma no dirige ni supervisa el criterio clínico de ningún
-          asesoramiento brindado.
+          Quién hace qué: <strong>el veterinario</strong> ejerce su profesión de manera autónoma, bajo su propia
+          matrícula y responsabilidad profesional, decide su criterio clínico y fija su honorario;{" "}
+          <strong>vos</strong> elegís al veterinario y contratás con él el asesoramiento;{" "}
+          <strong>la plataforma</strong> verifica la documentación del veterinario al habilitarlo, procesa el pago,
+          mantiene la herramienta funcionando y atiende tus reclamos. El veterinario no es empleado ni representante de
+          la plataforma, ni está obligado a atender un número mínimo de consultas ni a trabajar en exclusiva con ella.
         </p>
       </Seccion>
 
@@ -73,47 +95,40 @@ export default function TerminosPage() {
           Este servicio consiste en asesoramiento y orientación a distancia. <strong>No constituye telemedicina
           diagnóstica ni reemplaza un examen físico presencial.</strong> Ante una emergencia o una situación que
           lo amerite, el veterinario puede recomendar acudir a una guardia veterinaria presencial — esa
-          recomendación no genera derecho a reembolso (ver sección 5).
+          recomendación no genera derecho a reembolso (ver sección 6).
         </p>
       </Seccion>
 
       <Seccion titulo="3. Precios">
-        <p>El costo total de cada asesoramiento tiene dos componentes:</p>
+        <p>El precio de cada asesoramiento tiene dos partes, que siempre ves por separado antes de pagar:</p>
         <ul style={{ paddingLeft: 20, margin: "8px 0" }}>
           <li>
-            <strong>Cargo de plataforma:</strong>{" "}
-            {config ? (
-              <>
-                {pesos(config.cargoPlataformaDiurna)} en horario diurno (08:30 a 20:00) y{" "}
-                {pesos(config.cargoPlataformaNocturna)} en horario nocturno (20:01 a 08:29).
-              </>
-            ) : (
-              "varía según el horario — ver el detalle en la pantalla de elegir veterinario."
-            )}
+            <strong>Honorario del veterinario:</strong>{" "}
+            {precios?.modo === "FIJO"
+              ? "por ahora la plataforma establece un valor único para cada tipo de asesoramiento y franja horaria, igual para todos los veterinarios."
+              : precios?.modo === "BANDA"
+                ? "lo fija cada veterinario dentro de un rango definido por la plataforma, y se muestra junto a su perfil."
+                : "lo fija cada veterinario, de manera independiente, y se muestra junto a su perfil. La plataforma puede mostrar valores de referencia, que no son obligatorios."}{" "}
+            Es distinto para un asesoramiento normal y para uno marcado como urgente, y para el horario diurno y el
+            nocturno (noche, domingos y feriados, según la hora local del veterinario).
           </li>
           <li>
-            <strong>Honorario del veterinario:</strong>{" "}
-            {config ? (
+            <strong>Cargo de servicio de la plataforma:</strong>{" "}
+            {precios ? (
               <>
-                a partir de {pesos(config.honorarioBaseNormal)} para un asesoramiento normal, o{" "}
-                {pesos(config.honorarioBaseUrgencia)} cuando el asesoramiento se marca como urgente. Cada veterinario
-                puede ajustar este valor dentro de un rango fijo definido por la plataforma.
+                {precios.porcentajePlataforma} % del honorario, con un mínimo de {pesos(precios.cargoMinimoDiurno)} en
+                horario diurno y {pesos(precios.cargoMinimoNocturno)} en horario nocturno. Es lo que cobra la
+                plataforma por su servicio (tecnología, cobro, verificación y atención de reclamos).
               </>
             ) : (
-              "cada veterinario fija su honorario dentro de un rango definido por la plataforma."
+              "es un porcentaje del honorario, con un mínimo, y se muestra en la pantalla de elegir veterinario."
             )}
           </li>
         </ul>
         <p>
-          Los veterinarios con más de{" "}
-          {config ? config.umbralSesionesVeterano : "un número determinado de"} sesiones completadas en la
-          plataforma pueden aplicar, de forma automática, un adicional de{" "}
-          {config ? `${config.bonusVeteranoPorcentaje}%` : "un porcentaje"} sobre su honorario, que se traslada
-          al costo final que paga el cliente.
-        </p>
-        <p>
-          El costo total (cargo de plataforma + honorario del veterinario elegido) se muestra siempre antes de
-          confirmar y pagar el asesoramiento — nunca se cobra un monto distinto al que se mostró en ese momento.
+          El total (honorario + cargo de servicio del veterinario elegido) se muestra siempre antes de confirmar y
+          pagar el asesoramiento — nunca se cobra un monto distinto al que se mostró en ese momento. Los medios de pago
+          pueden cobrar sus propias comisiones al veterinario; no se te suman a vos.
         </p>
       </Seccion>
 
@@ -141,10 +156,10 @@ export default function TerminosPage() {
           la hora del turno</strong>, y el cliente puede cancelarlo sin costo antes de ese momento.
         </p>
         <p>
-          La plataforma es siempre la intermediaria: puede enviar avisos por sus propios canales (aplicación,
-          WhatsApp o correo) al cliente y al veterinario, y no comparte los datos de contacto de uno con el otro. El
-          asesoramiento se realiza dentro de la plataforma; cliente y veterinario se comprometen a no trasladar la
-          conversación ni los pagos a otros canales.
+          La plataforma puede enviar avisos por sus propios canales (aplicación, WhatsApp o correo) al cliente y al
+          veterinario, y no comparte los datos de contacto de uno con el otro, para proteger a ambos. Para que el pago
+          esté protegido, quede registro del asesoramiento y puedas reclamar si algo sale mal, cada asesoramiento que
+          empieza en la plataforma se realiza y se paga dentro de ella.
         </p>
       </Seccion>
 
@@ -158,7 +173,17 @@ export default function TerminosPage() {
         </p>
       </Seccion>
 
-      <Seccion titulo="7. Contacto">
+      <Seccion titulo="7. Tus derechos y reclamos">
+        <p>
+          Estos términos no limitan los derechos que te reconoce la ley, incluida la de Defensa del Consumidor. Si algo
+          sale mal podés reclamar a la plataforma, que revisa cada reclamo y te responde por escrito, y también ante
+          las autoridades de defensa del consumidor de tu jurisdicción. Reclamos sobre el criterio clínico del
+          asesoramiento se canalizan hacia el veterinario que lo brindó y su colegio profesional; la plataforma
+          colabora aportando el registro del caso.
+        </p>
+      </Seccion>
+
+      <Seccion titulo="8. Contacto">
         <p>
           Para consultas sobre estos términos, escribinos a <ContactoEmail config={config} /> o visitá nuestra{" "}
           <Link href="/contacto" style={{ color: "var(--esmeralda)" }}>

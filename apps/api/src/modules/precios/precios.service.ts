@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import {
   ajustarCeldaPorPorcentaje,
@@ -10,6 +10,8 @@ import {
   FranjaHoraria,
   franjaEnZona,
   MisPreciosVeterinario,
+  ModoPrecio,
+  MODOS_PRECIO,
   motivoCeldaInvalida,
   precioEfectivo,
   ReglaFranja,
@@ -17,6 +19,7 @@ import {
   TarifasPais,
   TEXTO_AVISO_PRECIOS,
   TipoConsulta,
+  validarPrecioPropio,
   VERSION_AVISO_PRECIOS,
 } from "@vet-teletriage/types";
 import { PrismaService } from "../../prisma.service";
@@ -27,6 +30,7 @@ import { ConfiguracionService } from "../configuracion/configuracion.service";
 export interface ContextoPrecios {
   pais: string;
   moneda: string;
+  modo: ModoPrecio;
   regla: ReglaFranja;
   tarifas: TarifasPais;
   config: ConfiguracionPlataforma;
@@ -119,6 +123,7 @@ export class PreciosService {
     return {
       pais,
       moneda: reglaFila.moneda,
+      modo: reglaFila.modoPrecio,
       regla: {
         zonaHoraria: reglaFila.zonaHoraria,
         inicioDiurno: reglaFila.inicioDiurno,
@@ -138,7 +143,7 @@ export class PreciosService {
   calcular(ctx: ContextoPrecios, vet: PreciosDeVeterinario, hayUrgencia: boolean, instante: Date): PrecioCalculado {
     const franja = franjaEnZona(instante, { ...ctx.regla, zonaHoraria: vet.zonaHoraria || ctx.regla.zonaHoraria });
     const clave = claveTarifa(hayUrgencia ? "URGENCIA" : "NORMAL", franja);
-    const honorario = precioEfectivo(ctx.tarifas[clave], aNumero(vet[CAMPO_DE_CLAVE[clave]]));
+    const honorario = precioEfectivo(ctx.tarifas[clave], aNumero(vet[CAMPO_DE_CLAVE[clave]]), ctx.modo);
     const minimo = franja === "DIURNA" ? ctx.config.cargoPlataformaDiurna : ctx.config.cargoPlataformaNocturna;
     const cargo = cargoPlataformaPorcentual(honorario, ctx.config.porcentajePlataforma, minimo);
     return { franja, honorario, cargo, total: honorario + cargo };
@@ -160,6 +165,7 @@ export class PreciosService {
     const ctx = await this.contexto(vet.pais);
     const ahora = new Date();
     return {
+      modo: ctx.modo,
       moneda: ctx.moneda,
       zonaHoraria: vet.zonaHoraria,
       porcentajePlataforma: ctx.config.porcentajePlataforma,
@@ -168,7 +174,7 @@ export class PreciosService {
       franjaAhora: franjaEnZona(ahora, { ...ctx.regla, zonaHoraria: vet.zonaHoraria }),
       celdas: CLAVES_TARIFA.map((clave) => {
         const propio = aNumero(vet[CAMPO_DE_CLAVE[clave]]);
-        return { clave, ...ctx.tarifas[clave], propio, efectivo: precioEfectivo(ctx.tarifas[clave], propio) };
+        return { clave, ...ctx.tarifas[clave], propio, efectivo: precioEfectivo(ctx.tarifas[clave], propio, ctx.modo) };
       }),
       aviso: {
         version: VERSION_AVISO_PRECIOS,
@@ -189,28 +195,45 @@ export class PreciosService {
     return this.misPrecios(veterinarioId);
   }
 
-  // Cada valor: un número dentro de la banda, o null para volver al
-  // aconsejado. Fuera de la banda se rechaza (no se "arregla" en silencio:
-  // el veterinario tiene que saber qué precio quedó).
-  async guardarMisPrecios(veterinarioId: string, cambios: Partial<Record<ClaveTarifa, number | null>>) {
+  // Cada valor: un número, o null para volver al aconsejado. Qué se acepta
+  // depende del modo del país:
+  //  - FIJO: no se acepta ningún precio propio.
+  //  - BANDA: solo dentro de piso–techo (fuera se rechaza).
+  //  - LIBRE: cualquier precio razonable; fuera de la zona sugerida se pide
+  //    confirmar (`confirmar: true`) y queda asentado que el veterinario lo
+  //    confirmó. Hay un tope técnico contra errores de tipeo.
+  // Nunca se "arregla" en silencio un precio: el veterinario tiene que saber
+  // cuál quedó.
+  async guardarMisPrecios(veterinarioId: string, cambios: Partial<Record<ClaveTarifa, number | null>>, confirmar = false) {
     const vet = await this.prisma.veterinario.findUniqueOrThrow({ where: { id: veterinarioId } });
     if (!(vet.avisoPreciosVersion === VERSION_AVISO_PRECIOS && vet.avisoPreciosAceptadoEl)) {
       throw new BadRequestException("Antes de poner tu precio tenés que leer y aceptar el aviso");
     }
     const ctx = await this.contexto(vet.pais);
     const data: Prisma.VeterinarioUpdateInput = {};
+    const fueraDeZona: string[] = [];
+    const guardados: Partial<Record<ClaveTarifa, number | null>> = {};
     for (const [clave, valor] of Object.entries(cambios)) {
       if (!(CLAVES_TARIFA as string[]).includes(clave)) throw new BadRequestException(`Precio desconocido: ${clave}`);
       const celda = ctx.tarifas[clave as ClaveTarifa];
       if (valor !== null) {
-        if (typeof valor !== "number" || !Number.isFinite(valor)) throw new BadRequestException("El precio tiene que ser un número");
-        if (valor < celda.piso || valor > celda.techo) {
-          throw new BadRequestException(`El precio tiene que estar entre ${celda.piso} y ${celda.techo}`);
-        }
+        if (typeof valor !== "number") throw new BadRequestException("El precio tiene que ser un número");
+        const r = validarPrecioPropio(celda, valor, ctx.modo);
+        if (r.estado === "rechazado") throw new BadRequestException(r.motivo);
+        if (r.estado === "pide_confirmacion") fueraDeZona.push(clave);
       }
-      data[CAMPO_DE_CLAVE[clave as ClaveTarifa]] = valor === null ? null : Math.round(valor);
+      guardados[clave as ClaveTarifa] = valor === null ? null : Math.round(valor);
+      data[CAMPO_DE_CLAVE[clave as ClaveTarifa]] = guardados[clave as ClaveTarifa];
+    }
+    if (fueraDeZona.length > 0 && !confirmar) {
+      throw new ConflictException(
+        "Hay precios fuera de la zona sugerida. Es tu decisión como profesional independiente; confirmá para guardarlos.",
+      );
     }
     await this.prisma.veterinario.update({ where: { id: veterinarioId }, data });
+    // Queda asentado quién fijó qué precio y si confirmó salirse de la zona
+    // sugerida: es la evidencia de que el precio lo decide el profesional.
+    await this.registrar(veterinarioId, `Veterinario fijó sus precios (${ctx.modo})${fueraDeZona.length ? " — confirmó precios fuera de la zona sugerida" : ""}`, {}, { guardados, fueraDeZona });
     return this.misPrecios(veterinarioId);
   }
 
@@ -237,6 +260,7 @@ export class PreciosService {
     return {
       pais,
       moneda: ctx.moneda,
+      modo: ctx.modo,
       regla: { ...ctx.regla, feriados: undefined },
       tarifas: ctx.tarifas,
       porcentajePlataforma: ctx.config.porcentajePlataforma,
@@ -300,6 +324,21 @@ export class PreciosService {
         });
       }),
     );
+  }
+
+  // Cambia cómo se fijan los precios en un país. Los precios que cada
+  // veterinario ya guardó no se tocan: el modo decide cuáles rigen (por eso
+  // volver a un modo anterior los recupera tal como estaban).
+  async guardarModo(actorId: string, paisEntrada: string, modo: ModoPrecio) {
+    const pais = this.validarPais(paisEntrada);
+    if (!MODOS_PRECIO.includes(modo)) throw new BadRequestException("Modo de precios inválido");
+    const actual = await this.prisma.reglaPais.findUnique({ where: { pais } });
+    if (!actual) throw new BadRequestException(`El país ${pais} todavía no está configurado`);
+    if (actual.modoPrecio !== modo) {
+      await this.prisma.reglaPais.update({ where: { pais }, data: { modoPrecio: modo } });
+      await this.registrar(actorId, `Modo de precios ${pais}: ${actual.modoPrecio} → ${modo}`, { modo: actual.modoPrecio }, { modo });
+    }
+    return this.panel(pais);
   }
 
   async guardarComision(actorId: string, cambios: { porcentajePlataforma?: number; cargoMinimoDiurno?: number; cargoMinimoNocturno?: number }) {

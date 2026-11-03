@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CLAVES_TARIFA } from "@vet-teletriage/types";
-import type { ClaveTarifa, TarifaCelda, TarifasPais } from "@vet-teletriage/types";
+import type { ClaveTarifa, ModoPrecio, TarifaCelda, TarifasPais } from "@vet-teletriage/types";
 import { apiDelete, apiGet, apiPostAuth, apiPut, ApiError } from "../../../lib/api";
 import { useSesionAdmin } from "../../../lib/sesion-admin";
 import { Logo } from "../../../components/Logo";
@@ -16,6 +16,7 @@ import { LegalFooter } from "../../../components/LegalFooter";
 interface PanelTarifas {
   pais: string;
   moneda: string;
+  modo: ModoPrecio;
   regla: { zonaHoraria: string; inicioDiurno: string; finDiurno: string; domingoNocturno: boolean; feriadoNocturno: boolean };
   tarifas: TarifasPais;
   porcentajePlataforma: number;
@@ -37,6 +38,12 @@ const ETIQUETAS: Record<ClaveTarifa, string> = {
   URGENCIA_DIURNA: "Urgencia · diurno",
   URGENCIA_NOCTURNA: "Urgencia · nocturno",
 };
+
+const MODOS: Array<{ valor: ModoPrecio; titulo: string; detalle: string }> = [
+  { valor: "LIBRE", titulo: "Libre (recomendado)", detalle: "Cada veterinario fija su precio. Piso y techo son una zona sugerida: salirse pide confirmación, no se prohíbe. Es el modo que mejor sostiene que la plataforma solo intermedia." },
+  { valor: "BANDA", titulo: "Banda", detalle: "El veterinario elige, pero solo entre el piso y el techo. Más control de accesibilidad, más riesgo de que se vea como fijación de precios." },
+  { valor: "FIJO", titulo: "Fijo", detalle: "Un solo precio por franja (el aconsejado), igual para todos. Es el más simple y previsible, pero es el modo con más riesgo de que se considere que la plataforma presta el servicio." },
+];
 
 function Seccion({ titulo, ayuda, children }: { titulo: string; ayuda?: string; children: React.ReactNode }) {
   return (
@@ -154,9 +161,28 @@ export default function AdminTarifasPage() {
             </p>
           )}
 
+          <Seccion titulo="Cómo se fijan los precios" ayuda="Se puede cambiar cuando quieras; cada cambio queda en el historial. Los precios que cada veterinario ya guardó no se pierden: si volvés a un modo anterior, rigen otra vez.">
+            {MODOS.map((m) => (
+              <label key={m.valor} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid var(--borde)", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="modo-precio"
+                  checked={panel.modo === m.valor}
+                  onChange={() => ejecutar(async () => aplicar(await apiPut<PanelTarifas>("/precios/admin/modo", token, { pais: "AR", modo: m.valor })), "Modo de precios guardado.")}
+                  style={{ marginTop: 3 }}
+                />
+                <span style={{ fontSize: 13 }}>
+                  <b>{m.titulo}</b>
+                  <br />
+                  <span style={{ fontSize: 12, opacity: 0.8 }}>{m.detalle}</span>
+                </span>
+              </label>
+            ))}
+          </Seccion>
+
           <Seccion
             titulo="Precio por franja"
-            ayuda="Piso: lo mínimo que puede cobrar un veterinario. Aconsejado: lo que rige si no pone el suyo. Techo: lo máximo (accesibilidad para el tutor). Recomendación: el piso debería cubrir lo que cuesta operar, no ser una tarifa profesional — consultalo con el abogado."
+            ayuda="Piso, aconsejado y techo. En modo Libre son una zona sugerida; en Banda son límites; en Fijo rige solo el aconsejado. El aconsejado es lo que se muestra si el veterinario no puso el suyo."
           >
             {CLAVES_TARIFA.map((c) => (
               <div key={c} style={{ marginBottom: 12 }}>
