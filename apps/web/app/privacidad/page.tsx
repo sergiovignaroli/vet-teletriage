@@ -25,6 +25,7 @@ import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { apiGet } from "../../lib/api";
 import { Logo } from "../../components/Logo";
 import { LegalFooter } from "../../components/LegalFooter";
+import { CUIT, DOMICILIO_COMERCIAL, TITULAR } from "../../lib/datos-legales";
 
 export default function PrivacidadPage() {
   const [config, setConfig] = useState<ConfiguracionPlataforma | null>(null);
@@ -51,15 +52,14 @@ export default function PrivacidadPage() {
         Política de Privacidad
       </h1>
       <p style={{ fontSize: 12, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
-        Última actualización: 30 de septiembre de 2026.
+        Última actualización: 3 de noviembre de 2026.
       </p>
 
       <Seccion titulo="1. Quién es responsable de tus datos">
         <p>
-          Videollamada Animal — cuyos datos legales completos (razón social y CUIT) se están terminando de
-          registrar y se incorporarán a este documento apenas estén confirmados — es responsable del
-          tratamiento de los datos personales que se describen acá, conforme a la Ley 25.326 de Protección de
-          Datos Personales de la República Argentina.
+          Videollamada Animal, de {TITULAR} (CUIT {CUIT}, domicilio comercial: {DOMICILIO_COMERCIAL}), es
+          responsable del tratamiento de los datos personales que se describen acá, conforme a la Ley 25.326 de
+          Protección de Datos Personales de la República Argentina.
         </p>
       </Seccion>
 
@@ -85,9 +85,9 @@ export default function PrivacidadPage() {
             pasa, para poder conectarte con un veterinario y darle contexto antes de la videollamada.
           </li>
           <li>
-            <strong>Datos de pago:</strong> el pago se procesa a través de Mercado Pago — nosotros no vemos ni
-            guardamos el número de tu tarjeta ni tus credenciales de pago; Mercado Pago nos informa el
-            resultado (aprobado, pendiente, reembolsado) y el monto.
+            <strong>Datos de pago:</strong> el pago se procesa a través de Mercado Pago (o de PayPal, si elegís esa
+            opción) — nosotros no vemos ni guardamos el número de tu tarjeta ni tus credenciales de pago; el
+            medio de pago nos informa el resultado (aprobado, pendiente, reembolsado) y el monto.
           </li>
           <li>
             <strong>La videollamada en sí:</strong> las sesiones de video se transmiten en vivo entre vos y el
@@ -103,7 +103,7 @@ export default function PrivacidadPage() {
 
       <Seccion titulo="3. Los datos de salud de tu mascota">
         <p>
-          [Probable] Bajo la Ley 25.326, un "dato personal" es información referida a una persona humana
+          Bajo la Ley 25.326, un "dato personal" es información referida a una persona humana
           identificada o identificable — los datos de salud de tu mascota, al no tratarse de una persona, no
           están alcanzados por esa definición legal. Aun así, los tratamos con la misma confidencialidad que el
           resto de la información: se usan únicamente para que el veterinario pueda asesorarte, y no se
@@ -129,7 +129,7 @@ export default function PrivacidadPage() {
         </p>
         <ul style={{ paddingLeft: 20, margin: "8px 0" }}>
           <li>
-            <strong>Mercado Pago</strong>, para procesar el pago.
+            <strong>Mercado Pago</strong> y, si elegís esa opción, <strong>PayPal</strong>, para procesar el pago.
           </li>
           <li>
             <strong>Truora</strong>, para verificar la identidad de los veterinarios.
@@ -212,7 +212,7 @@ export default function PrivacidadPage() {
 }
 
 function ContactoEmail({ config }: { config: ConfiguracionPlataforma | null }) {
-  if (!config?.emailContacto) return <>el email que figura en nuestra página de contacto</>;
+  if (!config?.emailContacto) return <>través de los medios que figuran en nuestra página de contacto</>;
   return (
     <a href={`mailto:${config.emailContacto}`} style={{ color: "var(--esmeralda)" }}>
       {config.emailContacto}
