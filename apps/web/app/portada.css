@@ -43,7 +43,10 @@
   position: relative;
   background: var(--vp-profundo);
   color: var(--vp-crema);
-  overflow: hidden;
+  /* Solo se recorta a los costados: la foto de abajo sale del bloque a propósito
+     (margen negativo) y con overflow:hidden quedaba cortada en el borde. */
+  overflow-x: clip;
+  overflow-y: visible;
 }
 .vp-hero-huellas {
   position: absolute;
