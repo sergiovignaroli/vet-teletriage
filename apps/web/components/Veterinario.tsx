@@ -4,8 +4,33 @@
 
 // Círculo con las iniciales — se reemplaza por la foto del veterinario cuando
 // el perfil tenga una (mismo tamaño, así no cambia el layout).
-export function Avatar({ nombre, apellido, size = 52 }: { nombre: string; apellido: string; size?: number }) {
+export function Avatar({
+  nombre,
+  apellido,
+  size = 52,
+  foto,
+}: {
+  nombre: string;
+  apellido: string;
+  size?: number;
+  // Foto de perfil (URL o data URI). Sin foto, se muestran las iniciales.
+  foto?: string | null;
+}) {
   const iniciales = `${nombre.trim().charAt(0)}${apellido.trim().charAt(0)}`.toUpperCase();
+  if (foto) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={foto}
+        alt=""
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0, background: "var(--borde)" }}
+      />
+    );
+  }
   return (
     <div
       aria-hidden="true"

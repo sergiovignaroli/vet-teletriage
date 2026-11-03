@@ -101,3 +101,9 @@ export function apiDelete<T>(path: string, token: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+// Dirección completa de un recurso de la API (por ejemplo la foto de un
+// veterinario, que se usa como <img src>).
+export function urlApi(ruta: string) {
+  return `${API_URL}${ruta}`;
+}

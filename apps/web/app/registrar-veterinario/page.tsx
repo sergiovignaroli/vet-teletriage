@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SelectorEspecies } from "../../components/SelectorEspecies";
+import { SelectorFoto } from "../../components/SelectorFoto";
 import { apiPost, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
@@ -46,6 +47,7 @@ export default function RegistrarVeterinarioPage() {
   const [seguroVenceEl, setSeguroVenceEl] = useState("");
 
   const [especies, setEspecies] = useState<string[]>([]);
+  const [foto, setFoto] = useState<string | null>(null);
   const [aceptoConvenio, setAceptoConvenio] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +103,7 @@ export default function RegistrarVeterinarioPage() {
         seguroPoliza,
         seguroVenceEl,
         especiesAtiende: especies,
+        foto: foto ?? undefined,
         aceptoConvenio: true,
       });
       guardar({
@@ -200,6 +203,11 @@ export default function RegistrarVeterinarioPage() {
         <Campo etiqueta="Aseguradora" value={seguroAseguradora} onChange={setSeguroAseguradora} />
         <Campo etiqueta="Número de póliza" value={seguroPoliza} onChange={setSeguroPoliza} />
         <Campo etiqueta="Vencimiento del seguro" value={seguroVenceEl} onChange={setSeguroVenceEl} type="date" />
+
+        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 10 }}>
+          Tu foto (opcional)
+        </h2>
+        <SelectorFoto valor={foto} onChange={setFoto} nombre={nombre} apellido={apellido} idBase="reg-foto" />
 
         <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 6 }}>
           ¿Qué especies atendés?

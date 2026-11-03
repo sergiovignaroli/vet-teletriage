@@ -42,6 +42,11 @@ model Veterinario {
   // Especies que atiende (ids de ESPECIES en packages/types). Vacío = alta anterior
   // a este dato: se lo trata como perros y gatos hasta que las declare.
   especiesAtiende String[] @default([])
+  // Foto de perfil (opcional): imagen chica ya recortada y comprimida por el
+  // navegador, guardada como data URI (el disco de Render no es persistente).
+  // Se ve en el directorio y en la lista del tutor; el administrador la puede quitar.
+  fotoPerfil        String?
+  fotoActualizadaEl DateTime?
 
   // Presencia (Sergio, 2026-10-27): el veterinario elige entre Conectado,
   // Stand by y Desconectado, y esa elección dura hasta que la cambie él (no

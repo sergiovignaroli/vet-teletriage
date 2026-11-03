@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
+import { FotosAdmin } from "../../components/FotosAdmin";
 import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { useSesionAdmin } from "../../lib/sesion-admin";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
@@ -256,6 +257,8 @@ export default function AdminPage() {
       {pendientes?.map((v) => (
         <PendienteItem key={v.id} veterinario={v} onHabilitar={habilitar} />
       ))}
+
+      <FotosAdmin token={sesion.accessToken} />
 
       <h2 className="va-etiqueta" style={{ marginTop: 28, marginBottom: 10 }}>
         Disputas de identidad abiertas {disputasIdentidad && `(${disputasIdentidad.length})`}

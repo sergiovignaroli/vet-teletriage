@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma.service";
 import { filtroSenalVigente } from "../../common/presencia";
 import type { PresenciaVeterinario } from "@prisma/client";
 import { especiesValidas } from "../../common/especies";
+import { decodificarFoto, urlFoto } from "../../common/foto";
 import { ESPECIES_POR_DEFECTO, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN, VERSION_CONVENIO_VETERINARIO } from "@vet-teletriage/types";
 
 @Injectable()
@@ -58,10 +59,54 @@ export class VeterinariosService {
         nombre: v.nombre,
         apellido: v.apellido,
         especies: v.especiesAtiende.length > 0 ? v.especiesAtiende : ESPECIES_POR_DEFECTO,
+        fotoUrl: urlFoto(v.id, v.fotoActualizadaEl, !!v.fotoPerfil),
         ratingPromedio,
         cantidadCalificaciones,
       };
     });
+  }
+
+  // Foto de perfil. Pública solo la de veterinarios habilitados (es lo que ven los
+  // tutores); el propio veterinario siempre ve la suya; el administrador puede quitarla.
+  async fotoPublica(id: string) {
+    const v = await this.prisma.veterinario.findUnique({
+      where: { id },
+      select: { fotoPerfil: true, estado: true },
+    });
+    if (!v || !v.fotoPerfil || v.estado !== "HABILITADO") return null;
+    return decodificarFoto(v.fotoPerfil);
+  }
+
+  async miFoto(veterinarioId: string) {
+    const v = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId }, select: { fotoPerfil: true } });
+    return { foto: v?.fotoPerfil ?? null };
+  }
+
+  async guardarFoto(veterinarioId: string, foto: unknown) {
+    if (typeof foto !== "string") throw new BadRequestException("Elegí una foto");
+    decodificarFoto(foto);
+    await this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { fotoPerfil: foto, fotoActualizadaEl: new Date() },
+    });
+    return { foto };
+  }
+
+  async quitarFoto(veterinarioId: string) {
+    await this.prisma.veterinario.update({
+      where: { id: veterinarioId },
+      data: { fotoPerfil: null, fotoActualizadaEl: null },
+    });
+    return { foto: null };
+  }
+
+  async fotosParaAdmin() {
+    const filas = await this.prisma.veterinario.findMany({
+      where: { fotoPerfil: { not: null } },
+      select: { id: true, nombre: true, apellido: true, fotoPerfil: true },
+      orderBy: { nombre: "asc" },
+    });
+    return filas.map((f) => ({ id: f.id, nombre: f.nombre, apellido: f.apellido, foto: f.fotoPerfil as string }));
   }
 
   // Las especies que declara el propio veterinario (panel). `declaradas` es false

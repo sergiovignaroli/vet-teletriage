@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiGet, ApiError } from "../../lib/api";
+import { apiGet, ApiError, urlApi } from "../../lib/api";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 import { Foto } from "../../components/Foto";
 import { EstadoVacio } from "../../components/EstadoVacio";
@@ -16,6 +16,7 @@ interface VeterinarioDirectorio {
   ratingPromedio: number | null;
   cantidadCalificaciones: number;
   especies?: string[];
+  fotoUrl?: string | null;
 }
 
 // Directorio público (situación probable, 2026-09-29): GET
@@ -82,7 +83,7 @@ export default function DirectorioVeterinariosPage() {
             className="va-tarjeta"
             style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}
           >
-            <Avatar nombre={v.nombre} apellido={v.apellido} size={46} />
+            <Avatar nombre={v.nombre} apellido={v.apellido} size={46} foto={v.fotoUrl ? urlApi(v.fotoUrl) : null} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700 }}>
                 {v.nombre} {v.apellido}

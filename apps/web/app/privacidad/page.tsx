@@ -77,7 +77,7 @@ export default function PrivacidadPage() {
           </li>
           <li>
             <strong>Datos profesionales (solo veterinarios):</strong> matrícula profesional, datos del seguro
-            de responsabilidad civil vigente y las especies que atiende.
+            de responsabilidad civil vigente, las especies que atiende y, si la cargan, su foto de perfil.
           </li>
           <li>
             <strong>Datos del asesoramiento:</strong> la especie de la mascota y lo que contás sobre lo que le

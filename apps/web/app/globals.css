@@ -904,3 +904,6 @@ textarea {
 .va-nm { white-space: nowrap; font-weight: 700; }
 .va-nm svg { vertical-align: -0.28em; margin-right: 0.3em; }
 .va-sello { font-size: 0.6em; line-height: 0; font-weight: 700; margin-left: 0.12em; vertical-align: super; }
+
+/* ---------- foto de perfil del veterinario ---------- */
+.va-foto-sel { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }

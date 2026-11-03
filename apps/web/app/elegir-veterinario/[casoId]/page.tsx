@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { SolicitudParaCliente, VeterinarioParaElegir } from "@vet-teletriage/types";
 import Link from "next/link";
-import { apiGet, apiPostAuth, ApiError } from "../../../lib/api";
+import { apiGet, apiPostAuth, ApiError, urlApi } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
 import { Pantalla } from "../../../components/Pantalla";
 import { AnilloEspera } from "../../../components/AnilloEspera";
@@ -501,7 +501,7 @@ export default function ElegirVeterinarioPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {veterinarios?.map((v) => (
           <div key={v.id} className="va-vet" style={{ alignItems: "flex-start", flexWrap: "wrap" }}>
-            <Avatar nombre={v.nombre} apellido={v.apellido} size={48} />
+            <Avatar nombre={v.nombre} apellido={v.apellido} size={48} foto={v.fotoUrl ? urlApi(v.fotoUrl) : null} />
             <div style={{ minWidth: 0, flex: "1 1 150px" }}>
               <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.25 }}>
                 {v.nombre} {v.apellido}

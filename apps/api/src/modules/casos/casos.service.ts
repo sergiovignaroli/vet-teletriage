@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { filtroSenalVigente } from "../../common/presencia";
+import { urlFoto } from "../../common/foto";
 import { PrismaService } from "../../prisma.service";
 import { VideoService } from "../video/video.service";
 import { PagosService } from "../pagos/pagos.service";
@@ -188,6 +189,7 @@ export class CasosService {
           cantidadCalificaciones,
           enConsulta: v.casos.length > 0,
           enStandBy: v.presencia === "STAND_BY",
+          fotoUrl: urlFoto(v.id, v.fotoActualizadaEl, !!v.fotoPerfil),
         };
       })
       // Piso de calidad (Sección 11/12, PISO_CALIDAD_ESTRELLAS): un

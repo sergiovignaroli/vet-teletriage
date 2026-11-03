@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from "@nestjs/common";
+import type { Response } from "express";
 import type { PresenciaVeterinario } from "@prisma/client";
 import { VeterinariosService } from "./veterinarios.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -79,6 +80,60 @@ export class VeterinariosController {
   @Roles("ADMIN")
   habilitar(@Param("id") id: string) {
     return this.veterinarios.habilitarManualmente(id);
+  }
+
+  // Foto pública de un veterinario habilitado (la usan el directorio y la lista del
+  // tutor como <img>). helmet marca los recursos como same-origin por defecto:
+  // acá hay que abrirlo, porque el sitio web está en otro dominio que la API.
+  @Get(":id/foto")
+  async foto(@Param("id") id: string, @Res() res: Response) {
+    const f = await this.veterinarios.fotoPublica(id);
+    if (!f) {
+      res.status(404).json({ message: "Sin foto" });
+      return;
+    }
+    res.set({
+      "Content-Type": f.mime,
+      "Cache-Control": "public, max-age=86400",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    });
+    res.send(f.buffer);
+  }
+
+  @Get("mi-foto")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  miFoto(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.veterinarios.miFoto(usuario.id);
+  }
+
+  @Put("foto")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  guardarFoto(@CurrentUser() usuario: UsuarioAutenticado, @Body("foto") foto: unknown) {
+    return this.veterinarios.guardarFoto(usuario.id, foto);
+  }
+
+  @Delete("foto")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  quitarMiFoto(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.veterinarios.quitarFoto(usuario.id);
+  }
+
+  // Administración: ver las fotos cargadas y quitar una que no corresponda.
+  @Get("fotos-admin")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  fotosAdmin() {
+    return this.veterinarios.fotosParaAdmin();
+  }
+
+  @Delete(":id/foto")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  quitarFotoAdmin(@Param("id") id: string) {
+    return this.veterinarios.quitarFoto(id);
   }
 
   @Get("mis-especies")

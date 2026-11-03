@@ -417,6 +417,8 @@ export interface VeterinarioParaElegir {
   enConsulta: boolean;
   // En Stand by: sigue con la sesión abierta pero puede no estar atento.
   enStandBy: boolean;
+  // Ruta de la foto de perfil (relativa a la API) o null si no cargó una.
+  fotoUrl?: string | null;
 }
 
 // Versión vigente de los Términos y Condiciones. Se guarda con cada
