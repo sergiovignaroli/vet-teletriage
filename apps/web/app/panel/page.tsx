@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { CasoParaCliente, SolicitudParaCliente } from "@vet-teletriage/types";
 import { apiGet, apiPatch, ApiError } from "../../lib/api";
 import { useSesionCliente } from "../../lib/sesion";
+import { nombreDeEspecie } from "@vet-teletriage/types";
 import { Onboarding } from "../../components/Onboarding";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 
@@ -164,7 +165,7 @@ export default function PanelPage() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-              <strong style={{ fontSize: 14 }}>{caso.intake.especie}</strong>
+              <strong style={{ fontSize: 14 }}>{nombreDeEspecie(caso.intake.especie)}</strong>
               <span style={{ fontSize: 11, opacity: 0.75 }}>{FORMATO_FECHA.format(new Date(caso.creadoEl))}</span>
             </div>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 8px", display: "flex", alignItems: "center", gap: 8 }}>

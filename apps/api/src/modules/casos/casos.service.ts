@@ -14,6 +14,8 @@ import {
   honorarioPaypalDe,
   PISO_CALIDAD_ESTRELLAS,
   VeterinarioParaElegir,
+  atiendeEspecie,
+  IDS_ESPECIES,
 } from "@vet-teletriage/types";
 
 interface CrearCasoInput {
@@ -53,6 +55,11 @@ export class CasosService {
   // a nadie. honorarioDeclarado sigue en null: se completa recién cuando el
   // cliente elige (ver asignarPorAceptacion()), no antes.
   async crear(input: CrearCasoInput) {
+    // La especie define a qué colegas se les ofrece el caso: tiene que ser una
+    // del catálogo (el front arma un selector, pero no se confía en él).
+    if (!IDS_ESPECIES.includes(input.contexto.especie)) {
+      throw new BadRequestException("Elegí la especie de tu animal de la lista");
+    }
     const ahora = new Date();
     // La franja del caso se decide con la hora de Argentina (no con la del
     // servidor, que en Render es UTC). El precio definitivo recién se fija al
@@ -153,7 +160,10 @@ export class CasosService {
     for (const pais of new Set(conectados.map((v) => v.pais))) contextos.set(pais, await this.precios.contexto(pais));
     const ahora = new Date();
 
+    // Solo quienes atienden la especie de este animal (Sergio, 2026-11-03).
+    const especieDelCaso = intake?.especie ?? "";
     return conectados
+      .filter((v) => atiendeEspecie(v.especiesAtiende, especieDelCaso))
       .map((v) => {
         const cantidadCalificaciones = v.calificaciones.length;
         const ratingPromedio =

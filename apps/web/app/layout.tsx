@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import "./globals.css";
+import { NOMBRE_CON_MARCA } from "../lib/datos-legales";
 
-const TITULO = "Videollamada Animal";
+
+const TITULO = NOMBRE_CON_MARCA;
 const DESCRIPCION =
   "Teleasesoramiento veterinario — hablá por video con un veterinario matriculado que evalúa qué tan urgente es y te orienta.";
 

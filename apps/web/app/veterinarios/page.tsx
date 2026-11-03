@@ -7,6 +7,7 @@ import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 import { Foto } from "../../components/Foto";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { Avatar, Calificacion } from "../../components/Veterinario";
+import { nombreDeEspecie } from "@vet-teletriage/types";
 
 interface VeterinarioDirectorio {
   id: string;
@@ -14,6 +15,7 @@ interface VeterinarioDirectorio {
   apellido: string;
   ratingPromedio: number | null;
   cantidadCalificaciones: number;
+  especies?: string[];
 }
 
 // Directorio público (situación probable, 2026-09-29): GET
@@ -88,6 +90,15 @@ export default function DirectorioVeterinariosPage() {
               <div style={{ marginTop: 3 }}>
                 <Calificacion promedio={v.ratingPromedio} cantidad={v.cantidadCalificaciones} />
               </div>
+              {v.especies && v.especies.length > 0 && (
+                <div className="va-esp-chips">
+                  {v.especies.map((e) => (
+                    <span key={e} className="va-esp-chip">
+                      {nombreDeEspecie(e)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}

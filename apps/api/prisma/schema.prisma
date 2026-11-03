@@ -39,6 +39,9 @@ model Veterinario {
   // Estado operativo
   estado     EstadoVeterinario @default(PENDIENTE_VERIFICACION)
   disponible Boolean           @default(false)
+  // Especies que atiende (ids de ESPECIES en packages/types). Vacío = alta anterior
+  // a este dato: se lo trata como perros y gatos hasta que las declare.
+  especiesAtiende String[] @default([])
 
   // Presencia (Sergio, 2026-10-27): el veterinario elige entre Conectado,
   // Stand by y Desconectado, y esa elección dura hasta que la cambie él (no

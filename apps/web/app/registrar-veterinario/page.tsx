@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SelectorEspecies } from "../../components/SelectorEspecies";
 import { apiPost, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
@@ -44,6 +45,7 @@ export default function RegistrarVeterinarioPage() {
   const [seguroPoliza, setSeguroPoliza] = useState("");
   const [seguroVenceEl, setSeguroVenceEl] = useState("");
 
+  const [especies, setEspecies] = useState<string[]>([]);
   const [aceptoConvenio, setAceptoConvenio] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +65,7 @@ export default function RegistrarVeterinarioPage() {
     !seguroAseguradora ||
     !seguroPoliza ||
     !seguroVenceEl ||
+    especies.length === 0 ||
     !aceptoConvenio;
 
   interface RespuestaRegistroVeterinario {
@@ -97,6 +100,7 @@ export default function RegistrarVeterinarioPage() {
         seguroAseguradora,
         seguroPoliza,
         seguroVenceEl,
+        especiesAtiende: especies,
         aceptoConvenio: true,
       });
       guardar({
@@ -196,6 +200,14 @@ export default function RegistrarVeterinarioPage() {
         <Campo etiqueta="Aseguradora" value={seguroAseguradora} onChange={setSeguroAseguradora} />
         <Campo etiqueta="Número de póliza" value={seguroPoliza} onChange={setSeguroPoliza} />
         <Campo etiqueta="Vencimiento del seguro" value={seguroVenceEl} onChange={setSeguroVenceEl} type="date" />
+
+        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 6 }}>
+          ¿Qué especies atendés?
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
+          Marcá todas las que atendés. Solo te van a llegar consultas de esas especies. Lo podés cambiar después desde tu panel.
+        </p>
+        <SelectorEspecies valor={especies} onChange={setEspecies} idBase="reg-esp" />
 
         <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, lineHeight: 1.5, marginTop: 22 }}>
           <input

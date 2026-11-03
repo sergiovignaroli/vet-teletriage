@@ -81,6 +81,20 @@ export class VeterinariosController {
     return this.veterinarios.habilitarManualmente(id);
   }
 
+  @Get("mis-especies")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  misEspecies(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.veterinarios.misEspecies(usuario.id);
+  }
+
+  @Patch("especies")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  actualizarEspecies(@CurrentUser() usuario: UsuarioAutenticado, @Body("especies") especies: unknown) {
+    return this.veterinarios.actualizarEspecies(usuario.id, especies);
+  }
+
   @Get("mi-cobro")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")

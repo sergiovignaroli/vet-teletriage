@@ -1,3 +1,4 @@
+import { NOMBRE_CON_MARCA } from "@vet-teletriage/types";
 // Checkout Pro con split (marketplace_fee) — Sergio, 2026-09-29.
 //
 // Verificado contra la documentación oficial de Mercado Pago Developers:
@@ -91,7 +92,7 @@ export async function crearPreferenciaDePago(
       items: [
         {
           id: input.casoId,
-          title: "Asesoramiento veterinario online — Videollamada Animal",
+          title: `Asesoramiento veterinario online — ${NOMBRE_CON_MARCA}`,
           quantity: 1,
           currency_id: "ARS",
           unit_price: input.montoTotal,

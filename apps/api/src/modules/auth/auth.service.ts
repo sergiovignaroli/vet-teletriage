@@ -4,6 +4,7 @@ import { createHash, randomBytes, randomInt } from "crypto";
 import * as bcrypt from "bcryptjs";
 import { VERSION_CONVENIO_VETERINARIO } from "@vet-teletriage/types";
 import { PrismaService } from "../../prisma.service";
+import { especiesValidas } from "../../common/especies";
 import { consumirLimite } from "../../common/limite-por-clave";
 import { enviarWhatsApp, enviarWhatsAppPlantilla, normalizarTelefono } from "../../common/whatsapp-cloud-api.util";
 
@@ -46,6 +47,8 @@ interface RegistrarVeterinarioInput {
   seguroAseguradora: string;
   seguroPoliza: string;
   seguroVenceEl: Date | string;
+  // Especies que atiende (ids del catálogo ESPECIES); al menos una.
+  especiesAtiende?: string[];
   // Obligatorio: acepta el convenio, los Términos y la Política de Privacidad.
   aceptoConvenio?: boolean;
   ip?: string;
@@ -69,6 +72,7 @@ export class AuthService {
         "Para registrarte tenés que aceptar el convenio, los Términos y Condiciones y la Política de Privacidad",
       );
     }
+    const especiesAtiende = especiesValidas(input.especiesAtiende);
     const matriculaVenceEl = fechaValida(input.matriculaVenceEl, "el vencimiento de la matrícula");
     const seguroVenceEl = fechaValida(input.seguroVenceEl, "el vencimiento del seguro");
     const yaExiste = await this.prisma.veterinario.findUnique({ where: { email: input.email } });
@@ -90,6 +94,7 @@ export class AuthService {
         seguroAseguradora: input.seguroAseguradora,
         seguroPoliza: input.seguroPoliza,
         seguroVenceEl,
+        especiesAtiende,
         convenioVersion: VERSION_CONVENIO_VETERINARIO,
         convenioAceptadoEl: new Date(),
         convenioIp: input.ip ?? null,

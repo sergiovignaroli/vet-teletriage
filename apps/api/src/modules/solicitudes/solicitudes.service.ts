@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import {
+  atiendeEspecie,
   BanderasRojasIntake,
   hayBanderaRoja,
   listarBanderasRojas,
@@ -109,6 +110,12 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
       tieneSenalVigente(veterinario.ultimaSenal, veterinario.pushSuscripciones.length > 0);
     if (!veterinario || !elegible || !(veterinario.mercadoPagoAccessToken || veterinario.paypalEmail)) {
       throw new BadRequestException("Ese veterinario ya no está disponible — elegí otro de la lista");
+    }
+    // Solo a quien atiende la especie del animal (no se confía en que el front
+    // haya filtrado la lista).
+    const intakeDelCaso = await this.prisma.intakeFormulario.findUnique({ where: { casoId: caso.id }, select: { especie: true } });
+    if (intakeDelCaso && !atiendeEspecie(veterinario.especiesAtiende, intakeDelCaso.especie)) {
+      throw new BadRequestException("Ese veterinario no atiende esa especie — elegí otro de la lista");
     }
     // Una sola solicitud pendiente por veterinario, y nadie con un cliente ya
     // asignado esperando que arranque.

@@ -1,3 +1,4 @@
+import { NOMBRE_CON_MARCA } from "@vet-teletriage/types";
 // PayPal — "Payouts, dos pasos" (Sergio, 2026-09-30, ver doc de
 // proveedores): a diferencia de Mercado Pago (split automático, cada
 // veterinario cobra con SU cuenta), acá la plataforma cobra el total con
@@ -107,7 +108,7 @@ export async function crearOrdenPayPal(input: CrearOrdenPayPalInput): Promise<Or
           // los dos.
           reference_id: input.casoId,
           custom_id: input.casoId,
-          description: "Asesoramiento veterinario online — Videollamada Animal",
+          description: `Asesoramiento veterinario online — ${NOMBRE_CON_MARCA}`,
           amount: {
             currency_code: "USD",
             value: input.montoTotalUsd.toFixed(2),
@@ -120,7 +121,7 @@ export async function crearOrdenPayPal(input: CrearOrdenPayPalInput): Promise<Or
         // El cliente ve el cargo con este nombre en su resumen de PayPal —
         // sin esto, PayPal muestra el nombre de la cuenta de plataforma a
         // secas, que puede no decirle nada al cliente.
-        brand_name: "Videollamada Animal",
+        brand_name: NOMBRE_CON_MARCA,
         user_action: "PAY_NOW",
       },
     }),
@@ -215,8 +216,8 @@ export async function enviarPayoutPayPal(input: EnviarPayoutPayPalInput): Promis
         // PayPal la trata como el mismo batch (idempotencia de su lado),
         // en vez de mandar la plata dos veces.
         sender_batch_id: `honorario-${input.casoId}`,
-        email_subject: "Pago de tu honorario — Videollamada Animal",
-        email_message: "Se acreditó el honorario de un asesoramiento que atendiste por Videollamada Animal.",
+        email_subject: `Pago de tu honorario — ${NOMBRE_CON_MARCA}`,
+        email_message: `Se acreditó el honorario de un asesoramiento que atendiste por ${NOMBRE_CON_MARCA}.`,
       },
       items: [
         {

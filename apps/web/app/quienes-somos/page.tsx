@@ -2,6 +2,8 @@ import Link from "next/link";
 import "../portada.css";
 import { Foto } from "../../components/Foto";
 import { LegalFooter } from "../../components/LegalFooter";
+import { NombreMarca } from "../../components/Marca";
+import { NOMBRE_CON_MARCA, SIMBOLO_MARCA } from "../../lib/datos-legales";
 
 // Vista aparte "Quiénes somos" (Sergio, 2026-11-02): antes estaba dentro de la
 // portada. Texto pedido: una plataforma que reúne a tutores con un problema o
@@ -10,7 +12,7 @@ import { LegalFooter } from "../../components/LegalFooter";
 // (videollamada, cobro seguro…): "eso no vende".
 
 export const metadata = {
-  title: "Quiénes somos · Videollamada Animal",
+  title: `Quiénes somos · ${NOMBRE_CON_MARCA}`,
   description:
     "Reunimos a tutores de mascotas que necesitan ayuda con veterinarios dispuestos a dársela. Ellos van a estar.",
 };
@@ -40,7 +42,7 @@ export default function QuienesSomosPage() {
                 Para que nadie se quede solo con la duda
               </h1>
               <p style={{ fontSize: 19, lineHeight: 1.6, margin: "22px 0 0", maxWidth: 540 }}>
-                Videollamada Animal reúne a dos tipos de personas: tutores de mascotas que tienen un problema o necesitan ayuda, y
+                <NombreMarca /> reúne a dos tipos de personas: tutores de mascotas que tienen un problema o necesitan ayuda, y
                 veterinarios que están dispuestos a dársela.
               </p>
               <p style={{ fontSize: 17, lineHeight: 1.65, color: "var(--muted)", margin: "16px 0 0", maxWidth: 540 }}>
@@ -105,7 +107,7 @@ export default function QuienesSomosPage() {
               <g textAnchor="middle" fontFamily="Figtree, system-ui, sans-serif">
                 <text x="80" y="190" fontSize="15" fontWeight="700" fill="#14302a">Vos y tu mascota</text>
                 <text x="80" y="210" fontSize="13" fill="#4f625a">Pedís ayuda</text>
-                <text x="260" y="190" fontSize="15" fontWeight="700" fill="#14302a">Videollamada Animal</text>
+                <text x="260" y="190" fontSize="15" fontWeight="700" fill="#14302a">{`Videollamada Animal${SIMBOLO_MARCA}`}</text>
                 <text x="260" y="210" fontSize="13" fill="#4f625a">Los reúne</text>
                 <text x="440" y="190" fontSize="15" fontWeight="700" fill="#14302a">Veterinario matriculado</text>
                 <text x="440" y="210" fontSize="13" fill="#4f625a">Te orienta</text>

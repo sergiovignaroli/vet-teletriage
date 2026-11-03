@@ -2,7 +2,8 @@ import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/com
 import { PrismaService } from "../../prisma.service";
 import { filtroSenalVigente } from "../../common/presencia";
 import type { PresenciaVeterinario } from "@prisma/client";
-import { MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN, VERSION_CONVENIO_VETERINARIO } from "@vet-teletriage/types";
+import { especiesValidas } from "../../common/especies";
+import { ESPECIES_POR_DEFECTO, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN, VERSION_CONVENIO_VETERINARIO } from "@vet-teletriage/types";
 
 @Injectable()
 export class VeterinariosService {
@@ -56,10 +57,25 @@ export class VeterinariosService {
         id: v.id,
         nombre: v.nombre,
         apellido: v.apellido,
+        especies: v.especiesAtiende.length > 0 ? v.especiesAtiende : ESPECIES_POR_DEFECTO,
         ratingPromedio,
         cantidadCalificaciones,
       };
     });
+  }
+
+  // Las especies que declara el propio veterinario (panel). `declaradas` es false
+  // para altas anteriores a este dato: el panel le pide que las indique.
+  async misEspecies(veterinarioId: string) {
+    const v = await this.prisma.veterinario.findUnique({ where: { id: veterinarioId }, select: { especiesAtiende: true } });
+    if (!v) throw new BadRequestException("Veterinario no encontrado");
+    return { especies: v.especiesAtiende.length > 0 ? v.especiesAtiende : ESPECIES_POR_DEFECTO, declaradas: v.especiesAtiende.length > 0 };
+  }
+
+  async actualizarEspecies(veterinarioId: string, especies: unknown) {
+    const limpias = especiesValidas(especies);
+    await this.prisma.veterinario.update({ where: { id: veterinarioId }, data: { especiesAtiende: limpias } });
+    return { especies: limpias, declaradas: true };
   }
 
   // Filtro real de "casos disponibles" (decisión de Sergio, 2026-09-28): NO

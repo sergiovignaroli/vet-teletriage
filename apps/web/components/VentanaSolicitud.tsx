@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { SolicitudParaVeterinario } from "@vet-teletriage/types";
-import { POSTERGAR_OPCIONES_MINUTOS } from "@vet-teletriage/types";
+import { nombreDeEspecie, POSTERGAR_OPCIONES_MINUTOS } from "@vet-teletriage/types";
 
 // Ventana emergente de "te están pidiendo una consulta" (Sergio, 2026-10-27).
 // Solo muestra contexto clínico: nunca datos de contacto de la persona.
@@ -40,7 +40,7 @@ export function VentanaSolicitud({
   const ss = String(segundos % 60).padStart(2, "0");
   const ocupado = respondiendo !== null;
   const datos = [
-    solicitud.especie,
+    nombreDeEspecie(solicitud.especie),
     solicitud.raza,
     solicitud.edadAproximada,
     solicitud.pesoAproximadoKg != null ? `${solicitud.pesoAproximadoKg} kg` : null,

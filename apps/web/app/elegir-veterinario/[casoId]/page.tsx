@@ -471,7 +471,7 @@ export default function ElegirVeterinarioPage() {
       {!cargando && veterinarios && veterinarios.length === 0 && (
         <div className="va-tarjeta">
           <EstadoVacio>
-            No hay ningún veterinario disponible en este momento. Probá de nuevo en unos minutos.
+            Ahora no hay ningún veterinario conectado que atienda a tu animal. Probá de nuevo en unos minutos: la lista se actualiza sola.
           </EstadoVacio>
         </div>
       )}

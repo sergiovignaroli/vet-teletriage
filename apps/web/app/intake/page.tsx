@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BanderasRojasIntake, CasoResumen } from "@vet-teletriage/types";
-import { hayBanderaRoja } from "@vet-teletriage/types";
+import { ESPECIES, GRUPOS_ESPECIES, hayBanderaRoja } from "@vet-teletriage/types";
 import { apiPostAuth, ApiError } from "../../lib/api";
 import { useSesionCliente } from "../../lib/sesion";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
@@ -147,13 +147,28 @@ export default function IntakePage() {
           Contanos un poco más
         </h2>
         <label style={{ display: "block", margin: "8px 0", fontSize: 14, fontWeight: 600 }}>
-          Especie
-          <input
+          ¿Qué animal es?
+          <select
             className="va-input"
             value={especie}
             onChange={(e) => setEspecie(e.target.value)}
             style={{ marginTop: 6 }}
-          />
+          >
+            <option value="">Elegí una opción</option>
+            {GRUPOS_ESPECIES.map((g) => (
+              <optgroup key={g.id} label={g.nombre}>
+                {ESPECIES.filter((x) => x.grupo === g.id).map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.singular}
+                    {x.ejemplos ? ` (${x.ejemplos})` : ""}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <span style={{ display: "block", fontSize: 12.5, color: "var(--muted)", fontWeight: 400, marginTop: 6 }}>
+            Te mostramos solo a los veterinarios que atienden esta especie.
+          </span>
         </label>
         <label style={{ display: "block", margin: "16px 0 8px", fontSize: 14, fontWeight: 600 }}>
           ¿Qué está pasando?

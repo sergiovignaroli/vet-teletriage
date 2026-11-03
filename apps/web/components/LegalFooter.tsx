@@ -1,16 +1,10 @@
 // Aviso de derechos, en todas las pantallas (Sergio, 2026-09-29).
 //
-// OJO — usa © (derecho de autor), no ® ni la frase "marca registrada": el
-// derecho de autor sobre el nombre, el ícono y los textos es automático en
-// Argentina (Convenio de Berna) desde que se crean, no hace falta ningún
-// trámite. El derecho sobre la MARCA como marca (uso exclusivo en el
-// rubro) sí requiere un registro otorgado por el INPI, y ese trámite —
-// según el propio README del proyecto — todavía no está confirmado como
-// completo (siguen pendientes razón social/CUIT en los documentos
-// legales). Poner "marca registrada" o ® sin un registro efectivamente
-// otorgado es, como mínimo, inexacto, y en Argentina es objetable ante el
-// INPI. Quedó pendiente confirmar con Sergio si ya hay un registro
-// otorgado — si lo hay, esta leyenda se actualiza a ® ese mismo día.
+// Marca (Sergio, 2026-11-03): "Videollamada Animal" y su logo son marca
+// registrada. El pie lleva siempre el logo junto al nombre, el símbolo ® y la
+// leyenda de titularidad. Todo depende de MARCA_REGISTRADA en
+// lib/datos-legales.ts: si el registro del INPI no estuviera otorgado, usar ®
+// o "marca registrada" es objetable — ahí se cambia a false y todo pasa a ™.
 // Links a Términos, Privacidad y Contacto (Sergio, 2026-09-30) agregados
 // acá porque este componente ya se renderiza en todas las pantallas — es
 // el único lugar que garantiza que las tres páginas sean encontrables
@@ -18,6 +12,8 @@
 // pantalla.
 import Link from "next/link";
 import { RedesFooter } from "./RedesFooter";
+import { NombreMarca } from "./Marca";
+import { MARCA_REGISTRADA, TITULAR } from "../lib/datos-legales";
 
 export function LegalFooter() {
   const anio = new Date().getFullYear();
@@ -48,7 +44,13 @@ export function LegalFooter() {
         Datos legales
       </Link>
       <br />
-      © {anio} Videollamada Animal. Todos los derechos reservados.
+      © {anio} <NombreMarca />. Todos los derechos reservados.
+      {MARCA_REGISTRADA && (
+        <>
+          <br />
+          Videollamada Animal y su logo son marcas registradas de {TITULAR}.
+        </>
+      )}
       <br />
       Prohibida su reproducción total o parcial sin autorización expresa.
     </p>

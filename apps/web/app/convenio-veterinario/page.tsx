@@ -201,8 +201,8 @@ export default function ConvenioVeterinarioPage() {
           <Link href="/privacidad" style={{ color: "var(--esmeralda)" }}>
             Política de Privacidad
           </Link>
-          , incluidos la matrícula, el seguro y los datos de cobro. El Profesional acepta que su nombre, matrícula y
-          calificaciones sean visibles para los tutores.
+          , incluidos la matrícula, el seguro y los datos de cobro. El Profesional acepta que su nombre, matrícula, las
+          especies que atiende y sus calificaciones sean visibles para los tutores.
         </p>
       </Seccion>
 

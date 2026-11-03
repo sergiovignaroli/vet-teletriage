@@ -2,6 +2,8 @@ import Link from "next/link";
 import "./portada.css";
 import { LegalFooter } from "../components/LegalFooter";
 import { Foto } from "../components/Foto";
+import { NombreMarca } from "../components/Marca";
+import { Sello } from "../components/Sello";
 
 // Portada nueva — aprobada por Sergio el 2026-11-02 (diseño en el lienzo
 // "Portada Videollamada Animal"). Cambios respecto de la anterior:
@@ -260,7 +262,10 @@ export default function HomePage() {
 
           <div className="vp-hero-centro">
             <LogoGrande />
-            <div className="vp-disp vp-marca">Videollamada Animal</div>
+            <div className="vp-disp vp-marca">
+              Videollamada Animal
+              <Sello />
+            </div>
 
             <div className="vp-chip">
               <span className="vp-punto" aria-hidden="true" />
@@ -487,7 +492,7 @@ export default function HomePage() {
             Muy pronto, también en tu celular
           </h2>
           <p style={{ fontSize: 16, lineHeight: 1.55, color: "var(--muted)", margin: "12px auto 0", maxWidth: 560 }}>
-            Estamos preparando la app para Android y para iPhone. Mientras tanto, podés usar Videollamada Animal desde el
+            Estamos preparando la app para Android y para iPhone. Mientras tanto, podés usar <NombreMarca /> desde el
             navegador.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 24 }}>
@@ -518,7 +523,7 @@ export default function HomePage() {
           </Link>
         </nav>
         <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--muted)", maxWidth: 720, margin: "20px auto 0", textAlign: "center" }}>
-          Videollamada Animal es una plataforma tecnológica que conecta dueños de mascotas con veterinarios matriculados. Cada
+          <NombreMarca /> es una plataforma tecnológica que conecta dueños de mascotas con veterinarios matriculados. Cada
           veterinario ejerce su profesión de forma independiente, bajo su matrícula y su responsabilidad. El servicio es una orientación a distancia y no reemplaza un examen presencial.
         </p>
         <LegalFooter />

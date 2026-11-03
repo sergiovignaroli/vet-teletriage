@@ -3,6 +3,7 @@ import webpush from "web-push";
 import { PrismaService } from "../../prisma.service";
 import { enviarWhatsAppPlantilla, normalizarTelefono, whatsappConfigurado } from "../../common/whatsapp-cloud-api.util";
 import { emailConfigurado, enviarEmail } from "../../common/email.util";
+import { NOMBRE_CON_MARCA } from "@vet-teletriage/types";
 
 export interface AvisoPush {
   titulo: string;
@@ -202,7 +203,7 @@ export class NotificacionesService {
       tareas.push(
         enviarEmail({
           para: v.email,
-          asunto: "Nueva consulta en Videollamada Animal",
+          asunto: `Nueva consulta en ${NOMBRE_CON_MARCA}`,
           texto: `Hola ${v.nombre},\n\nUna persona quiere una consulta con vos. Entrá a la plataforma para responder antes de que venza:\n${url}\n\nEste mensaje es solo un aviso: la consulta se realiza dentro de la plataforma.`,
         }).catch((e) => this.log.warn(`Correo al veterinario falló: ${e instanceof Error ? e.message : e}`)),
       );

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { CasoParaVeterinario, ClasificacionCierre, TurnoPactadoParaVeterinario } from "@vet-teletriage/types";
 import { hayBanderaRoja } from "@vet-teletriage/types";
 import { MisPrecios } from "../../components/MisPrecios";
+import { MisEspecies } from "../../components/MisEspecies";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useLatidoVeterinario, useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { tocarAviso, useSolicitudesVeterinario, useSonidoActivo } from "../../lib/solicitudes-veterinario";
@@ -637,6 +638,8 @@ export default function PanelVeterinarioPage() {
       {/* Precios propios (Sergio, 2026-11-03): cuatro precios — normal y
           urgencia, diurno y nocturno — dentro de la banda que define la
           plataforma. Reemplaza al margen sobre un precio base. */}
+      <MisEspecies token={sesion.accessToken} />
+
       {sesion.estado === "HABILITADO" && <MisPrecios token={sesion.accessToken} />}
 
       <Link

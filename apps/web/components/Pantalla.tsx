@@ -12,6 +12,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { LegalFooter } from "./LegalFooter";
 import { LogoIcon } from "./Logo";
+import { Sello } from "./Sello";
 
 interface PantallaProps {
   titulo: string;
@@ -46,7 +47,10 @@ export function Pantalla({ titulo, volver, variante = "menta", ancho = 480, cent
             </button>
           )}
           <span className="va-barra-marca">
-            <span className="va-barra-nombre">Videollamada Animal</span>
+            <span className="va-barra-nombre">
+              Videollamada Animal
+              <Sello />
+            </span>
             <LogoIcon size={30} tono={variante === "menta" ? "oscuro" : "claro"} />
           </span>
         </div>
@@ -65,7 +69,10 @@ export function MarcaGrande({ detalle }: { detalle?: string }) {
   return (
     <div className="va-marca-grande">
       <LogoIcon size={64} />
-      <div className="va-logo">Videollamada Animal</div>
+      <div className="va-logo">
+        Videollamada Animal
+        <Sello />
+      </div>
       {detalle && <div className="va-marca-detalle">{detalle}</div>}
     </div>
   );

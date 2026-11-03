@@ -24,6 +24,7 @@ import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { CARGO_NO_COMPLETADO, CARGO_NO_COMPLETADO_USD } from "@vet-teletriage/types";
 import { apiGet } from "../../lib/api";
 import { Pantalla } from "../../components/Pantalla";
+import { NombreMarca } from "../../components/Marca";
 import { TELEFONO_ENLACE, TELEFONO_VISIBLE } from "../../lib/datos-legales";
 
 interface ResumenPrecios {
@@ -72,9 +73,9 @@ export default function TerminosPage() {
         Última actualización: 3 de noviembre de 2026.
       </p>
 
-      <Seccion titulo="1. Qué es Videollamada Animal">
+      <Seccion titulo={<>1. Qué es <NombreMarca /></>}>
         <p>
-          Videollamada Animal es una plataforma tecnológica que pone en contacto a dueños de mascotas con veterinarios
+          <NombreMarca /> es una plataforma tecnológica que pone en contacto a dueños de mascotas con veterinarios
           matriculados que ejercen de forma independiente, para brindar{" "}
           <strong>asesoramiento y orientación veterinaria a distancia</strong>. La plataforma ofrece la tecnología para
           encontrarse, la videollamada, el cobro y la atención de reclamos; el asesoramiento en sí lo brinda el
@@ -219,7 +220,7 @@ function ContactoEmail({ config }: { config: ConfiguracionPlataforma | null }) {
   );
 }
 
-function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Seccion({ titulo, children }: { titulo: React.ReactNode; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: 22 }}>
       <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{titulo}</h2>

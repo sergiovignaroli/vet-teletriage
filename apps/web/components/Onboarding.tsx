@@ -7,6 +7,8 @@
 
 import { useState } from "react";
 import { LogoIcon } from "./Logo";
+import { NombreMarca } from "./Marca";
+import { Sello } from "./Sello";
 import { Foto } from "./Foto";
 import { LegalFooter } from "./LegalFooter";
 
@@ -35,7 +37,11 @@ const FOTOS_VETERINARIO = [
 const PANTALLAS_CLIENTE = [
   {
     titulo: "Hola. Acá siempre hay alguien.",
-    texto: "Videollamada Animal conecta a tu mascota con un veterinario matriculado, las 24 horas.",
+    texto: (
+      <>
+        <NombreMarca tono="claro" /> conecta a tu mascota con un veterinario matriculado, las 24 horas.
+      </>
+    ),
   },
   {
     titulo: "Contás qué pasa",
@@ -85,7 +91,10 @@ export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props
         <div className="va-bienvenida-top">
           <span className="va-bienvenida-marca">
             <LogoIcon size={34} tono="claro" />
-            <span>Videollamada Animal</span>
+            <span>
+              Videollamada Animal
+              <Sello />
+            </span>
           </span>
           {!esUltimoPaso && (
             <button type="button" onClick={onTerminar} disabled={enviando} className="va-bienvenida-saltar">

@@ -551,3 +551,75 @@ export interface CasoParaCliente extends CasoResumen {
   yaCalificado: boolean;
   disputaCalidad: { id: string; estado: "ABIERTA" | "EN_REVISION" | "RESUELTA"; resolucion: string | null } | null;
 }
+
+// ---------------------------------------------------------------------------
+// Especies que atiende cada veterinario (Sergio, 2026-11-03). El veterinario
+// tilda las que atiende al registrarse (y las puede cambiar desde su panel); el
+// tutor elige la especie de su animal al armar la consulta, y la lista de
+// colegas solo incluye a quienes la atienden. Los ids son estables (se guardan
+// en la base): se puede cambiar el nombre visible, nunca el id.
+// ---------------------------------------------------------------------------
+export interface EspecieCatalogo {
+  id: string;
+  nombre: string;
+  // Cómo se nombra a un solo animal (selector del tutor).
+  singular: string;
+  grupo: "COMPANIA" | "EXOTICOS" | "CAMPO";
+  // Ejemplos que se muestran bajo el nombre para que el tutor y el colega
+  // sepan qué entra en cada casillero.
+  ejemplos?: string;
+}
+
+export const GRUPOS_ESPECIES: { id: EspecieCatalogo["grupo"]; nombre: string }[] = [
+  { id: "COMPANIA", nombre: "Animales de compañía" },
+  { id: "EXOTICOS", nombre: "Exóticos y no convencionales" },
+  { id: "CAMPO", nombre: "Animales de campo y producción" },
+];
+
+export const ESPECIES: EspecieCatalogo[] = [
+  { id: "perro", singular: "Perro", nombre: "Perros", grupo: "COMPANIA" },
+  { id: "gato", singular: "Gato", nombre: "Gatos", grupo: "COMPANIA" },
+  { id: "ave", singular: "Ave", nombre: "Aves", grupo: "EXOTICOS", ejemplos: "loros, canarios, cotorras, gallinas de compañía" },
+  { id: "conejo", singular: "Conejo", nombre: "Conejos", grupo: "EXOTICOS" },
+  { id: "roedor", singular: "Roedor", nombre: "Roedores", grupo: "EXOTICOS", ejemplos: "hámster, cobayo, chinchilla, rata, ratón" },
+  { id: "reptil", singular: "Reptil", nombre: "Reptiles", grupo: "EXOTICOS", ejemplos: "tortugas, iguanas, serpientes, lagartos" },
+  { id: "anfibio", singular: "Anfibio", nombre: "Anfibios", grupo: "EXOTICOS", ejemplos: "ranas, sapos, axolotl" },
+  { id: "pez", singular: "Pez", nombre: "Peces", grupo: "EXOTICOS" },
+  {
+    id: "no_convencional",
+    singular: "Otro animal no convencional",
+    nombre: "Otros animales no convencionales",
+    grupo: "EXOTICOS",
+    ejemplos: "hurones, erizos, otros exóticos",
+  },
+  { id: "caballo", singular: "Caballo", nombre: "Caballos", grupo: "CAMPO", ejemplos: "equinos" },
+  { id: "vaca", singular: "Vaca / bovino", nombre: "Vacas", grupo: "CAMPO", ejemplos: "bovinos" },
+  { id: "pequeno_rumiante", singular: "Oveja o cabra (pequeño rumiante)", nombre: "Pequeños rumiantes", grupo: "CAMPO", ejemplos: "ovejas, cabras" },
+  { id: "cerdo", singular: "Cerdo", nombre: "Cerdos", grupo: "CAMPO" },
+];
+
+export const IDS_ESPECIES = ESPECIES.map((e) => e.id);
+
+export function nombreDeEspecie(id: string): string {
+  return ESPECIES.find((e) => e.id === id)?.nombre ?? id;
+}
+
+// Los colegas dados de alta antes de existir este dato no tienen especies
+// cargadas: se los trata como que atienden perros y gatos (lo que hacían
+// hasta ahora) hasta que las declaren desde su panel.
+export const ESPECIES_POR_DEFECTO = ["perro", "gato"];
+
+// ¿Este veterinario atiende la especie del caso? Si la especie del caso no
+// pertenece al catálogo (casos anteriores, con texto libre) no se filtra.
+export function atiendeEspecie(especiesAtiende: string[], especieDelCaso: string): boolean {
+  if (!IDS_ESPECIES.includes(especieDelCaso)) return true;
+  const lista = especiesAtiende.length > 0 ? especiesAtiende : ESPECIES_POR_DEFECTO;
+  return lista.includes(especieDelCaso);
+}
+
+// Marca (Sergio, 2026-11-03): "Videollamada Animal" y su logo son marca
+// registrada. UN solo interruptor para web y servidor: si el registro del INPI
+// no estuviera otorgado, cambiar a false y todo pasa a mostrar ™.
+export const MARCA_REGISTRADA = true;
+export const SIMBOLO_MARCA = MARCA_REGISTRADA ? "®" : "™";
+export const NOMBRE_CON_MARCA = `Videollamada Animal${SIMBOLO_MARCA}`;

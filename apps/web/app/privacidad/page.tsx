@@ -24,6 +24,7 @@ import Link from "next/link";
 import type { ConfiguracionPlataforma } from "@vet-teletriage/types";
 import { apiGet } from "../../lib/api";
 import { Pantalla } from "../../components/Pantalla";
+import { NombreMarca } from "../../components/Marca";
 import { CUIT, DOMICILIO_COMERCIAL, TELEFONO_ENLACE, TELEFONO_VISIBLE, TITULAR } from "../../lib/datos-legales";
 
 export default function PrivacidadPage() {
@@ -55,7 +56,7 @@ export default function PrivacidadPage() {
 
       <Seccion titulo="1. Quién es responsable de tus datos">
         <p>
-          Videollamada Animal, de {TITULAR} (CUIT {CUIT}, domicilio comercial: {DOMICILIO_COMERCIAL}), es
+          <NombreMarca />, de {TITULAR} (CUIT {CUIT}, domicilio comercial: {DOMICILIO_COMERCIAL}), es
           responsable del tratamiento de los datos personales que se describen acá, conforme a la Ley 25.326 de
           Protección de Datos Personales de la República Argentina.
         </p>
@@ -75,8 +76,8 @@ export default function PrivacidadPage() {
             esas imágenes — solo recibimos el resultado (verificado o no) de ese proceso.
           </li>
           <li>
-            <strong>Datos profesionales (solo veterinarios):</strong> matrícula profesional y datos del seguro
-            de responsabilidad civil vigente.
+            <strong>Datos profesionales (solo veterinarios):</strong> matrícula profesional, datos del seguro
+            de responsabilidad civil vigente y las especies que atiende.
           </li>
           <li>
             <strong>Datos del asesoramiento:</strong> la especie de la mascota y lo que contás sobre lo que le

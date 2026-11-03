@@ -27,13 +27,18 @@ import { apiGet, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
 import { useSesionVeterinario } from "../../../lib/sesion-veterinario";
 import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
+import { NombreMarca } from "../../../components/Marca";
 
 // El logo de las pantallas claras (ícono y texto en verde oscuro) quedaría
 // invisible en la barra superior oscura de la llamada en vivo. Por eso
 // acá arriba se usa solo el nombre en blanco, no el componente completo.
 // Las pantallas de aviso de más abajo usan el marco común (Pantalla).
 function MarcaEnOscuro() {
-  return <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>Videollamada Animal</span>;
+  return (
+    <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>
+      <NombreMarca tono="claro" />
+    </span>
+  );
 }
 
 // Forma de la respuesta de GET /video/:casoId/token — deliberadamente NO

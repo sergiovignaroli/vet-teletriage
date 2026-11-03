@@ -5,7 +5,7 @@
 // tono="claro": para fondos oscuros o de color (barra superior verde profundo
 // o terracota): trazo crema, perro menta y gato salmón — los mismos colores del
 // logo sobre fondo oscuro de la portada.
-export function LogoIcon({ size = 40, tono = "oscuro" }: { size?: number; tono?: "oscuro" | "claro" }) {
+export function LogoIcon({ size = 40, tono = "oscuro" }: { size?: number | string; tono?: "oscuro" | "claro" }) {
   const trazo = tono === "claro" ? "#F6F0E4" : "#14302A";
   const perro = tono === "claro" ? "#7FD8B8" : "#0A6B52";
   const gato = tono === "claro" ? "#F0A58F" : "#B4432D";
@@ -45,6 +45,8 @@ export function LogoIcon({ size = 40, tono = "oscuro" }: { size?: number; tono?:
   );
 }
 
+import { Sello } from "./Sello";
+
 interface LogoProps {
   tagline?: string;
   size?: "sm" | "md" | "lg";
@@ -76,6 +78,7 @@ export function Logo({ tagline, size = "md", marginBottom = 24, horizontal = fal
           Videollamada
           <br />
           Animal
+          <Sello />
         </div>
       </div>
     );
@@ -86,6 +89,7 @@ export function Logo({ tagline, size = "md", marginBottom = 24, horizontal = fal
       <LogoIcon size={icono} />
       <div className="va-logo" style={{ fontSize: letra, marginTop: 8 }}>
         Videollamada Animal
+        <Sello />
       </div>
       {tagline && (
         <div

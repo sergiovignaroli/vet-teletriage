@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
-import { CUIT, DOMICILIO_COMERCIAL, NOMBRE_COMERCIAL, TELEFONO_ENLACE, TELEFONO_VISIBLE, TITULAR } from "../../lib/datos-legales";
+import { NombreMarca } from "../../components/Marca";
+import { CUIT, DOMICILIO_COMERCIAL, NOMBRE_COMERCIAL, NOMBRE_CON_MARCA, TELEFONO_ENLACE, TELEFONO_VISIBLE, TITULAR } from "../../lib/datos-legales";
 
 // Datos legales del titular de la plataforma (Sergio, 2026-11-02).
 //
@@ -17,7 +18,7 @@ import { CUIT, DOMICILIO_COMERCIAL, NOMBRE_COMERCIAL, TELEFONO_ENLACE, TELEFONO_
 // contacto (se carga desde el panel de admin) y el enlace del organismo de
 // Defensa del Consumidor (ver checklist en Notion, ítem A3).
 
-export const metadata = { title: "Datos legales · Videollamada Animal" };
+export const metadata = { title: `Datos legales · ${NOMBRE_CON_MARCA}` };
 
 function Fila({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -37,7 +38,7 @@ export default function DatosLegalesPage() {
         Datos legales
       </h1>
       <p style={{ fontSize: 13, opacity: 0.8, marginTop: 0, marginBottom: 20 }}>
-        Quién está detrás de Videollamada Animal.
+        Quién está detrás de <NombreMarca />.
       </p>
 
       <Fila titulo="Titular (razón social)">{TITULAR}</Fila>
@@ -56,7 +57,7 @@ export default function DatosLegalesPage() {
       </Fila>
 
       <p style={{ fontSize: 13.5, lineHeight: 1.6, opacity: 0.85, marginTop: 22 }}>
-        Videollamada Animal es una plataforma intermediaria: conecta a tutores de mascotas con veterinarios matriculados que
+        <NombreMarca /> es una plataforma intermediaria: conecta a tutores de mascotas con veterinarios matriculados que
         ejercen su profesión de forma independiente. Para saber cómo se usa el servicio y cómo se tratan tus datos, mirá los{" "}
         <Link href="/terminos" style={{ color: "var(--esmeralda)", textDecoration: "underline" }}>
           Términos y Condiciones
