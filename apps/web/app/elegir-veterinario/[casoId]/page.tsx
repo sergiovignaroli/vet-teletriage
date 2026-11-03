@@ -195,6 +195,21 @@ export default function ElegirVeterinarioPage() {
     return () => clearInterval(t);
   }, [solicitud]);
 
+  // Si se retoma el pago en otra pestaña o dispositivo no queda el valor guardado
+  // al elegir: se vuelve a pedir el costo en dólares de ese veterinario.
+  useEffect(() => {
+    if (!casoAsignado || paypalUsdElegido != null || !sesion || !solicitud) return;
+    let cancelado = false;
+    apiGet<{ costoTotalPaypalUsd: number | null }>(`/pagos/${casoId}/opciones`, sesion.accessToken)
+      .then((o) => {
+        if (!cancelado && o.costoTotalPaypalUsd != null) setPaypalUsdElegido(o.costoTotalPaypalUsd);
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [casoAsignado, paypalUsdElegido, sesion, solicitud, casoId]);
+
   // Resultado de la solicitud.
   useEffect(() => {
     if (!solicitud) return;
@@ -270,6 +285,9 @@ export default function ElegirVeterinarioPage() {
   if (!sesion) return null;
 
   if (casoAsignado) {
+    // Veterinario que cobra solo con PayPal: Mercado Pago responde que no está
+    // conectado; en vez de mostrar eso como un error, se ofrece pagar en dólares.
+    const soloPaypal = paypalUsdElegido != null && !!errorCheckout && errorCheckout.includes("Mercado Pago");
     return (
       <Pantalla titulo="Tu pago" ancho={420} centrar>
         <h1 className="va-titular" style={{ fontSize: 22, margin: "12px 0 10px" }}>
@@ -280,7 +298,12 @@ export default function ElegirVeterinarioPage() {
             ? "Ya elegiste veterinario — solo falta completar el pago para confirmar el asesoramiento."
             : "Ya elegiste veterinario. Te estamos redirigiendo a Mercado Pago para completar el pago."}
         </p>
-        {errorCheckout && (
+        {errorCheckout && soloPaypal && (
+          <p style={{ fontSize: 14, marginBottom: 16 }} role="status">
+            Este veterinario cobra con PayPal, en dólares. Podés pagar con el botón de abajo.
+          </p>
+        )}
+        {errorCheckout && !soloPaypal && (
           <>
             <p style={{ color: "var(--terracota)", fontSize: 13, marginBottom: 16 }} role="alert">
               {errorCheckout}
@@ -304,7 +327,7 @@ export default function ElegirVeterinarioPage() {
           <div style={{ marginTop: errorCheckout ? 16 : 8 }}>
             <button
               type="button"
-              className="va-boton va-boton-ghost"
+              className={soloPaypal ? "va-boton" : "va-boton va-boton-ghost"}
               onClick={() => irAPagar("PAYPAL")}
               disabled={redirigiendo || redirigiendoPaypal}
             >

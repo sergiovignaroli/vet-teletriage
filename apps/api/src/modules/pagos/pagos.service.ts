@@ -55,6 +55,25 @@ export class PagosService {
   // mercadopago-checkout.util.ts): el tutor paga el total ACÁ, antes de que
   // exista ninguna videollamada. Lo que corresponda se reembolsa después,
   // según cómo cierre el caso (ver liquidarSegunCierre más abajo).
+  async opcionesDePago(casoId: string, clienteId: string) {
+    const caso = await this.prisma.caso.findUnique({
+      where: { id: casoId },
+      include: { veterinario: true, intake: true },
+    });
+    if (!caso) throw new BadRequestException("Caso no encontrado");
+    if (caso.clienteId !== clienteId) throw new ForbiddenException("Este caso no te pertenece");
+    const tienePaypal = !!caso.veterinario?.paypalEmail && !!caso.intake;
+    let costoTotalPaypalUsd: number | null = null;
+    if (tienePaypal && caso.intake) {
+      const config = await this.configuracion.obtener();
+      costoTotalPaypalUsd =
+        Math.round(
+          (honorarioPaypalDe(config, hayBanderaRoja(caso.intake)) + config.cargoPlataformaPaypalUsd) * 100,
+        ) / 100;
+    }
+    return { mercadoPago: !!caso.veterinario?.mercadoPagoAccessToken, costoTotalPaypalUsd };
+  }
+
   async crearCheckout(casoId: string, clienteId: string, medioPago: "MERCADO_PAGO" | "PAYPAL" = "MERCADO_PAGO") {
     const caso = await this.prisma.caso.findUnique({
       where: { id: casoId },

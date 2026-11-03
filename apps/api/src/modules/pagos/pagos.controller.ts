@@ -72,6 +72,17 @@ export class PagosController {
     return this.pagos.crearCheckout(casoId, usuario.id, medioPago ?? "MERCADO_PAGO");
   }
 
+  // Qué medios puede usar el cliente para pagar este caso: sirve para retomar
+  // el pago en otra pestaña o dispositivo (el valor en dólares ya no está en
+  // memoria del navegador). Solo devuelve el monto de PayPal si el veterinario
+  // asignado lo tiene conectado.
+  @Get(":casoId/opciones")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("CLIENTE")
+  opciones(@Param("casoId") casoId: string, @CurrentUser() usuario: UsuarioAutenticado) {
+    return this.pagos.opcionesDePago(casoId, usuario.id);
+  }
+
   @Post(":casoId/liquidar")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("VETERINARIO")
