@@ -48,7 +48,7 @@ export function LegalFooter() {
       {MARCA_REGISTRADA && (
         <>
           <br />
-          Videollamada Animal y su logo son marcas registradas de {TITULAR}.
+          <NombreMarca /> y su logo son marcas registradas de {TITULAR}.
         </>
       )}
       <br />
