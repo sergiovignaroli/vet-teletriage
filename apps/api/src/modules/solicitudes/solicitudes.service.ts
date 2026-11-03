@@ -29,6 +29,17 @@ const CLIENTE_AUSENTE_MS = 10_000;
 // que arranque, se reintenta durante este tiempo antes de darlo por perdido.
 const TOLERANCIA_TURNO_MS = 30 * 60 * 1000;
 
+// Precio congelado en la solicitud (lo que el tutor vio al elegir), o null si
+// la solicitud es anterior a esta función.
+function precioDeSolicitud(s: {
+  honorarioOfrecido: { toString(): string } | null;
+  cargoOfrecido: { toString(): string } | null;
+  franjaOfrecida: "DIURNA" | "NOCTURNA" | null;
+}) {
+  if (s.honorarioOfrecido == null || s.cargoOfrecido == null || s.franjaOfrecida == null) return null;
+  return { honorario: Number(s.honorarioOfrecido), cargo: Number(s.cargoOfrecido), franja: s.franjaOfrecida };
+}
+
 @Injectable()
 export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger(SolicitudesService.name);
@@ -106,6 +117,9 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
     }
 
     const enConsulta = veterinario.casos.some((c) => c.estado === "EN_SESION");
+    // Precio que el tutor está viendo ahora: queda fijo en la solicitud
+    // aunque el veterinario lo cambie mientras espera.
+    const precioOfrecido = await this.casos.precioDe(caso.id, veterinario);
     const segundos = enConsulta ? SOLICITUD_SEGUNDOS_EN_CONSULTA : SOLICITUD_SEGUNDOS_LIBRE;
     const ahora = new Date();
 
@@ -121,6 +135,9 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
           veterinarioId: veterinario.id,
           vetEnConsulta: enConsulta,
           venceEl: new Date(ahora.getTime() + segundos * 1000),
+          honorarioOfrecido: precioOfrecido.honorario,
+          cargoOfrecido: precioOfrecido.cargo,
+          franjaOfrecida: precioOfrecido.franja,
           terminosVersion: VERSION_TERMINOS,
           terminosAceptadosEl: ahora,
           terminosIp: params.ip ?? null,
@@ -219,7 +236,7 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException("La solicitud ya no está disponible: venció o la canceló el cliente");
     }
     try {
-      const caso = await this.casos.asignarPorAceptacion(solicitud.casoId, veterinarioId);
+      const caso = await this.casos.asignarPorAceptacion(solicitud.casoId, veterinarioId, precioDeSolicitud(solicitud));
       void this.avisarAlClienteSiNoMira(solicitud.id, caso.clienteId);
       return { aceptada: true, casoId: caso.id };
     } catch (e) {
@@ -321,11 +338,20 @@ export class SolicitudesService implements OnModuleInit, OnModuleDestroy {
   private async activarTurnosPactados(ahora: Date) {
     const vencidos = await this.prisma.solicitudAtencion.findMany({
       where: { estado: "PACTADA", propuestaPara: { lte: ahora } },
-      select: { id: true, casoId: true, veterinarioId: true, propuestaPara: true, caso: { select: { clienteId: true } } },
+      select: {
+        id: true,
+        casoId: true,
+        veterinarioId: true,
+        propuestaPara: true,
+        honorarioOfrecido: true,
+        cargoOfrecido: true,
+        franjaOfrecida: true,
+        caso: { select: { clienteId: true } },
+      },
     });
     for (const t of vencidos) {
       try {
-        await this.casos.asignarPorAceptacion(t.casoId, t.veterinarioId);
+        await this.casos.asignarPorAceptacion(t.casoId, t.veterinarioId, precioDeSolicitud(t));
       } catch (e) {
         const demasiadoTarde = ahora.getTime() - t.propuestaPara!.getTime() > TOLERANCIA_TURNO_MS;
         const yaTieneVet = e instanceof BadRequestException && /ya tiene un veterinario/.test(e.message);

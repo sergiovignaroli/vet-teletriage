@@ -16,16 +16,16 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model Veterinario {
-  id                String   @id @default(uuid())
-  nombre            String
-  apellido          String
-  email             String   @unique
-  telefono          String?
-  passwordHash      String
+  id           String  @id @default(uuid())
+  nombre       String
+  apellido     String
+  email        String  @unique
+  telefono     String?
+  passwordHash String
   // Se incrementa para invalidar TODOS los JWT emitidos antes de este valor
   // (logout forzado / password comprometida) sin necesidad de una blacklist
   // de tokens — ver jwt.strategy.ts.
-  tokenVersion      Int      @default(0)
+  tokenVersion Int     @default(0)
 
   // Habilitación (Sección 2 del contrato)
   dniONumero        String
@@ -37,8 +37,8 @@ model Veterinario {
   seguroVenceEl     DateTime
 
   // Estado operativo
-  estado            EstadoVeterinario @default(PENDIENTE_VERIFICACION)
-  disponible        Boolean           @default(false)
+  estado     EstadoVeterinario @default(PENDIENTE_VERIFICACION)
+  disponible Boolean           @default(false)
 
   // Presencia (Sergio, 2026-10-27): el veterinario elige entre Conectado,
   // Stand by y Desconectado, y esa elección dura hasta que la cambie él (no
@@ -48,25 +48,25 @@ model Veterinario {
   // lista del cliente solo incluye a quien tiene señal reciente, porque hasta
   // que existan las notificaciones push nadie puede avisarle a un panel
   // cerrado.
-  presencia         PresenciaVeterinario @default(DESCONECTADO)
-  ultimaSenal       DateTime?
+  presencia          PresenciaVeterinario @default(DESCONECTADO)
+  ultimaSenal        DateTime?
   sesionesRenovables SesionVeterinario[]
-  solicitudes       SolicitudAtencion[]
-  pushSuscripciones PushSuscripcion[]
+  solicitudes        SolicitudAtencion[]
+  pushSuscripciones  PushSuscripcion[]
   // Otros canales de aviso de consultas nuevas (la persona los activa; WhatsApp
   // exige consentimiento previo del destinatario).
-  avisarPorWhatsapp Boolean @default(false)
-  avisarPorEmail    Boolean @default(true)
+  avisarPorWhatsapp  Boolean              @default(false)
+  avisarPorEmail     Boolean              @default(true)
 
   // Onboarding de producto (no confundir con habilitación de la Sección 2):
   // recorrido guiado de 3 pantallas la primera vez que entra a la app.
   // false hasta que lo termine o lo salte — de ahí en más no se le vuelve
   // a mostrar.
-  onboardingCompletado Boolean        @default(false)
+  onboardingCompletado Boolean @default(false)
 
   // Ubicación para matching por proximidad (Sección 11)
-  latitud           Float?
-  longitud          Float?
+  latitud  Float?
+  longitud Float?
 
   // Precio (decisión de Sergio, 2026-09-29): el veterinario ya no declara
   // un honorario libre — ajusta, en %, el honorarioBase que calcula la
@@ -74,7 +74,20 @@ model Veterinario {
   // packages/types). Acotado a [MARGEN_PORCENTAJE_MIN, MARGEN_PORCENTAJE_MAX]
   // en VeterinariosService.ajustarMargen — nunca confiar en un valor que
   // llegue ya fuera de rango.
-  margenPorcentaje  Int      @default(0)
+  margenPorcentaje Int @default(0)
+
+  // Precios propios (Sergio, 2026-11-03): reemplazan al margen de arriba, que
+  // queda guardado sin uso. null = rige el precio aconsejado de su país. Se
+  // lee siempre a través de precioEfectivo(): nunca por fuera de la banda.
+  pais                   String    @default("AR")
+  zonaHoraria            String    @default("America/Argentina/Buenos_Aires")
+  precioNormalDiurno     Decimal?  @db.Decimal(12, 2)
+  precioNormalNocturno   Decimal?  @db.Decimal(12, 2)
+  precioUrgenciaDiurno   Decimal?  @db.Decimal(12, 2)
+  precioUrgenciaNocturno Decimal?  @db.Decimal(12, 2)
+  // Aceptación del aviso sobre qué tipo de servicio es (nunca lo ve el tutor).
+  avisoPreciosVersion    String?
+  avisoPreciosAceptadoEl DateTime?
 
   // Premio por volumen (Sergio, 2026-09-30): contador que solo sube, nunca
   // baja — se incrementa en CasosService.cerrar() cada vez que un caso de
@@ -86,17 +99,17 @@ model Veterinario {
   // "on the fly" con un COUNT en cada consulta): paraElegir() recorre a
   // TODOS los veterinarios conectados en cada pedido del cliente, y un
   // COUNT por veterinario ahí sería un N+1 real.
-  sesionesCompletadas Int    @default(0)
+  sesionesCompletadas Int @default(0)
 
   // Cobro (Sección 5 del contrato)
-  medioDeCobro      MedioDeCobroVeterinario @default(MERCADO_PAGO)
+  medioDeCobro            MedioDeCobroVeterinario @default(MERCADO_PAGO)
   // Split de Pagos 1:1 (doc de proveedores) — credenciales OAuth propias del
   // veterinario como vendedor de Mercado Pago, nunca las de la plataforma.
-  mercadoPagoOAuthId       String?   // user_id del vendedor en Mercado Pago
-  mercadoPagoAccessToken   String?
-  mercadoPagoRefreshToken  String?
-  mercadoPagoTokenVenceEl  DateTime?
-  payoneerEmail      String?
+  mercadoPagoOAuthId      String? // user_id del vendedor en Mercado Pago
+  mercadoPagoAccessToken  String?
+  mercadoPagoRefreshToken String?
+  mercadoPagoTokenVenceEl DateTime?
+  payoneerEmail           String?
   // PayPal Payouts, dos pasos (Sergio, 2026-09-30 — ver doc de
   // proveedores): a diferencia de Mercado Pago, ACÁ NO hay OAuth ni
   // conexión de cuenta — el cliente le paga el total a la cuenta PROPIA de
@@ -105,7 +118,7 @@ model Veterinario {
   // honorario del veterinario vía PayPal Payouts al cerrar el caso (ver
   // PagosService.liquidarSegunCierre). Mismo patrón simple que
   // payoneerEmail, arriba.
-  paypalEmail        String?
+  paypalEmail             String?
 
   // Verificación de identidad (Sección 6)
   verificacionesIdentidad VerificacionIdentidad[]
@@ -115,8 +128,8 @@ model Veterinario {
   disputasIdentidad DisputaIdentidad[]
   puntos            PuntoPremio[]
 
-  creadoEl          DateTime @default(now())
-  actualizadoEl     DateTime @updatedAt
+  creadoEl      DateTime @default(now())
+  actualizadoEl DateTime @updatedAt
 
   @@index([disponible, latitud, longitud])
 }
@@ -192,6 +205,13 @@ model SolicitudAtencion {
   // Horario propuesto al postergar (turno pactado).
   propuestaPara DateTime?
 
+  // Precio que el tutor vio al elegir (Sergio, 2026-11-03): queda fijo aunque
+  // el veterinario cambie su precio mientras la solicitud está pendiente. Es
+  // el que se usa al aceptar. null en solicitudes anteriores a esta función.
+  honorarioOfrecido Decimal?       @db.Decimal(10, 2)
+  cargoOfrecido     Decimal?       @db.Decimal(10, 2)
+  franjaOfrecida    FranjaHoraria?
+
   // Registro de aceptación de los Términos y Condiciones al elegir.
   terminosVersion     String
   terminosAceptadosEl DateTime
@@ -205,9 +225,9 @@ enum EstadoVeterinario {
   PENDIENTE_VERIFICACION
   HABILITADO
   SUSPENDIDO_MATRICULA_VENCIDA // suspensión automática, no disciplinaria (Sección 2)
-  SUSPENDIDO_SEGURO_VENCIDO    // ídem
+  SUSPENDIDO_SEGURO_VENCIDO // ídem
   SUSPENDIDO_DISPUTA_IDENTIDAD // cautelar, Sección 10
-  SUSPENDIDO_INCUMPLIMIENTO    // Sección 15
+  SUSPENDIDO_INCUMPLIMIENTO // Sección 15
   DESVINCULADO
 }
 
@@ -221,26 +241,26 @@ enum MedioDeCobroVeterinario {
 // ---------------------------------------------------------------------------
 
 model Cliente {
-  id            String   @id @default(uuid())
+  id         String  @id @default(uuid())
   // Login sin contraseña vía OTP por WhatsApp (doc de proveedores): el
   // teléfono es el identificador primario, no el email. nombre/email se
   // completan en el perfil después del primer login, no son requisito de
   // alta — pedirlos antes solo agrega fricción a un flujo de emergencia.
-  nombre        String?
-  email         String?  @unique
-  telefono      String   @unique
-  paisDePago    String?  // determina si se le ofrece Mercado Pago, PayPal o tarjeta internacional
+  nombre     String?
+  email      String? @unique
+  telefono   String  @unique
+  paisDePago String? // determina si se le ofrece Mercado Pago, PayPal o tarjeta internacional
 
-  otpCodeHash   String?
-  otpExpiraEl   DateTime?
-  otpIntentos   Int      @default(0)
-  tokenVersion  Int      @default(0) // ver comentario en Veterinario.tokenVersion
+  otpCodeHash  String?
+  otpExpiraEl  DateTime?
+  otpIntentos  Int       @default(0)
+  tokenVersion Int       @default(0) // ver comentario en Veterinario.tokenVersion
 
   // Onboarding de producto — ver comentario en Veterinario.onboardingCompletado
   onboardingCompletado Boolean @default(false)
 
-  casos         Caso[]
-  creadoEl      DateTime @default(now())
+  casos    Caso[]
+  creadoEl DateTime @default(now())
 }
 
 // ---------------------------------------------------------------------------
@@ -265,19 +285,19 @@ model Admin {
 // ---------------------------------------------------------------------------
 
 model Caso {
-  id              String       @id @default(uuid())
-  cliente         Cliente      @relation(fields: [clienteId], references: [id])
-  clienteId       String
-  veterinario     Veterinario? @relation(fields: [veterinarioId], references: [id])
-  veterinarioId   String?
+  id            String       @id @default(uuid())
+  cliente       Cliente      @relation(fields: [clienteId], references: [id])
+  clienteId     String
+  veterinario   Veterinario? @relation(fields: [veterinarioId], references: [id])
+  veterinarioId String?
 
-  estado          EstadoCaso   @default(INTAKE)
+  estado EstadoCaso @default(INTAKE)
 
   // Intake — dos capas (Sección 9 del contrato)
-  intake          IntakeFormulario?
+  intake IntakeFormulario?
 
   // Franja horaria y montos (Sección 4 del contrato)
-  franjaHoraria   FranjaHoraria
+  franjaHoraria      FranjaHoraria
   // Precio de referencia que calcula LA PLATAFORMA al crear el caso, según
   // franja horaria + si el intake disparó alguna bandera roja (ver
   // honorarioBaseDe() en packages/types) — es la base sobre la que cada
@@ -285,57 +305,57 @@ model Caso {
   // "elegí veterinario". Nullable por el mismo motivo histórico que
   // honorarioDeclarado: nace en null hasta que CasosService.crear() lo
   // completa, un instante después.
-  honorarioBase      Decimal?  @db.Decimal(10, 2)
+  honorarioBase      Decimal?      @db.Decimal(10, 2)
   // Decisión de Sergio (2026-09-29): el cliente tiene que saber el costo
   // total ANTES de contratar, así que esto ya no lo declara el veterinario
   // libremente al tomar el caso — se calcula una sola vez, cuando el
   // cliente ELIGE veterinario (ver CasosService.asignar), como
   // honorarioBase × (1 + veterinario.margenPorcentaje/100), y queda
   // congelado desde ahí (no se vuelve a tocar en PATCH /casos/:id/iniciar).
-  honorarioDeclarado Decimal?  @db.Decimal(10, 2)
-  cargoPlataforma    Decimal   @db.Decimal(10, 2) // $3.500 diurno / $4.000 nocturno al momento del caso
+  honorarioDeclarado Decimal?      @db.Decimal(10, 2)
+  cargoPlataforma    Decimal       @db.Decimal(10, 2) // $3.500 diurno / $4.000 nocturno al momento del caso
 
   // Solicitudes de atención a veterinarios (Sergio, 2026-10-27)
-  solicitudes     SolicitudAtencion[]
+  solicitudes SolicitudAtencion[]
 
   // Cierre del caso (Sección 9): determina la Sección 8 (reembolso)
-  cierre          CierreCaso?
+  cierre CierreCaso?
 
   // Verificación de identidad de esa sesión puntual (Sección 6)
   verificacionIdentidad VerificacionIdentidad?
 
   // Grabación (Sección 7)
-  grabacionUrl    String?
+  grabacionUrl      String?
   grabacionExpiraEl DateTime?
 
   // Sala de video de ESTE caso (Sergio, 2026-09-29) — se completa recién al
   // pasar a EN_SESION (ver CasosService.iniciarSesion / VideoService).
   // Nullable a propósito: sigue null mientras no haya un proveedor real
   // conectado (ver módulo `video`), no es un dato que falte cargar.
-  salaVideoUrl    String?
+  salaVideoUrl String?
 
-  pago            Pago?
-  disputaCalidad  DisputaCalidad?
+  pago           Pago?
+  disputaCalidad DisputaCalidad?
 
-  iniciadoEl      DateTime?
-  finalizadoEl    DateTime?
-  creadoEl        DateTime     @default(now())
+  iniciadoEl   DateTime?
+  finalizadoEl DateTime?
+  creadoEl     DateTime  @default(now())
 
   @@index([veterinarioId, estado])
 }
 
 enum EstadoCaso {
-  INTAKE                  // formulario en curso
-  BANDERA_ROJA_MOSTRADA   // capa 1 disparó el aviso de emergencia (no bloquea el flujo)
-  ASIGNADO                // veterinario asignado, pago autorizado (hold)
+  INTAKE // formulario en curso
+  BANDERA_ROJA_MOSTRADA // capa 1 disparó el aviso de emergencia (no bloquea el flujo)
+  ASIGNADO // veterinario asignado, pago autorizado (hold)
   EN_SESION
   CERRADO
   CANCELADO_FALLA_PLATAFORMA // dispara reembolso, Sección 8
 }
 
 enum FranjaHoraria {
-  DIURNA    // 08:30–20:00, cargo $3.500
-  NOCTURNA  // 20:01–08:29, cargo $4.000
+  DIURNA // 08:30–20:00, cargo $3.500
+  NOCTURNA // 20:01–08:29, cargo $4.000
 }
 
 // ---------------------------------------------------------------------------
@@ -343,9 +363,9 @@ enum FranjaHoraria {
 // ---------------------------------------------------------------------------
 
 model IntakeFormulario {
-  id               String   @id @default(uuid())
-  caso             Caso     @relation(fields: [casoId], references: [id])
-  casoId           String   @unique
+  id     String @id @default(uuid())
+  caso   Caso   @relation(fields: [casoId], references: [id])
+  casoId String @unique
 
   // Capa 1 — banderas rojas (cualquier true dispara el banner, no bloquea)
   dificultadRespiratoria Boolean @default(false)
@@ -369,7 +389,7 @@ model IntakeFormulario {
   fotosUrls        String[] @default([])
   videoUrl         String?
 
-  completadoEl     DateTime @default(now())
+  completadoEl DateTime @default(now())
 }
 
 // ---------------------------------------------------------------------------
@@ -377,18 +397,18 @@ model IntakeFormulario {
 // ---------------------------------------------------------------------------
 
 model CierreCaso {
-  id               String           @id @default(uuid())
-  caso             Caso             @relation(fields: [casoId], references: [id])
-  casoId           String           @unique
-  clasificacion    ClasificacionCierre
-  notas            String?
-  registradoEl     DateTime         @default(now())
+  id            String              @id @default(uuid())
+  caso          Caso                @relation(fields: [casoId], references: [id])
+  casoId        String              @unique
+  clasificacion ClasificacionCierre
+  notas         String?
+  registradoEl  DateTime            @default(now())
 }
 
 enum ClasificacionCierre {
-  RESUELTO_POR_ORIENTACION   // Sección 8: honorario completo, sin reembolso
-  DERIVADO_A_EMERGENCIA      // Sección 8: honorario completo, sin reembolso
-  NO_COMPLETADO              // puede habilitar reembolso si la causa es falla de plataforma
+  RESUELTO_POR_ORIENTACION // Sección 8: honorario completo, sin reembolso
+  DERIVADO_A_EMERGENCIA // Sección 8: honorario completo, sin reembolso
+  NO_COMPLETADO // puede habilitar reembolso si la causa es falla de plataforma
 }
 
 // ---------------------------------------------------------------------------
@@ -396,21 +416,21 @@ enum ClasificacionCierre {
 // ---------------------------------------------------------------------------
 
 model VerificacionIdentidad {
-  id             String      @id @default(uuid())
-  veterinario    Veterinario @relation(fields: [veterinarioId], references: [id])
-  veterinarioId  String
-  caso           Caso?       @relation(fields: [casoId], references: [id])
-  casoId         String?     @unique
+  id            String      @id @default(uuid())
+  veterinario   Veterinario @relation(fields: [veterinarioId], references: [id])
+  veterinarioId String
+  caso          Caso?       @relation(fields: [casoId], references: [id])
+  casoId        String?     @unique
 
   resultado      ResultadoVerificacion @default(PENDIENTE)
-  proveedor      String      @default("truora")
-  proveedorRefId String?     // process_id de Truora (Identity API), para auditoría y polling
-  actualizadoEl  DateTime    @updatedAt
-  creadoEl       DateTime    @default(now())
+  proveedor      String                @default("truora")
+  proveedorRefId String? // process_id de Truora (Identity API), para auditoría y polling
+  actualizadoEl  DateTime              @updatedAt
+  creadoEl       DateTime              @default(now())
 }
 
 enum ResultadoVerificacion {
-  PENDIENTE     // proceso creado en Truora, esperando resultado (API es asincrónica)
+  PENDIENTE // proceso creado en Truora, esperando resultado (API es asincrónica)
   APROBADA
   RECHAZADA
   INCONSISTENTE // dispara DisputaIdentidad y posible suspensión cautelar
@@ -421,14 +441,14 @@ enum ResultadoVerificacion {
 // ---------------------------------------------------------------------------
 
 model Pago {
-  id                    String        @id @default(uuid())
-  caso                  Caso          @relation(fields: [casoId], references: [id])
-  casoId                String        @unique
+  id     String @id @default(uuid())
+  caso   Caso   @relation(fields: [casoId], references: [id])
+  casoId String @unique
 
-  medioDeCobro          MedioDeCobroCliente
-  montoTotal            Decimal       @db.Decimal(10, 2) // honorario + cargo de plataforma
-  montoHonorarioVet     Decimal       @db.Decimal(10, 2)
-  montoCargoPlataforma  Decimal       @db.Decimal(10, 2)
+  medioDeCobro         MedioDeCobroCliente
+  montoTotal           Decimal             @db.Decimal(10, 2) // honorario + cargo de plataforma
+  montoHonorarioVet    Decimal             @db.Decimal(10, 2)
+  montoCargoPlataforma Decimal             @db.Decimal(10, 2)
 
   // PENDIENTE al crear la preferencia (cliente todavía no completó el
   // checkout) → AUTORIZADO cuando el webhook confirma el pago aprobado
@@ -436,14 +456,14 @@ model Pago {
   // al momento del pago — NO es un hold de captura diferida, esa función
   // solo existe en la Checkout API/Orders API, no en preferencias hosteadas
   // — verificado contra la documentación oficial de Mercado Pago).
-  estado                EstadoPago    @default(PENDIENTE)
+  estado EstadoPago @default(PENDIENTE)
 
   // Referencias externas para reconciliación
   mercadoPagoPreferenciaId String?
-  mercadoPagoPaymentId  String?
-  paypalOrderId         String?       // cuando el split es en dos pasos (PayPal Payouts), ver doc de proveedores
-  paypalCaptureId       String?       // id de la CAPTURA (no de la orden) — hace falta este, no paypalOrderId, para pedir un reembolso puntual: POST /v2/payments/captures/{id}/refund
-  paypalPayoutId        String?
+  mercadoPagoPaymentId     String?
+  paypalOrderId            String? // cuando el split es en dos pasos (PayPal Payouts), ver doc de proveedores
+  paypalCaptureId          String? // id de la CAPTURA (no de la orden) — hace falta este, no paypalOrderId, para pedir un reembolso puntual: POST /v2/payments/captures/{id}/refund
+  paypalPayoutId           String?
 
   // [Seguro, verificado contra developer.paypal.com/reports/reference/
   // supported-currencies, 2026-09-30] PayPal NO soporta ARS como moneda de
@@ -456,17 +476,17 @@ model Pago {
   // Mercado Pago siempre cobra en ARS — este campo existe para que
   // cualquier pantalla que muestre montoTotal sepa con qué símbolo
   // formatearlo, en vez de asumir "$" = pesos siempre.
-  moneda                MonedaPago    @default(ARS)
+  moneda MonedaPago @default(ARS)
 
-  creadoEl              DateTime      @default(now())
-  pagadoEl              DateTime?     // cuando el webhook confirmó el pago aprobado
-  capturadoEl           DateTime?     // solo bookkeeping: el cobro ya ocurrió en pagadoEl, acá se marca que no corresponde reembolso
-  reembolsadoEl         DateTime?     // cuando se ejecutó (vía API) el reembolso automático
+  creadoEl         DateTime  @default(now())
+  pagadoEl         DateTime? // cuando el webhook confirmó el pago aprobado
+  capturadoEl      DateTime? // solo bookkeeping: el cobro ya ocurrió en pagadoEl, acá se marca que no corresponde reembolso
+  reembolsadoEl    DateTime? // cuando se ejecutó (vía API) el reembolso automático
   // Monto efectivamente devuelto al tutor vía la API de Mercado Pago. En
   // NO_COMPLETADO es (montoTotal - CARGO_NO_COMPLETADO), una única llamada
   // de reembolso parcial — no el total. Ver el comentario de
   // `montoPendienteAccionManual` para por qué no es el 100%.
-  montoReembolsado      Decimal?      @db.Decimal(10, 2)
+  montoReembolsado Decimal?  @db.Decimal(10, 2)
 
   // [Seguro, verificado contra la documentación oficial de Mercado Pago]: un
   // reembolso sobre un pago con split (marketplace_fee) se reparte de forma
@@ -493,7 +513,7 @@ model Pago {
   //    veterinario". Todo el monto queda anotado para ejecución 100% manual
   //    (coordinado directamente con el vet, fuera de la API de reembolsos).
   montoPendienteAccionManual Decimal? @db.Decimal(10, 2)
-  notaAccionManual      String?
+  notaAccionManual           String?
 }
 
 enum MedioDeCobroCliente {
@@ -508,12 +528,12 @@ enum MonedaPago {
 }
 
 enum EstadoPago {
-  PENDIENTE            // preferencia creada, cliente todavía no completó el pago
-  AUTORIZADO           // pago aprobado por Mercado Pago, sesión aún no cerrada
-  CAPTURADO            // caso resuelto por orientación o derivado — cobro completo
-  REEMBOLSADO_TOTAL    // NO_COMPLETADO — reembolso 100% ejecutado vía API (ver montoPendienteAccionManual)
-  REEMBOLSADO_PARCIAL  // solo el cargo de plataforma, por falla de plataforma (Sección 8) — hoy vía acción manual, ver notaAccionManual
-  CANCELADO            // no llegó a capturarse
+  PENDIENTE // preferencia creada, cliente todavía no completó el pago
+  AUTORIZADO // pago aprobado por Mercado Pago, sesión aún no cerrada
+  CAPTURADO // caso resuelto por orientación o derivado — cobro completo
+  REEMBOLSADO_TOTAL // NO_COMPLETADO — reembolso 100% ejecutado vía API (ver montoPendienteAccionManual)
+  REEMBOLSADO_PARCIAL // solo el cargo de plataforma, por falla de plataforma (Sección 8) — hoy vía acción manual, ver notaAccionManual
+  CANCELADO // no llegó a capturarse
 }
 
 // ---------------------------------------------------------------------------
@@ -521,8 +541,8 @@ enum EstadoPago {
 // ---------------------------------------------------------------------------
 
 model DisputaIdentidad {
-  id                 String      @id @default(uuid())
-  veterinario        Veterinario @relation(fields: [veterinarioId], references: [id])
+  id                 String        @id @default(uuid())
+  veterinario        Veterinario   @relation(fields: [veterinarioId], references: [id])
   veterinarioId      String
   motivo             String
   estado             EstadoDisputa @default(ABIERTA)
@@ -530,21 +550,21 @@ model DisputaIdentidad {
   // Auditoría de staff — qué admin abrió/resolvió, no una clave compartida.
   abiertaPorAdminId  String?
   resueltaPorAdminId String?
-  abiertaEl          DateTime    @default(now())
+  abiertaEl          DateTime      @default(now())
   resueltaEl         DateTime?
 }
 
 model DisputaCalidad {
-  id                 String      @id @default(uuid())
-  caso               Caso        @relation(fields: [casoId], references: [id])
-  casoId             String      @unique
+  id                 String        @id @default(uuid())
+  caso               Caso          @relation(fields: [casoId], references: [id])
+  casoId             String        @unique
   motivo             String
   // Nunca afecta el pago ya liquidado al veterinario (Sección 10) — como máximo,
   // resuelve en reembolso del cargo de plataforma, nunca del honorario.
   estado             EstadoDisputa @default(ABIERTA)
   resolucion         String?
   resueltaPorAdminId String?
-  abiertaEl          DateTime    @default(now())
+  abiertaEl          DateTime      @default(now())
   resueltaEl         DateTime?
 }
 
@@ -559,23 +579,23 @@ enum EstadoDisputa {
 // ---------------------------------------------------------------------------
 
 model Calificacion {
-  id             String      @id @default(uuid())
-  veterinario    Veterinario @relation(fields: [veterinarioId], references: [id])
-  veterinarioId  String
-  casoId         String      @unique
-  estrellas      Int         // 1–5
-  comentario     String?
+  id            String      @id @default(uuid())
+  veterinario   Veterinario @relation(fields: [veterinarioId], references: [id])
+  veterinarioId String
+  casoId        String      @unique
+  estrellas     Int // 1–5
+  comentario    String?
   // Botón de confirmación no punitiva (Sección 10): dato cualitativo, nunca dispara reembolso
-  creadoEl       DateTime    @default(now())
+  creadoEl      DateTime    @default(now())
 }
 
 model PuntoPremio {
-  id             String      @id @default(uuid())
-  veterinario    Veterinario @relation(fields: [veterinarioId], references: [id])
-  veterinarioId  String
-  puntos         Int
-  motivo         String      // rating sostenido / antigüedad / volumen (Sección 12)
-  creadoEl       DateTime    @default(now())
+  id            String      @id @default(uuid())
+  veterinario   Veterinario @relation(fields: [veterinarioId], references: [id])
+  veterinarioId String
+  puntos        Int
+  motivo        String // rating sostenido / antigüedad / volumen (Sección 12)
+  creadoEl      DateTime    @default(now())
 }
 
 // ---------------------------------------------------------------------------
@@ -589,7 +609,7 @@ model PuntoPremio {
 // con valores por defecto la primera vez que hace falta, así que nunca hay
 // que rezar para que exista.
 model ConfiguracionPlataforma {
-  id     String @id
+  id String @id
 
   // Cargo de plataforma — Sección 4 del contrato, por franja horaria.
   cargoPlataformaDiurna   Decimal @db.Decimal(10, 2)
@@ -600,8 +620,8 @@ model ConfiguracionPlataforma {
   // fijos nomás — normal y urgencia — sin importar la hora del día. La
   // franja horaria sigue existiendo (arriba) pero YA NO afecta el
   // honorario, solo el cargo de plataforma.
-  honorarioBaseNormal    Decimal @db.Decimal(10, 2)
-  honorarioBaseUrgencia  Decimal @db.Decimal(10, 2)
+  honorarioBaseNormal   Decimal @db.Decimal(10, 2)
+  honorarioBaseUrgencia Decimal @db.Decimal(10, 2)
 
   // Precio fijo para pagos con PayPal, en USD (Sergio, 2026-09-30):
   // PayPal no soporta ARS (ver nota en Pago.moneda) — en vez de convertir
@@ -611,25 +631,88 @@ model ConfiguracionPlataforma {
   // premio por volumen — todo veterinario con PayPal conectado cobra
   // exactamente este monto por sesión; ver el comentario en
   // PagosService.crearCheckout sobre por qué se simplificó así.
-  honorarioPaypalNormalUsd    Decimal @db.Decimal(10, 2)
-  honorarioPaypalUrgenciaUsd  Decimal @db.Decimal(10, 2)
-  cargoPlataformaPaypalUsd    Decimal @db.Decimal(10, 2)
+  honorarioPaypalNormalUsd   Decimal @db.Decimal(10, 2)
+  honorarioPaypalUrgenciaUsd Decimal @db.Decimal(10, 2)
+  cargoPlataformaPaypalUsd   Decimal @db.Decimal(10, 2)
+
+  // Comisión de la plataforma, en % del honorario del veterinario (Sergio,
+  // 2026-11-03). Los cargoPlataformaDiurna/Nocturna de arriba pasan a ser el
+  // mínimo de esa comisión.
+  porcentajePlataforma Decimal @default(11) @db.Decimal(5, 2)
 
   // Premio por volumen (ver Veterinario.sesionesCompletadas): a partir de
   // superar este umbral de sesiones cerradas, se suma este % arriba del
   // margenPorcentaje propio del veterinario al calcular honorarioFinalDe —
   // lo paga el cliente, no la plataforma.
-  umbralSesionesVeterano   Int
-  bonusVeteranoPorcentaje  Decimal @db.Decimal(5, 2)
+  umbralSesionesVeterano  Int
+  bonusVeteranoPorcentaje Decimal @db.Decimal(5, 2)
 
   // Contacto y redes — antes hardcodeado (o directamente ausente) en el
   // footer/landing. Nullable a propósito: si Sergio no cargó todavía un
   // dato, esa sección simplemente no se muestra en vez de mostrar algo
   // inventado (ver LegalFooter / lo que consuma esto en apps/web).
-  emailContacto  String?
-  instagramUrl   String?
-  facebookUrl    String?
-  tiktokUrl      String?
+  emailContacto String?
+  instagramUrl  String?
+  facebookUrl   String?
+  tiktokUrl     String?
 
   actualizadoEl DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Precios por país (Sergio, 2026-11-03)
+// ---------------------------------------------------------------------------
+enum TipoConsulta {
+  NORMAL
+  URGENCIA
+}
+
+// Banda de una de las cuatro combinaciones (Normal/Urgencia x diurna/nocturna)
+// para un país: piso, precio aconsejado y techo, en la moneda de ReglaPais.
+// Se siembra sola, la primera vez que se lee, con los honorarios base que ya
+// existían (ver TarifasService.asegurar).
+model TarifaPais {
+  id            String        @id @default(uuid())
+  pais          String
+  tipo          TipoConsulta
+  franja        FranjaHoraria
+  piso          Decimal       @db.Decimal(12, 2)
+  aconsejado    Decimal       @db.Decimal(12, 2)
+  techo         Decimal       @db.Decimal(12, 2)
+  actualizadaEl DateTime      @updatedAt
+
+  @@unique([pais, tipo, franja])
+}
+
+// Cuándo es de día y cuándo de noche en cada país, y en qué moneda se cobra.
+// zonaHoraria es un nombre IANA (nunca un desfase fijo).
+model ReglaPais {
+  pais            String  @id
+  zonaHoraria     String
+  moneda          String
+  inicioDiurno    String // "HH:MM"
+  finDiurno       String // "HH:MM", inclusive
+  domingoNocturno Boolean @default(true)
+  feriadoNocturno Boolean @default(true)
+}
+
+// Feriados por país, cargados y mantenidos por el dueño desde el panel.
+model Feriado {
+  id     String @id @default(uuid())
+  pais   String
+  fecha  String // "YYYY-MM-DD", en la zona horaria del país
+  nombre String
+
+  @@unique([pais, fecha])
+}
+
+// Registro de cada cambio de precios hecho desde el panel del dueño: quién,
+// cuándo, qué había antes y qué quedó. No se edita ni se borra desde la app.
+model CambioPrecios {
+  id       String   @id @default(uuid())
+  creadoEl DateTime @default(now())
+  actorId  String
+  resumen  String
+  antes    Json
+  despues  Json
 }

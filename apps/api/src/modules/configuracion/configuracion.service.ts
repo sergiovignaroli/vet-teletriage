@@ -21,6 +21,7 @@ const VALORES_POR_DEFECTO = {
   honorarioPaypalNormalUsd: 25,
   honorarioPaypalUrgenciaUsd: 40,
   cargoPlataformaPaypalUsd: 5,
+  porcentajePlataforma: 11,
   umbralSesionesVeterano: 50,
   bonusVeteranoPorcentaje: 10,
 };
@@ -85,6 +86,13 @@ export class ConfiguracionService {
       }
     }
 
+    if (cambios.porcentajePlataforma !== undefined) {
+      const p = cambios.porcentajePlataforma;
+      if (typeof p !== "number" || !Number.isFinite(p) || p < 0 || p > 50) {
+        throw new BadRequestException("El porcentaje de la plataforma tiene que estar entre 0 y 50");
+      }
+    }
+
     if (cambios.umbralSesionesVeterano !== undefined) {
       if (!Number.isInteger(cambios.umbralSesionesVeterano) || cambios.umbralSesionesVeterano < 0) {
         throw new BadRequestException("El umbral de sesiones para el premio por volumen tiene que ser un entero mayor o igual a 0");
@@ -124,6 +132,7 @@ export class ConfiguracionService {
     honorarioPaypalNormalUsd: { toNumber(): number };
     honorarioPaypalUrgenciaUsd: { toNumber(): number };
     cargoPlataformaPaypalUsd: { toNumber(): number };
+    porcentajePlataforma: { toNumber(): number };
     umbralSesionesVeterano: number;
     bonusVeteranoPorcentaje: { toNumber(): number };
     emailContacto: string | null;
@@ -139,6 +148,7 @@ export class ConfiguracionService {
       honorarioPaypalNormalUsd: fila.honorarioPaypalNormalUsd.toNumber(),
       honorarioPaypalUrgenciaUsd: fila.honorarioPaypalUrgenciaUsd.toNumber(),
       cargoPlataformaPaypalUsd: fila.cargoPlataformaPaypalUsd.toNumber(),
+      porcentajePlataforma: fila.porcentajePlataforma.toNumber(),
       umbralSesionesVeterano: fila.umbralSesionesVeterano,
       bonusVeteranoPorcentaje: fila.bonusVeteranoPorcentaje.toNumber(),
       emailContacto: fila.emailContacto,

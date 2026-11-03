@@ -27,6 +27,7 @@ function configAFormulario(config: ConfiguracionPlataforma): FormState {
     honorarioPaypalNormalUsd: String(config.honorarioPaypalNormalUsd),
     honorarioPaypalUrgenciaUsd: String(config.honorarioPaypalUrgenciaUsd),
     cargoPlataformaPaypalUsd: String(config.cargoPlataformaPaypalUsd),
+    porcentajePlataforma: String(config.porcentajePlataforma),
     umbralSesionesVeterano: String(config.umbralSesionesVeterano),
     bonusVeteranoPorcentaje: String(config.bonusVeteranoPorcentaje),
     emailContacto: config.emailContacto ?? "",
@@ -150,9 +151,16 @@ export default function AdminPreciosPage() {
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4 }}>
         Precios y configuración
       </h1>
-      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 20 }}>
+      <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 12 }}>
         Se aplica en vivo, sin deploy — al próximo caso que se cree o al próximo veterinario que se elija.
       </p>
+      <Link
+        href="/admin/tarifas"
+        className="va-boton va-boton-ghost"
+        style={{ width: "auto", padding: "8px 18px", display: "inline-block", textDecoration: "none", fontSize: 13, marginBottom: 20 }}
+      >
+        Tarifas por franja, comisión y feriados →
+      </Link>
 
       {cargando && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
       {error && (
@@ -163,8 +171,12 @@ export default function AdminPreciosPage() {
 
       {form && (
         <>
-          <Seccion titulo="Cargo de plataforma">
-            <Campo etiqueta="Horario diurno ($)" ayuda="08:30 a 20:00">
+          <Seccion titulo="Mínimo del cargo de plataforma">
+            <p style={{ fontSize: 11.5, opacity: 0.75, margin: "0 0 6px" }}>
+              Desde las tarifas nuevas, el cargo es un porcentaje del honorario del veterinario (se edita en Tarifas); estos
+              valores son el mínimo que se cobra.
+            </p>
+            <Campo etiqueta="Mínimo en horario diurno ($)">
               <input
                 className="va-input"
                 type="number"
@@ -172,7 +184,7 @@ export default function AdminPreciosPage() {
                 onChange={(e) => actualizarCampo("cargoPlataformaDiurna", e.target.value)}
               />
             </Campo>
-            <Campo etiqueta="Horario nocturno ($)" ayuda="20:01 a 08:29">
+            <Campo etiqueta="Mínimo en horario nocturno ($)" ayuda="Noche, domingos y feriados">
               <input
                 className="va-input"
                 type="number"
@@ -182,7 +194,10 @@ export default function AdminPreciosPage() {
             </Campo>
           </Seccion>
 
-          <Seccion titulo="Honorario base del veterinario">
+          <Seccion titulo="Honorario base (valor de arranque)">
+            <p style={{ fontSize: 11.5, opacity: 0.75, margin: "0 0 6px" }}>
+              Solo se usa para sembrar las tarifas de un país nuevo. Los precios vigentes se editan en Tarifas.
+            </p>
             <Campo etiqueta="Asesoramiento normal ($)">
               <input
                 className="va-input"

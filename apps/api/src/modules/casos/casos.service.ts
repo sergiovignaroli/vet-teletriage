@@ -4,13 +4,13 @@ import { PrismaService } from "../../prisma.service";
 import { VideoService } from "../video/video.service";
 import { PagosService } from "../pagos/pagos.service";
 import { ConfiguracionService } from "../configuracion/configuracion.service";
+import { PreciosService, ContextoPrecios } from "../precios/precios.service";
 import {
   BanderasRojasIntake,
   ClasificacionCierre,
-  franjaHorariaDe,
+  FranjaHoraria,
   hayBanderaRoja,
   honorarioBaseDe,
-  honorarioFinalDe,
   honorarioPaypalDe,
   PISO_CALIDAD_ESTRELLAS,
   VeterinarioParaElegir,
@@ -42,6 +42,7 @@ export class CasosService {
     private readonly video: VideoService,
     private readonly pagos: PagosService,
     private readonly configuracion: ConfiguracionService,
+    private readonly precios: PreciosService,
   ) {}
 
   // Sección 4 del contrato: el cargo de plataforma se fija según la franja
@@ -53,7 +54,10 @@ export class CasosService {
   // cliente elige (ver asignarPorAceptacion()), no antes.
   async crear(input: CrearCasoInput) {
     const ahora = new Date();
-    const franjaHoraria = franjaHorariaDe(ahora);
+    // La franja del caso se decide con la hora de Argentina (no con la del
+    // servidor, que en Render es UTC). El precio definitivo recién se fija al
+    // elegir veterinario, con la hora local de cada uno.
+    const franjaHoraria = await this.precios.franjaAhoraDe("AR", ahora);
     const hayUrgencia = hayBanderaRoja(input.banderas);
     const config = await this.configuracion.obtener();
     const cargoPlataforma =
@@ -111,8 +115,6 @@ export class CasosService {
       throw new BadRequestException("Este caso todavía no tiene un precio base calculado");
     }
 
-    const honorarioBase = Number(caso.honorarioBase);
-    const cargoPlataforma = Number(caso.cargoPlataforma);
     const config = await this.configuracion.obtener();
 
     // hace falta para el precio fijo de PayPal (honorarioPaypalDe abajo) —
@@ -142,6 +144,12 @@ export class CasosService {
       },
     });
 
+    // Precio propio de cada veterinario, con la hora local de ÉL (Sergio,
+    // 2026-11-03). Un contexto por país, no uno por veterinario.
+    const contextos = new Map<string, ContextoPrecios>();
+    for (const pais of new Set(conectados.map((v) => v.pais))) contextos.set(pais, await this.precios.contexto(pais));
+    const ahora = new Date();
+
     return conectados
       .map((v) => {
         const cantidadCalificaciones = v.calificaciones.length;
@@ -149,18 +157,17 @@ export class CasosService {
           cantidadCalificaciones > 0
             ? v.calificaciones.reduce((suma, c) => suma + c.estrellas, 0) / cantidadCalificaciones
             : null;
-        // Premio por volumen (Sergio, 2026-09-30): automático, no lo toca el
-        // veterinario. Tiene que calcularse EXACTAMENTE igual acá que en
-        // asignar() más abajo — si no, el precio que el cliente ve en esta
-        // lista no coincidiría con el que termina pagando.
-        const bonusVeterano = v.sesionesCompletadas >= config.umbralSesionesVeterano ? config.bonusVeteranoPorcentaje : 0;
-        const honorarioFinal = honorarioFinalDe(honorarioBase, v.margenPorcentaje, bonusVeterano);
+        // El precio que se muestra acá es el mismo que se congela en la
+        // solicitud (SolicitudesService.crear usa precioDe()): lo que el
+        // tutor ve es lo que paga.
+        const precio = this.precios.calcular(contextos.get(v.pais)!, v, hayUrgencia, ahora);
         return {
           id: v.id,
           nombre: v.nombre,
           apellido: v.apellido,
-          honorarioFinal,
-          costoTotal: honorarioFinal + cargoPlataforma,
+          honorarioFinal: precio.honorario,
+          costoTotal: precio.total,
+          franja: precio.franja,
           // null si este veterinario no cargó un email de PayPal — ver
           // Veterinario.paypalEmail y PagosService.crearCheckoutPayPal.
           costoTotalPaypalUsd: v.paypalEmail ? costoTotalPaypalUsd : null,
@@ -189,7 +196,13 @@ export class CasosService {
   // solicitud está claramente presente. Sí se mantiene el límite de un solo
   // caso ASIGNADO esperando (no se puede acumular clientes sin arrancar). Un
   // caso EN_SESION no bloquea: justamente se acepta mientras se atiende a otro.
-  async asignarPorAceptacion(casoId: string, veterinarioId: string) {
+  async asignarPorAceptacion(
+    casoId: string,
+    veterinarioId: string,
+    // Precio que el tutor vio y aceptó al elegir (SolicitudAtencion). Si no
+    // hay (solicitudes anteriores a esta función), se calcula en el momento.
+    precioAcordado?: { honorario: number; cargo: number; franja: FranjaHoraria } | null,
+  ) {
     const caso = await this.prisma.caso.findUnique({ where: { id: casoId } });
     if (!caso) throw new BadRequestException("Caso no encontrado");
     if (caso.veterinarioId) {
@@ -210,20 +223,37 @@ export class CasosService {
       throw new BadRequestException("Ya tenés un cliente esperando que empieces — iniciá esa consulta primero");
     }
 
-    // Mismo cálculo que paraElegir() — ver el comentario ahí sobre por qué
-    // tiene que coincidir exactamente.
-    const config = await this.configuracion.obtener();
-    const bonusVeterano =
-      veterinario.sesionesCompletadas >= config.umbralSesionesVeterano ? config.bonusVeteranoPorcentaje : 0;
-    const honorarioDeclarado = honorarioFinalDe(Number(caso.honorarioBase), veterinario.margenPorcentaje, bonusVeterano);
+    const precio = precioAcordado ?? (await this.precioDe(casoId, veterinario));
 
     // Condición en el update: si dos aceptaciones se cruzan, solo una gana.
+    // honorarioDeclarado y cargoPlataforma quedan fijos acá: son los que usa
+    // el cobro (PagosService) y todo reembolso posterior.
     const r = await this.prisma.caso.updateMany({
       where: { id: casoId, veterinarioId: null },
-      data: { veterinarioId, honorarioDeclarado, estado: "ASIGNADO" },
+      data: {
+        veterinarioId,
+        honorarioDeclarado: precio.honorario,
+        cargoPlataforma: precio.cargo,
+        franjaHoraria: precio.franja,
+        estado: "ASIGNADO",
+      },
     });
     if (r.count === 0) throw new BadRequestException("Este caso ya tiene un veterinario asignado");
     return this.prisma.caso.findUniqueOrThrow({ where: { id: casoId } });
+  }
+
+  // Precio de un veterinario para un caso, ahora. Lo usa SolicitudesService
+  // para congelar lo que ve el tutor al elegir, y asignarPorAceptacion como
+  // respaldo.
+  async precioDe(
+    casoId: string,
+    veterinario: Parameters<PreciosService["calcular"]>[1],
+  ): Promise<{ honorario: number; cargo: number; franja: FranjaHoraria }> {
+    const intake = await this.prisma.intakeFormulario.findUnique({ where: { casoId } });
+    const hayUrgencia = intake ? hayBanderaRoja(intake) : false;
+    const ctx = await this.precios.contexto(veterinario.pais);
+    const p = this.precios.calcular(ctx, veterinario, hayUrgencia, new Date());
+    return { honorario: p.honorario, cargo: p.cargo, franja: p.franja };
   }
 
   // Casos de ESTE veterinario (tomados por él, en curso o ya cerrados) —

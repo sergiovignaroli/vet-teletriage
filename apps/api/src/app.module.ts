@@ -11,6 +11,7 @@ import { IdentidadModule } from "./modules/identidad/identidad.module";
 import { NotificacionesModule } from "./modules/notificaciones/notificaciones.module";
 import { SolicitudesModule } from "./modules/solicitudes/solicitudes.module";
 import { ConfiguracionModule } from "./modules/configuracion/configuracion.module";
+import { PreciosModule } from "./modules/precios/precios.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ConfiguracionModule } from "./modules/configuracion/configuracion.modul
     CalificacionesModule,
     IdentidadModule,
     ConfiguracionModule,
+    PreciosModule,
     SolicitudesModule,
     NotificacionesModule,
   ],

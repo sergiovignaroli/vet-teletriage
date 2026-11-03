@@ -512,6 +512,9 @@ export default function ElegirVeterinarioPage() {
                 <div className="va-titular" style={{ fontSize: 20, marginTop: 2 }}>
                   ${v.costoTotal.toLocaleString("es-AR")}
                 </div>
+                <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
+                  {v.franja === "NOCTURNA" ? "Tarifa nocturna (noche, domingos y feriados)" : "Tarifa diurna"}
+                </div>
               </div>
               <button
                 type="button"

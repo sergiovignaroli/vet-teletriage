@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CasoParaVeterinario, ClasificacionCierre, TurnoPactadoParaVeterinario } from "@vet-teletriage/types";
-import { hayBanderaRoja, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN } from "@vet-teletriage/types";
+import { hayBanderaRoja } from "@vet-teletriage/types";
+import { MisPrecios } from "../../components/MisPrecios";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useLatidoVeterinario, useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { tocarAviso, useSolicitudesVeterinario, useSonidoActivo } from "../../lib/solicitudes-veterinario";
@@ -61,7 +62,7 @@ const OPCIONES_PRESENCIA: { valor: Presencia; etiqueta: string; ayuda: string }[
 
 export default function PanelVeterinarioPage() {
   const router = useRouter();
-  const { sesion, actualizarOnboarding, actualizarPresencia, actualizarMargen, cerrarSesion, modificar } =
+  const { sesion, actualizarOnboarding, actualizarPresencia, cerrarSesion, modificar } =
     useSesionVeterinario();
   const [enviandoOnboarding, setEnviandoOnboarding] = useState(false);
   const [cambiandoConexion, setCambiandoConexion] = useState<Presencia | null>(null);
@@ -71,9 +72,6 @@ export default function PanelVeterinarioPage() {
   const [cargandoCasos, setCargandoCasos] = useState(false);
   const [errorCasos, setErrorCasos] = useState<string | null>(null);
 
-  const [margenTexto, setMargenTexto] = useState("0");
-  const [guardandoMargen, setGuardandoMargen] = useState(false);
-  const [errorMargen, setErrorMargen] = useState<string | null>(null);
 
   const [iniciando, setIniciando] = useState<string | null>(null);
   const [errorIniciar, setErrorIniciar] = useState<string | null>(null);
@@ -95,10 +93,6 @@ export default function PanelVeterinarioPage() {
   useEffect(() => {
     if (sesion === null) router.replace("/ingresar-veterinario");
   }, [sesion, router]);
-
-  useEffect(() => {
-    if (sesion) setMargenTexto(String(sesion.margenPorcentaje));
-  }, [sesion?.margenPorcentaje]);
 
   const cargarCasos = useCallback(async () => {
     if (!sesion) return;
@@ -201,29 +195,6 @@ export default function PanelVeterinarioPage() {
       setErrorConexion(e instanceof ApiError ? e.message : "No pudimos cambiar tu estado. Probá de nuevo.");
     } finally {
       setCambiandoConexion(null);
-    }
-  }
-
-  async function guardarMargen() {
-    if (!sesion) return;
-    const margenPorcentaje = Number(margenTexto);
-    if (
-      !Number.isFinite(margenPorcentaje) ||
-      margenPorcentaje < MARGEN_PORCENTAJE_MIN ||
-      margenPorcentaje > MARGEN_PORCENTAJE_MAX
-    ) {
-      setErrorMargen(`Tiene que estar entre ${MARGEN_PORCENTAJE_MIN}% y ${MARGEN_PORCENTAJE_MAX}%`);
-      return;
-    }
-    setErrorMargen(null);
-    setGuardandoMargen(true);
-    try {
-      await apiPatch("/veterinarios/margen", sesion.accessToken, { margenPorcentaje });
-      actualizarMargen(margenPorcentaje);
-    } catch (e) {
-      setErrorMargen(e instanceof ApiError ? e.message : "No pudimos guardar el margen. Probá de nuevo.");
-    } finally {
-      setGuardandoMargen(false);
     }
   }
 
@@ -591,51 +562,10 @@ export default function PanelVeterinarioPage() {
         </p>
       )}
 
-      {/* Mientras estás conectado, los clientes te ven en la lista con este
-          margen ya aplicado sobre el precio base de cada caso — por eso no
-          hace falta declarar honorario caso por caso, como antes. */}
-      <div
-        style={{
-          border: "1px solid var(--borde)",
-          borderRadius: 14,
-          padding: "12px 16px",
-          marginBottom: 24,
-          background: "var(--card)",
-        }}
-      >
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Tu margen sobre el precio base</div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input
-            className="va-input"
-            type="number"
-            inputMode="numeric"
-            value={margenTexto}
-            onChange={(e) => setMargenTexto(e.target.value)}
-            min={MARGEN_PORCENTAJE_MIN}
-            max={MARGEN_PORCENTAJE_MAX}
-            style={{ flex: 1 }}
-          />
-          <span style={{ fontSize: 14, opacity: 0.75 }}>%</span>
-          <button
-            type="button"
-            className="va-boton"
-            style={{ width: "auto", padding: "0 16px" }}
-            onClick={guardarMargen}
-            disabled={guardandoMargen || Number(margenTexto) === sesion.margenPorcentaje}
-          >
-            {guardandoMargen ? "…" : "Guardar"}
-          </button>
-        </div>
-        <p style={{ fontSize: 11, opacity: 0.75, margin: "6px 0 0" }}>
-          Entre {MARGEN_PORCENTAJE_MIN}% y {MARGEN_PORCENTAJE_MAX}% sobre la base de cada caso — el cliente ve el
-          total ya calculado con esto antes de elegirte.
-        </p>
-        {errorMargen && (
-          <p style={{ color: "var(--terracota)", fontSize: 12, marginTop: 6 }} role="alert">
-            {errorMargen}
-          </p>
-        )}
-      </div>
+      {/* Precios propios (Sergio, 2026-11-03): cuatro precios — normal y
+          urgencia, diurno y nocturno — dentro de la banda que define la
+          plataforma. Reemplaza al margen sobre un precio base. */}
+      <MisPrecios token={sesion.accessToken} />
 
       <Link
         href="/veterinario/cobros"

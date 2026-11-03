@@ -41,6 +41,10 @@ export interface ConfiguracionPlataforma {
   honorarioPaypalNormalUsd: number;
   honorarioPaypalUrgenciaUsd: number;
   cargoPlataformaPaypalUsd: number;
+  // Comisión de la plataforma, en % del honorario del veterinario (Sergio,
+  // 2026-11-03). Los cargoPlataformaDiurna/Nocturna de arriba pasan a ser el
+  // mínimo de esa comisión.
+  porcentajePlataforma: number;
   // Premio por volumen: a partir de superar `umbralSesionesVeterano`
   // sesiones cerradas (Veterinario.sesionesCompletadas), se suma
   // `bonusVeteranoPorcentaje` arriba del margenPorcentaje propio del
@@ -78,6 +82,134 @@ export function honorarioPaypalDe(config: Pick<ConfiguracionPlataforma, "honorar
 // CasosService), acá solo se suma lo que llega.
 export function honorarioFinalDe(honorarioBase: number, margenPorcentaje: number, bonusVeteranoPorcentaje = 0): number {
   return Math.round(honorarioBase * (1 + (margenPorcentaje + bonusVeteranoPorcentaje) / 100));
+}
+
+// -----------------------------------------------------------------------
+// Precios propios del veterinario (Sergio, 2026-11-03)
+//
+// Cuatro precios por veterinario: Normal y Urgencia, cada uno diurno y
+// nocturno. El dueño define por país, para cada uno de los cuatro, un piso,
+// un precio aconsejado y un techo; el veterinario elige su precio dentro de
+// esa banda y, si no eligió, rige el aconsejado. La comisión de la
+// plataforma es un porcentaje del honorario del veterinario con un mínimo
+// fijo (los cargos de plataforma que ya existían). Todo son funciones puras:
+// reciben los valores como parámetro, no leen nada de ningún lado.
+// -----------------------------------------------------------------------
+export type TipoConsulta = "NORMAL" | "URGENCIA";
+export type ClaveTarifa = "NORMAL_DIURNA" | "NORMAL_NOCTURNA" | "URGENCIA_DIURNA" | "URGENCIA_NOCTURNA";
+export const CLAVES_TARIFA: ClaveTarifa[] = ["NORMAL_DIURNA", "NORMAL_NOCTURNA", "URGENCIA_DIURNA", "URGENCIA_NOCTURNA"];
+
+export function claveTarifa(tipo: TipoConsulta, franja: FranjaHoraria): ClaveTarifa {
+  return `${tipo}_${franja}` as ClaveTarifa;
+}
+
+// Banda que define el dueño para una de las cuatro combinaciones.
+export interface TarifaCelda {
+  piso: number;
+  aconsejado: number;
+  techo: number;
+}
+export type TarifasPais = Record<ClaveTarifa, TarifaCelda>;
+
+// Cuándo es de día y cuándo de noche en un país. La zona horaria es un
+// nombre IANA (America/Argentina/Buenos_Aires, Europe/Madrid): nunca un
+// desfase fijo, porque España cambia de horario en verano y Argentina no.
+export interface ReglaFranja {
+  zonaHoraria: string;
+  inicioDiurno: string; // "HH:MM"
+  finDiurno: string; // "HH:MM", inclusive
+  domingoNocturno: boolean;
+  feriadoNocturno: boolean;
+  feriados: string[]; // "YYYY-MM-DD" en la zona del país
+}
+
+export const ZONA_HORARIA_ARGENTINA = "America/Argentina/Buenos_Aires";
+
+function minutosDeHora(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+const DIAS_SEMANA: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+// Fecha (YYYY-MM-DD), minutos desde medianoche y día de la semana de un
+// instante, vistos desde una zona horaria. Usa Intl: no depende de la zona
+// del servidor (Render corre en UTC y la hora local de Argentina es UTC−3).
+export function partesLocales(instante: Date, zonaHoraria: string): { fecha: string; minutos: number; diaSemana: number } {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: zonaHoraria,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    weekday: "short",
+    hourCycle: "h23",
+  }).formatToParts(instante);
+  const valor = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
+  return {
+    fecha: `${valor("year")}-${valor("month")}-${valor("day")}`,
+    minutos: Number(valor("hour")) * 60 + Number(valor("minute")),
+    diaSemana: DIAS_SEMANA[valor("weekday")] ?? 0,
+  };
+}
+
+// Sergio, 2026-11-03: el sábado es diurno; el domingo y los feriados, nocturnos.
+export function franjaEnZona(instante: Date, regla: ReglaFranja): FranjaHoraria {
+  const p = partesLocales(instante, regla.zonaHoraria);
+  if (regla.domingoNocturno && p.diaSemana === 0) return "NOCTURNA";
+  if (regla.feriadoNocturno && regla.feriados.includes(p.fecha)) return "NOCTURNA";
+  return p.minutos >= minutosDeHora(regla.inicioDiurno) && p.minutos <= minutosDeHora(regla.finDiurno) ? "DIURNA" : "NOCTURNA";
+}
+
+// El veterinario elige su precio; si no eligió, rige el aconsejado. En
+// cualquier caso queda dentro de la banda: si el dueño sube el piso, nadie
+// queda por debajo sin tener que reescribir lo que cada uno guardó.
+export function precioEfectivo(celda: TarifaCelda, precioPropio: number | null | undefined): number {
+  const base = precioPropio == null ? celda.aconsejado : precioPropio;
+  return Math.round(Math.min(celda.techo, Math.max(celda.piso, base)));
+}
+
+// Comisión: porcentaje del honorario, con un mínimo fijo.
+export function cargoPlataformaPorcentual(honorario: number, porcentaje: number, minimo: number): number {
+  return Math.max(Math.round((honorario * porcentaje) / 100), minimo);
+}
+
+// Corre un porcentaje (positivo o negativo) a una banda completa.
+export function ajustarCeldaPorPorcentaje(celda: TarifaCelda, porcentaje: number): TarifaCelda {
+  const f = 1 + porcentaje / 100;
+  return { piso: Math.round(celda.piso * f), aconsejado: Math.round(celda.aconsejado * f), techo: Math.round(celda.techo * f) };
+}
+
+// Devuelve el motivo si la banda no es coherente, o null si está bien.
+export function motivoCeldaInvalida(celda: TarifaCelda): string | null {
+  for (const v of [celda.piso, celda.aconsejado, celda.techo]) {
+    if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return "Los tres valores tienen que ser números mayores a 0";
+  }
+  if (celda.piso > celda.aconsejado) return "El piso no puede ser mayor que el precio aconsejado";
+  if (celda.aconsejado > celda.techo) return "El precio aconsejado no puede ser mayor que el techo";
+  return null;
+}
+
+// Aviso que el veterinario ve y acepta antes de poner su propio precio
+// (nunca lo ve el tutor). Si cambia el texto, hay que subir la versión.
+// ⚠ Texto a revisar por el abogado antes de lanzar.
+export const VERSION_AVISO_PRECIOS = "2026-11-03";
+export const TEXTO_AVISO_PRECIOS =
+  "El servicio que prestás en esta plataforma es de orientación y triage por videollamada, no una consulta clínica. " +
+  "Por eso el valor tiene que ser accesible para el tutor. Te recomendamos verificar con tu colegio veterinario si su " +
+  "nomenclador contempla este tipo de servicio. Vos decidís tu precio dentro del rango que se muestra.";
+
+// Lo que devuelve GET /veterinarios/mis-precios.
+export interface MisPreciosVeterinario {
+  moneda: string;
+  zonaHoraria: string;
+  porcentajePlataforma: number;
+  cargoMinimoDiurno: number;
+  cargoMinimoNocturno: number;
+  franjaAhora: FranjaHoraria;
+  celdas: Array<TarifaCelda & { clave: ClaveTarifa; propio: number | null; efectivo: number }>;
+  aviso: { version: string; texto: string; aceptado: boolean };
 }
 
 // Penalización de NO_COMPLETADO (decisión de Sergio, 2026-09-29): si el
@@ -222,6 +354,9 @@ export interface VeterinarioParaElegir {
   apellido: string;
   honorarioFinal: number;
   costoTotal: number; // honorarioFinal + cargoPlataforma del caso, en ARS (Mercado Pago)
+  // Franja con la que se calculó este precio (según la hora local DEL
+  // VETERINARIO): la pantalla rotula "tarifa nocturna" antes de elegir.
+  franja: FranjaHoraria;
   // Precio fijo de PayPal (USD) para ESTE caso — null si el veterinario no
   // tiene un email de PayPal cargado (Sergio, 2026-09-30: sin PayPal
   // conectado, ese veterinario no puede ofrecerse como opción de pago en

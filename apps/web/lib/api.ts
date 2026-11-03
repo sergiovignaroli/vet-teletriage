@@ -86,3 +86,18 @@ export function apiGet<T>(path: string, token?: string) {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 }
+
+export function apiPut<T>(path: string, token: string, body?: unknown) {
+  return pedido<T>(path, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export function apiDelete<T>(path: string, token: string) {
+  return pedido<T>(path, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
