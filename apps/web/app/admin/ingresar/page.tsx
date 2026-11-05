@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../../lib/api";
 import { useSesionAdmin } from "../../../lib/sesion-admin";
+import { CampoContrasena } from "../../../components/CampoContrasena";
 import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
 
 interface RespuestaLoginAdmin {
@@ -60,12 +61,10 @@ export default function IngresarAdminPage() {
           style={{ marginBottom: 12 }}
           autoComplete="email"
         />
-        <input
-          className="va-input"
-          type="password"
+        <CampoContrasena
           placeholder="Contraseña"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
           style={{ marginBottom: 14 }}
           autoComplete="current-password"
         />

@@ -28,6 +28,26 @@ export class AuthController {
     return this.auth.loginVeterinario(body.email, body.password);
   }
 
+  // Recuperación (públicas). Además del límite por IP, el servicio limita por
+  // email / DNI para que no se pueda usar para molestar o adivinar datos.
+  @Throttle({ default: { limit: 10, ttl: 3600000 } })
+  @Post("veterinario/recuperar-contrasena")
+  recuperarContrasena(@Body("email") email: string, @Req() req: { ip?: string }) {
+    return this.auth.solicitarRestablecerContrasena(email, req.ip);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 3600000 } })
+  @Post("veterinario/restablecer-contrasena")
+  restablecerContrasena(@Body() body: { token: string; password: string }) {
+    return this.auth.restablecerContrasena(body.token, body.password);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 3600000 } })
+  @Post("veterinario/recordar-usuario")
+  recordarUsuario(@Body() body: { dniONumero: string; matriculaNumero: string }, @Req() req: { ip?: string }) {
+    return this.auth.recordarUsuario(body.dniONumero, body.matriculaNumero, req.ip);
+  }
+
   // Públicos: el que sirve de credencial es el propio token de renovación.
   // Renovación de sesión: 30 por minuto por IP.
   @Throttle({ default: { limit: 30, ttl: 60000 } })

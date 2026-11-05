@@ -39,6 +39,7 @@ El registro de veterinarios admite 5 por hora por IP. `rehacer.sh` reinicia la A
 
 - Recorrido completo (`rehacer.sh`): sin fallas, con la marca en ™ (la marca todavía no está registrada).
 - `test-graves`, `test-especies`, `test-ayuda`, `test-modos`, `test-flujo`: pasan.
+- `test-recuperacion` (API) y `test-ui-contrasena` (navegador, necesita `NODE_PATH=/opt/npm-tools/node_modules` si playwright no está en el repo): recuperar contraseña y usuario de veterinarios y el ojito en las pantallas con contraseña; repetibles (borran su propio veterinario). Reiniciar la API (`up.sh`) entre una y otra: el límite de 1 mail cada 2 minutos por email.
 - `test-foto`: una aserción espera 400 y la API responde 413 para una foto demasiado pesada (el límite de tamaño del servidor actúa antes). Es anterior a esta etapa y no es un error de la plataforma.
 - `test-api-precios`: una aserción (que el piso suba el precio efectivo) quedó desactualizada porque el modo de precio por defecto ahora es LIBRE; el comportamiento por modo lo cubre `test-modos`. Pendiente de actualizar.
 - `test-ayuda` no se puede repetir sobre los mismos datos (siempre registra `ayuda@v.test` y deja preguntas): correr `rehacer.sh` antes, o borrar ese veterinario y las preguntas de ayuda de la base de prueba.

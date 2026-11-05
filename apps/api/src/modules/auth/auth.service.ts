@@ -7,11 +7,14 @@ import { PrismaService } from "../../prisma.service";
 import { especiesValidas } from "../../common/especies";
 import { decodificarFoto } from "../../common/foto";
 import { consumirLimite } from "../../common/limite-por-clave";
+import { emailConfigurado, enviarEmail } from "../../common/email.util";
 import { enviarWhatsApp, enviarWhatsAppPlantilla, normalizarTelefono } from "../../common/whatsapp-cloud-api.util";
 
 const RONDAS_BCRYPT = 12;
 const OTP_TTL_MINUTOS = 5;
 const OTP_INTENTOS_MAXIMOS = 5;
+const RESET_TTL_MINUTOS = 60;
+const PASSWORD_MINIMA = 8;
 
 // Sesión larga del veterinario (Sergio, 2026-10-27): token de acceso corto y
 // token de renovación rotativo de 30 días. Ver SesionVeterinario en el schema.
@@ -126,6 +129,134 @@ export class AuthService {
     // front, así que si el front necesita el id o el nombre para mostrar
     // algo, tiene que venir en la respuesta.
     return this.emitirSesionVeterinario(veterinario);
+  }
+
+  // -------------------------------------------------------------------------
+  // Recuperar contraseña y usuario (veterinarios). El "usuario" es el email.
+  // Los tutores no tienen contraseña (entran con un código por WhatsApp) y el
+  // admin se recupera recreándolo con ADMIN_API_KEY.
+  // -------------------------------------------------------------------------
+
+  // Siempre responde lo mismo, exista o no el email: así nadie puede usar esta
+  // pantalla para averiguar qué emails están registrados.
+  async solicitarRestablecerContrasena(emailCrudo: string, ip?: string) {
+    const respuesta = { ok: true };
+    const email = String(emailCrudo ?? "").trim().toLowerCase();
+    if (!email || email.length > 200) return respuesta;
+
+    // Un mail por dirección cada 2 minutos y 5 por hora (que nadie pueda
+    // llenarle la casilla a un colega ni gastar el envío de la plataforma).
+    const esperar =
+      consumirLimite(`reset:${email}`, { maximo: 5, ventanaMs: 3600_000, espacioMinimoMs: 120_000 }) ??
+      (ip ? consumirLimite(`reset-ip:${ip}`, { maximo: 20, ventanaMs: 3600_000 }) : null);
+    if (esperar !== null) return respuesta;
+
+    const veterinario = await this.prisma.veterinario.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+    });
+    if (!veterinario) return respuesta;
+
+    if (!emailConfigurado()) {
+      this.log.warn(
+        "Pidieron restablecer una contraseña pero no hay SMTP configurado (SMTP_HOST/SMTP_USER/SMTP_PASS): no se mandó ningún mail.",
+      );
+      return respuesta;
+    }
+
+    const token = randomBytes(32).toString("hex");
+    await this.prisma.veterinario.update({
+      where: { id: veterinario.id },
+      data: {
+        resetTokenHash: hashDeToken(token),
+        resetVenceEl: new Date(Date.now() + RESET_TTL_MINUTOS * 60_000),
+      },
+    });
+
+    const base = (process.env.WEB_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    try {
+      await enviarEmail({
+        para: veterinario.email,
+        asunto: "Restablecer tu contraseña — Videollamada Animal",
+        texto:
+          `Hola ${veterinario.nombre},\n\n` +
+          `Pediste restablecer la contraseña de tu cuenta de veterinario. Entrá a este enlace para elegir una nueva (vale ${RESET_TTL_MINUTOS} minutos y se puede usar una sola vez):\n\n` +
+          `${base}/restablecer-contrasena?token=${token}\n\n` +
+          `Si no fuiste vos, ignorá este mensaje: tu contraseña actual sigue funcionando.\n`,
+      });
+    } catch (e) {
+      this.log.warn(`No se pudo enviar el mail de restablecimiento: ${(e as Error).message}`);
+    }
+    return respuesta;
+  }
+
+  async restablecerContrasena(token: string, passwordNueva: string) {
+    if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
+      throw new BadRequestException("El enlace no es válido o ya venció. Pedí uno nuevo.");
+    }
+    if (typeof passwordNueva !== "string" || passwordNueva.length < PASSWORD_MINIMA) {
+      throw new BadRequestException(`La contraseña tiene que tener al menos ${PASSWORD_MINIMA} caracteres.`);
+    }
+    if (passwordNueva.length > 72) {
+      throw new BadRequestException("La contraseña es demasiado larga (máximo 72 caracteres).");
+    }
+    const veterinario = await this.prisma.veterinario.findFirst({
+      where: { resetTokenHash: hashDeToken(token), resetVenceEl: { gt: new Date() } },
+    });
+    if (!veterinario) throw new BadRequestException("El enlace no es válido o ya venció. Pedí uno nuevo.");
+
+    const passwordHash = await bcrypt.hash(passwordNueva, RONDAS_BCRYPT);
+    await this.prisma.$transaction([
+      this.prisma.veterinario.update({
+        where: { id: veterinario.id },
+        data: {
+          passwordHash,
+          resetTokenHash: null,
+          resetVenceEl: null,
+          // Cierra todas las sesiones abiertas (si alguien más tenía la contraseña vieja).
+          tokenVersion: { increment: 1 },
+        },
+      }),
+      this.prisma.sesionVeterinario.updateMany({
+        where: { veterinarioId: veterinario.id, revocadaEl: null },
+        data: { revocadaEl: new Date() },
+      }),
+    ]);
+    return { ok: true };
+  }
+
+  // "Olvidé mi usuario": con DNI + número de matrícula se muestra el email
+  // PARCIALMENTE tapado (ej.: se****@gmail.com), nunca completo.
+  async recordarUsuario(dniCrudo: string, matriculaCruda: string, ip?: string) {
+    const normalizar = (v: unknown) => String(v ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const dni = normalizar(dniCrudo);
+    const matricula = normalizar(matriculaCruda);
+    if (dni.length < 4 || matricula.length < 1) {
+      throw new BadRequestException("Completá el DNI y el número de matrícula.");
+    }
+    const esperar =
+      consumirLimite(`usuario-ip:${ip ?? "?"}`, { maximo: 8, ventanaMs: 3600_000 }) ??
+      consumirLimite(`usuario:${dni}`, { maximo: 5, ventanaMs: 3600_000 });
+    if (esperar !== null) {
+      throw new HttpException("Hiciste demasiados intentos. Probá de nuevo en un rato.", HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    // Se compara normalizado (sin puntos, guiones ni espacios) para que "12.345.678"
+    // y "12345678" cuenten igual. Es un endpoint poco usado y con tope de intentos.
+    const candidatos = await this.prisma.veterinario.findMany({
+      select: { email: true, dniONumero: true, matriculaNumero: true },
+    });
+    const encontrado = candidatos.find(
+      (v) => normalizar(v.dniONumero) === dni && normalizar(v.matriculaNumero) === matricula,
+    );
+    // Mismo mensaje se encuentre o no, para no confirmar datos de terceros.
+    if (!encontrado) {
+      throw new BadRequestException(
+        "No encontramos una cuenta con esos datos. Revisalos o escribinos desde Ayuda.",
+      );
+    }
+    const [local, dominio] = encontrado.email.split("@");
+    const visible = local.slice(0, Math.min(2, local.length));
+    return { emailParcial: `${visible}${"*".repeat(Math.max(3, local.length - visible.length))}@${dominio}` };
   }
 
   // Invalida TODOS los JWT de veterinario emitidos hasta ahora (password

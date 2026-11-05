@@ -27,6 +27,11 @@ model Veterinario {
   // de tokens — ver jwt.strategy.ts.
   tokenVersion Int     @default(0)
 
+  // Recuperación de contraseña: se guarda solo el hash (SHA-256) del enlace que
+  // se mandó por email, nunca el enlace. Dura 1 hora y se usa una sola vez.
+  resetTokenHash String?
+  resetVenceEl   DateTime?
+
   // Habilitación (Sección 2 del contrato)
   dniONumero        String
   matriculaNumero   String

@@ -9,6 +9,7 @@ import { apiPost, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 import { Foto } from "../../components/Foto";
+import { CampoContrasena } from "../../components/CampoContrasena";
 
 // Situación probable, la más grande que se encontró en toda la revisión
 // pantalla por pantalla del 2026-09-29: POST /auth/veterinario/registrar
@@ -258,6 +259,14 @@ export default function RegistrarVeterinarioPage() {
       >
         ¿Ya tenés cuenta? Ingresá acá
       </Link>
+      <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "6px 18px", marginTop: 10, fontSize: 13 }}>
+        <Link href="/recuperar-contrasena" style={{ textDecoration: "underline", opacity: 0.75 }}>
+          Olvidé mi contraseña
+        </Link>
+        <Link href="/recuperar-usuario" style={{ textDecoration: "underline", opacity: 0.75 }}>
+          Olvidé mi usuario
+        </Link>
+      </div>
 
     </Pantalla>
   );
@@ -281,14 +290,23 @@ function Campo({
   return (
     <label style={{ display: "block", margin: "12px 0", fontSize: 14, fontWeight: 600 }}>
       {etiqueta}
-      <input
-        className="va-input"
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoComplete={autoComplete}
-        style={{ marginTop: 6, fontWeight: 400 }}
-      />
+      {type === "password" ? (
+        <CampoContrasena
+          value={value}
+          onChange={onChange}
+          autoComplete={autoComplete === "current-password" ? "current-password" : "new-password"}
+          style={{ marginTop: 6, fontWeight: 400 }}
+        />
+      ) : (
+        <input
+          className="va-input"
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete={autoComplete}
+          style={{ marginTop: 6, fontWeight: 400 }}
+        />
+      )}
       {error && (
         <span style={{ display: "block", color: "var(--terracota)", fontSize: 12, fontWeight: 400, marginTop: 4 }}>
           {error}

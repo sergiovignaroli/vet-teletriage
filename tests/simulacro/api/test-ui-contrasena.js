@@ -1,0 +1,62 @@
+// Prueba en navegador: ojito en las 3 pantallas con contraseña + recuperación completa por pantallas.
+const { chromium } = require("playwright");
+const { execFileSync } = require("child_process");
+const fs = require("fs");
+const WEB = "http://localhost:3100";
+const q = (sql) => execFileSync("psql", ["-h","localhost","-p","5544","-U","postgres","-d","vet","-tAc",sql]).toString().trim();
+let f = 0; const ok = (c, t) => { console.log((c ? "OK   " : "FALLA") + " " + t); if (!c) f++; };
+const EMAIL = "uirec@v.test";
+(async () => {
+  q(`delete from "Veterinario" where email='${EMAIL}'`);
+  await fetch("http://localhost:4500/__reset");
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 390, height: 800 } });
+  const ojo = async (sel) => {
+    const inp = p.locator(sel).first();
+    const t0 = await inp.getAttribute("type");
+    await p.getByRole("button", { name: "Mostrar contraseña" }).first().click();
+    const t1 = await inp.getAttribute("type");
+    const lab = await p.getByRole("button", { name: "Ocultar contraseña" }).first().isVisible();
+    await p.getByRole("button", { name: "Ocultar contraseña" }).first().click();
+    const t2 = await inp.getAttribute("type");
+    return t0 === "password" && t1 === "text" && lab && t2 === "password";
+  };
+  await p.goto(WEB + "/ingresar-veterinario"); await p.fill('input[type=email]', "a@b.c"); await p.fill('input[autocomplete=current-password]', "secreto123");
+  ok(await ojo('input[autocomplete=current-password]'), "ingreso veterinario: el ojito muestra y oculta");
+  ok(await p.getByText("¿Olvidaste tu contraseña?").isVisible() && await p.getByText("¿Olvidaste tu usuario?").isVisible(), "ingreso veterinario: se ven los dos enlaces de recuperación");
+  await p.screenshot({ path: __dirname + "/../sim/shots/ojito-ingreso.png" });
+  await p.goto(WEB + "/admin/ingresar"); await p.fill('input[autocomplete=current-password]', "x1");
+  ok(await ojo('input[autocomplete=current-password]'), "ingreso admin: el ojito muestra y oculta");
+  await p.goto(WEB + "/registrar-veterinario");
+  const n = await p.getByRole("button", { name: "Mostrar contraseña" }).count();
+  ok(n === 2, "registro: hay ojito en contraseña y en confirmar contraseña (" + n + ")");
+  ok(await p.getByText("Olvidé mi contraseña").isVisible() && await p.getByText("Olvidé mi usuario").isVisible(), "registro: se ven los enlaces de recuperación");
+  const pw = p.locator('input[autocomplete=new-password]');
+  await pw.nth(0).fill("claveUno123"); await p.getByRole("button", { name: "Mostrar contraseña" }).nth(0).click();
+  ok((await pw.nth(0).getAttribute("type")) === "text" && (await pw.nth(1).getAttribute("type")) === "password", "registro: cada ojito maneja solo su campo");
+
+  // registrar por API para tener la cuenta y probar la recuperación por pantallas
+  await fetch("http://localhost:3999/auth/veterinario/registrar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nombre: "Ui", apellido: "Rec", email: EMAIL, password: "claveVieja1", dniONumero: "33444555", matriculaNumero: "MP 777", matriculaColegio: "C", matriculaVenceEl: "2030-01-01", seguroAseguradora: "S", seguroPoliza: "P", seguroVenceEl: "2030-01-01", aceptoConvenio: true, especiesAtiende: ["perro"] }) });
+  await p.goto(WEB + "/recuperar-usuario"); await p.fill('input[placeholder="DNI o número de documento"]', "33.444.555"); await p.fill('input[placeholder="Número de matrícula"]', "mp777");
+  await p.getByRole("button", { name: "Recordar mi usuario" }).click(); await p.getByText("ui***@v.test").waitFor({ timeout: 5000 }).catch(() => {});
+  ok(await p.getByText("ui***@v.test").isVisible(), "recuperar usuario: muestra el email tapado");
+  await p.goto(WEB + "/recuperar-contrasena"); await p.fill('input[type=email]', EMAIL); await p.getByRole("button", { name: "Enviarme el enlace" }).click();
+  await p.getByText("te mandamos un enlace").waitFor({ timeout: 5000 }).catch(() => {});
+  ok(await p.getByText("te mandamos un enlace").isVisible(), "recuperar contraseña: mensaje de enviado");
+  await new Promise((r) => setTimeout(r, 1500));
+  const mail = JSON.parse(fs.readFileSync(__dirname + "/../fakes.log", "utf8")).filter((x) => x.canal === "email").pop();
+  const tok = mail && mail.body.replace(/=\r\n/g, "").replace(/=3D/g, "=").match(/token=([a-f0-9]{64})/)?.[1];
+  ok(!!tok, "llegó el mail con el enlace");
+  await p.goto(WEB + "/restablecer-contrasena?token=" + tok);
+  await p.fill('input[placeholder="Contraseña nueva"]', "claveNueva77"); await p.fill('input[placeholder="Repetí la contraseña"]', "claveNueva78");
+  ok(await p.getByText("Las contraseñas no coinciden").isVisible() && await p.getByRole("button", { name: "Guardar contraseña" }).isDisabled(), "restablecer: avisa si no coinciden y no deja guardar");
+  await p.fill('input[placeholder="Repetí la contraseña"]', "claveNueva77"); await p.getByRole("button", { name: "Guardar contraseña" }).click();
+  await p.getByText("cambiaste tu contraseña").waitFor({ timeout: 5000 }).catch(() => {});
+  ok(await p.getByText("cambiaste tu contraseña").isVisible(), "restablecer: confirma el cambio");
+  await p.screenshot({ path: __dirname + "/../sim/shots/restablecer-listo.png" });
+  await p.goto(WEB + "/ingresar-veterinario"); await p.fill('input[type=email]', EMAIL); await p.fill('input[autocomplete=current-password]', "claveNueva77"); await p.getByRole("button", { name: "Ingresar", exact: true }).click();
+  await p.waitForURL("**/panel-veterinario", { timeout: 8000 }).catch(() => {});
+  ok(p.url().includes("/panel-veterinario"), "ingresa al panel con la contraseña nueva");
+  await p.goto(WEB + "/restablecer-contrasena"); ok(await p.getByText("enlace está incompleto").isVisible(), "restablecer sin token: avisa");
+  await b.close(); q(`delete from "Veterinario" where email='${EMAIL}'`);
+  console.log(f ? "FALLAS: " + f : "TODO OK"); process.exit(f ? 1 : 0);
+})();

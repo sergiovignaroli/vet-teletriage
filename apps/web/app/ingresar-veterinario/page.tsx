@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
+import { CampoContrasena } from "../../components/CampoContrasena";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 
 interface RespuestaLoginVeterinario {
@@ -85,12 +86,10 @@ export default function IngresarVeterinarioPage() {
           style={{ marginBottom: 12 }}
           autoComplete="email"
         />
-        <input
-          className="va-input"
-          type="password"
+        <CampoContrasena
           placeholder="Contraseña"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
           style={{ marginBottom: 14 }}
           autoComplete="current-password"
         />
@@ -103,6 +102,15 @@ export default function IngresarVeterinarioPage() {
           {cargando ? "Ingresando…" : "Ingresar"}
         </button>
       </form>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", marginTop: 16, fontSize: 13.5 }}>
+        <Link href="/recuperar-contrasena" style={{ color: "var(--esmeralda)", textDecoration: "underline", fontWeight: 700 }}>
+          ¿Olvidaste tu contraseña?
+        </Link>
+        <Link href="/recuperar-usuario" style={{ color: "var(--esmeralda)", textDecoration: "underline", fontWeight: 700 }}>
+          ¿Olvidaste tu usuario?
+        </Link>
+      </div>
 
       <Link
         href="/registrar-veterinario"
