@@ -483,6 +483,10 @@ textarea {
   flex: none;
   color: inherit;
   text-decoration: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .va-barra-titulo {
@@ -519,6 +523,8 @@ textarea {
   align-items: center;
   gap: 10px;
   padding-right: 8px;
+  color: inherit;
+  text-decoration: none;
 }
 
 .va-barra-nombre {
@@ -779,6 +785,26 @@ textarea {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.va-bienvenida-volver {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  flex: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--menta);
+  cursor: pointer;
+}
+
+.va-bienvenida-marca {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .va-bienvenida-saltar {

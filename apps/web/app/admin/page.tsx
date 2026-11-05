@@ -208,7 +208,7 @@ export default function AdminPage() {
   if (!sesion) return null;
 
   return (
-    <Pantalla titulo="Administración" variante="profundo" ancho={640} salir={cerrarSesion}>
+    <Pantalla titulo="Administración" variante="profundo" ancho={640} volver="/" salir={cerrarSesion}>
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>
         Panel de administración
       </h1>

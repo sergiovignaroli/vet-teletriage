@@ -74,7 +74,14 @@ export default function IngresarPage() {
   }
 
   return (
-    <Pantalla titulo="Ingresar" variante="menta" ancho={420} centrar>
+    <Pantalla
+      titulo="Ingresar"
+      variante="menta"
+      ancho={420}
+      centrar
+      volver="/"
+      onVolver={etapa === "telefono" ? undefined : () => { setError(null); setCodigo(""); setEtapa("telefono"); }}
+    >
       <MarcaGrande detalle="Teleasesoramiento veterinario" />
 
       {etapa === "telefono" ? (

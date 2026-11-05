@@ -26,7 +26,7 @@ import { useParams, useRouter } from "next/navigation";
 import { apiGet, ApiError } from "../../../lib/api";
 import { useSesionCliente } from "../../../lib/sesion";
 import { useSesionVeterinario } from "../../../lib/sesion-veterinario";
-import { Pantalla, MarcaGrande } from "../../../components/Pantalla";
+import { Pantalla, MarcaGrande, FlechaVolver } from "../../../components/Pantalla";
 import { NombreMarca } from "../../../components/Marca";
 
 // El logo de las pantallas claras (ícono y texto en verde oscuro) quedaría
@@ -231,7 +231,20 @@ export default function ConsultaVideoPage() {
   return (
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#1a1a1a" }}>
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <button
+          type="button"
+          aria-label="Volver"
+          onClick={() => {
+            // Salir de una videollamada en curso corta la llamada: se confirma.
+            if (window.confirm("¿Querés salir de la videollamada?")) salir();
+          }}
+          style={{ background: "transparent", border: "none", color: "#fff", cursor: "pointer", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: -10 }}
+        >
+          <FlechaVolver />
+        </button>
         <MarcaEnOscuro />
+        </div>
         <span style={{ color: "#fff", fontSize: 13, opacity: 0.8 }}>
           {estado === "conectando" ? "Conectando…" : otroConectado ? "En videollamada" : "Esperando a que se conecte la otra persona…"}
         </span>
@@ -313,7 +326,7 @@ function BotonRedondo({
 
 function PantallaAviso({ titulo, mensaje, volverA }: { titulo: string; mensaje?: string; volverA: string }) {
   return (
-    <Pantalla titulo="Videollamada" variante="profundo" ancho={420} centrar>
+    <Pantalla titulo="Videollamada" variante="profundo" ancho={420} centrar volver={volverA}>
       <MarcaGrande />
       <h1 className="va-titular" style={{ fontSize: 20, marginBottom: 8 }}>
         {titulo}

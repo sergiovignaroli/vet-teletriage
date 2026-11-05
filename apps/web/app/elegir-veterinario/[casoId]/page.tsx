@@ -289,7 +289,7 @@ export default function ElegirVeterinarioPage() {
     // conectado; en vez de mostrar eso como un error, se ofrece pagar en dólares.
     const soloPaypal = paypalUsdElegido != null && !!errorCheckout && errorCheckout.includes("Mercado Pago");
     return (
-      <Pantalla titulo="Tu pago" ayuda="/ayuda" ancho={420} centrar>
+      <Pantalla titulo="Tu pago" ayuda="/ayuda" ancho={420} centrar volver="/panel">
         <h1 className="va-titular" style={{ fontSize: 22, margin: "12px 0 10px" }}>
           {errorCheckout ? "Falta un paso más" : "Te llevamos a pagar…"}
         </h1>
@@ -345,7 +345,7 @@ export default function ElegirVeterinarioPage() {
     const mm = Math.floor(segundosRestantes / 60);
     const ss = String(segundosRestantes % 60).padStart(2, "0");
     return (
-      <Pantalla titulo="Tu solicitud" ayuda="/ayuda" variante="profundo" ancho={420} centrar>
+      <Pantalla titulo="Tu solicitud" ayuda="/ayuda" variante="profundo" ancho={420} centrar volver="/panel">
         {solicitud.estado === "POSTERGADA" ? (
           <>
             <h1 className="va-titular" style={{ fontSize: 22, margin: "16px 0 10px" }} aria-live="polite">
@@ -405,7 +405,7 @@ export default function ElegirVeterinarioPage() {
 
   if (solicitud && solicitud.estado === "PENDIENTE") {
     return (
-      <Pantalla titulo="Tu solicitud" ayuda="/ayuda" variante="profundo" ancho={420} centrar>
+      <Pantalla titulo="Tu solicitud" ayuda="/ayuda" variante="profundo" ancho={420} centrar volver="/panel">
         <div style={{ paddingTop: 20 }}>
           <AnilloEspera restantes={segundosRestantes} total={Math.max(totalSegundos, segundosRestantes)} />
         </div>

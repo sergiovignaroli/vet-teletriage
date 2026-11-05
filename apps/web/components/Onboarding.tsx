@@ -5,7 +5,9 @@
 // (scratchpad/portadas/onboarding-app.html) — ver esa maqueta para el
 // diseño visual de referencia.
 
+import Link from "next/link";
 import { useState } from "react";
+import { FlechaVolver } from "./Pantalla";
 import { LogoIcon } from "./Logo";
 import { NombreMarca } from "./Marca";
 import { Sello } from "./Sello";
@@ -89,13 +91,23 @@ export function Onboarding({ onTerminar, enviando, variante = "cliente" }: Props
     <div className="va-bienvenida" role="dialog" aria-label="Bienvenida">
       <div className="va-bienvenida-in">
         <div className="va-bienvenida-top">
-          <span className="va-bienvenida-marca">
+          {/* Volver: al paso anterior; en el primero, a la portada. */}
+          {paso > 0 ? (
+            <button type="button" aria-label="Volver" className="va-bienvenida-volver" onClick={() => setPaso((p) => p - 1)} disabled={enviando}>
+              <FlechaVolver />
+            </button>
+          ) : (
+            <Link href="/" aria-label="Volver" className="va-bienvenida-volver">
+              <FlechaVolver />
+            </Link>
+          )}
+          <Link href="/" aria-label="Videollamada Animal, ir a la portada" className="va-bienvenida-marca" style={{ textDecoration: "none", color: "inherit" }}>
             <LogoIcon size={34} tono="claro" />
             <span>
               Videollamada Animal
               <Sello />
             </span>
-          </span>
+          </Link>
           {!esUltimoPaso && (
             <button type="button" onClick={onTerminar} disabled={enviando} className="va-bienvenida-saltar">
               Saltar

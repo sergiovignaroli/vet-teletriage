@@ -16,7 +16,13 @@ import { Sello } from "./Sello";
 
 interface PantallaProps {
   titulo: string;
+  // Adónde lleva la flecha de volver. SIEMPRE hay flecha (regla de Sergio,
+  // 2026-11-05: todas las vistas la tienen, salvo la portada, que no usa este
+  // marco): si no se indica destino, vuelve a la portada.
   volver?: string;
+  // Para pasos dentro de la misma pantalla (ej.: el código de WhatsApp vuelve al
+  // teléfono): si viene, la flecha ejecuta esto en vez de navegar.
+  onVolver?: () => void;
   variante?: "menta" | "profundo" | "terracota";
   // Ancho máximo del contenido en laptop (en celular siempre ocupa todo).
   ancho?: number;
@@ -30,19 +36,21 @@ interface PantallaProps {
   children: ReactNode;
 }
 
-export function Pantalla({ titulo, volver, variante = "menta", ancho = 480, centrar = false, pie = true, salir, ayuda, children }: PantallaProps) {
+export function Pantalla({ titulo, volver = "/", onVolver, variante = "menta", ancho = 480, centrar = false, pie = true, salir, ayuda, children }: PantallaProps) {
   const estilo = { "--va-ancho": `${ancho}px` } as CSSProperties;
   return (
     <div className="va-app" style={estilo}>
       <header className={`va-barra va-barra-${variante}`}>
         <div className="va-barra-in">
-          {volver ? (
+          {onVolver ? (
+            <button type="button" onClick={onVolver} aria-label="Volver" className="va-barra-volver">
+              <FlechaVolver />
+            </button>
+          ) : (
             <Link href={volver} aria-label="Volver" className="va-barra-volver">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M15 5l-7 7 7 7" />
-              </svg>
+              <FlechaVolver />
             </Link>
-          ) : null}
+          )}
           <span className="va-barra-titulo">{titulo}</span>
           {salir && (
             <button type="button" onClick={salir} className="va-barra-salir">
@@ -55,13 +63,14 @@ export function Pantalla({ titulo, volver, variante = "menta", ancho = 480, cent
               <span className="va-barra-ayuda-txt">Ayuda</span>
             </Link>
           )}
-          <span className="va-barra-marca">
+          {/* Tocar el logo lleva siempre a la portada. */}
+          <Link href="/" className="va-barra-marca" aria-label="Videollamada Animal, ir a la portada">
             <span className="va-barra-nombre">
               Videollamada Animal
               <Sello />
             </span>
             <LogoIcon size={30} tono={variante === "menta" ? "oscuro" : "claro"} />
-          </span>
+          </Link>
         </div>
       </header>
       <main className={`va-cuerpo${centrar ? " va-centrado" : ""}`}>
@@ -69,6 +78,14 @@ export function Pantalla({ titulo, volver, variante = "menta", ancho = 480, cent
         {pie && <LegalFooter />}
       </main>
     </div>
+  );
+}
+
+export function FlechaVolver() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15 5l-7 7 7 7" />
+    </svg>
   );
 }
 

@@ -36,7 +36,7 @@ export default function IngresarAdminPage() {
   }
 
   return (
-    <Pantalla titulo="Administración" variante="profundo" ancho={420} centrar>
+    <Pantalla titulo="Administración" variante="profundo" ancho={420} centrar volver="/">
       <MarcaGrande detalle="Administración" />
 
       <h1 className="va-titular" style={{ fontSize: 22, marginBottom: 8 }}>
