@@ -1,5 +1,6 @@
 "use client";
 
+import { LogoMedio } from "../../../components/MediosDePago";
 import { Suspense, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { CasoParaCliente } from "@vet-teletriage/types";
@@ -175,7 +176,6 @@ function EstadoRealPago({
   // Mercado Pago cobra en ARS, PayPal en USD (ver Pago.moneda) — nunca
   // asumir "$" = pesos, ni "Mercado Pago" cuando el medio real fue PayPal.
   const monto = `${pago.moneda === "USD" ? "US$" : "$"}${Number(pago.montoTotal).toLocaleString("es-AR")}`;
-  const nombreMedio = pago.medioDeCobro === "PAYPAL" ? "PayPal" : "Mercado Pago";
   switch (pago.estado) {
     case "AUTORIZADO":
     case "CAPTURADO":
@@ -192,6 +192,11 @@ function EstadoRealPago({
       return <>El pago no se acreditó.</>;
     case "PENDIENTE":
     default:
-      return <>Estamos confirmando el pago con {nombreMedio} — puede tardar unos minutos.</>;
+      return (
+        <>
+          Estamos confirmando el pago con{" "}
+          <LogoMedio medio={pago.medioDeCobro === "PAYPAL" ? "paypal" : "mercadopago"} alto={14} /> — puede tardar unos minutos.
+        </>
+      );
   }
 }

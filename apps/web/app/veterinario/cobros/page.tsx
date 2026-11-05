@@ -1,5 +1,6 @@
 "use client";
 
+import { LogoMedio } from "../../../components/MediosDePago";
 import { Suspense, useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPatch, ApiError } from "../../../lib/api";
@@ -165,6 +166,7 @@ function CobrosVeterinarioContenido() {
             <span style={{ fontSize: 14, fontWeight: 700 }}>
               {conectado ? "Mercado Pago conectado" : "Mercado Pago sin conectar"}
             </span>
+            <LogoMedio medio="mercadopago" alto={14} style={{ marginLeft: "auto" }} />
           </div>
           {conectado ? (
             <p style={{ fontSize: 13, opacity: 0.75, margin: 0 }}>
@@ -211,6 +213,7 @@ function CobrosVeterinarioContenido() {
             <span style={{ fontSize: 14, fontWeight: 700 }}>
               {estado?.paypalEmail ? "PayPal conectado" : "PayPal sin conectar"}
             </span>
+            <LogoMedio medio="paypal" alto={14} style={{ marginLeft: "auto" }} />
           </div>
           <p style={{ fontSize: 13, opacity: 0.75, margin: "0 0 12px" }}>
             Alternativa a Mercado Pago — acá no hay que autorizar nada, solo cargar tu email de PayPal. Cuando un

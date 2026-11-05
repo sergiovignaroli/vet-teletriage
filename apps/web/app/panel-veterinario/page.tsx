@@ -1,5 +1,6 @@
 "use client";
 
+import { LogoMedio } from "../../components/MediosDePago";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -365,7 +366,8 @@ export default function PanelVeterinarioPage() {
         <div className="va-tarjeta" style={{ padding: 16, marginBottom: 12, borderColor: "var(--alerta-borde)" }}>
           <div className="va-etiqueta" style={{ color: "var(--alerta)" }}>Todavía no te pueden elegir</div>
           <p style={{ fontSize: 14, margin: "6px 0 12px", lineHeight: 1.5 }}>
-            Para aparecer en la lista y recibir consultas, primero conectá tu cuenta de cobro (Mercado Pago o PayPal).
+            Para aparecer en la lista y recibir consultas, primero conectá tu cuenta de cobro:{" "}
+            <LogoMedio medio="mercadopago" alto={13} /> <span>o</span> <LogoMedio medio="paypal" alto={13} />
           </p>
           <Link href="/veterinario/cobros" className="va-boton" style={{ textDecoration: "none" }}>
             Conectar mi cuenta de cobro
@@ -650,7 +652,10 @@ export default function PanelVeterinarioPage() {
         className="va-chip-boton"
         style={{ marginBottom: 24, textDecoration: "none" }}
       >
-        Medios de cobro: Mercado Pago o PayPal
+        Medios de cobro:
+        <LogoMedio medio="mercadopago" alto={13} style={{ marginLeft: 8 }} />
+        <span style={{ margin: "0 6px" }}>o</span>
+        <LogoMedio medio="paypal" alto={13} />
       </Link>
 
       <h2 className="va-etiqueta" style={{ marginBottom: 10 }}>Mis casos</h2>
