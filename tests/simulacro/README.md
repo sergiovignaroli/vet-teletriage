@@ -41,5 +41,6 @@ El registro de veterinarios admite 5 por hora por IP. `rehacer.sh` reinicia la A
 - `test-graves`, `test-especies`, `test-ayuda`, `test-modos`, `test-flujo`: pasan.
 - `test-foto`: una aserción espera 400 y la API responde 413 para una foto demasiado pesada (el límite de tamaño del servidor actúa antes). Es anterior a esta etapa y no es un error de la plataforma.
 - `test-api-precios`: una aserción (que el piso suba el precio efectivo) quedó desactualizada porque el modo de precio por defecto ahora es LIBRE; el comportamiento por modo lo cubre `test-modos`. Pendiente de actualizar.
+- `test-ayuda` no se puede repetir sobre los mismos datos (siempre registra `ayuda@v.test` y deja preguntas): correr `rehacer.sh` antes, o borrar ese veterinario y las preguntas de ayuda de la base de prueba.
 - `test-flujo`, `test-api-precios` y `test-modos` necesitan una base `precios_test` limpia: correr antes `api/base-limpia.sh` (variable `DATABASE_URL_PRUEBAS` para otra base).
 - Las pruebas de la API que llaman por HTTP necesitan `JWT_SECRET=testsecret` y reiniciar la API (`up.sh`) entre pruebas de registro, por el límite de 5 registros por hora.
