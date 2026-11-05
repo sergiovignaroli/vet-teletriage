@@ -1,0 +1,112 @@
+# Blueprint de PRUEBA (Sergio, 2026-11-05): copia aparte de la plataforma para
+# probar Mercado Pago (y luego PayPal / Agora) con cuentas de prueba, SIN tocar
+# el servicio publicado desde `main`.
+#
+# Diferencias con render.yaml:
+#   - nombres con "prueba": otra base, otra API y otra web (no pisan a las reales);
+#   - los dos servicios y la base salen de la rama `precios-propios`;
+#   - PayPal apunta al sandbox.
+# Uso: Render -> New -> Blueprint -> este repo -> rama precios-propios ->
+# "Blueprint file path": render-prueba.yaml -> Apply. Después se cargan, en el
+# dashboard de ESE servicio de prueba, las credenciales de PRUEBA de Mercado Pago.
+# NUNCA cargar acá credenciales de producción.
+
+databases:
+  - name: vet-teletriage-prueba-db
+    plan: free
+    region: virginia
+
+services:
+  - type: web
+    runtime: node
+    branch: precios-propios
+    name: vet-teletriage-prueba-api
+    plan: free
+    region: virginia
+    # `preDeployCommand` (el lugar recomendado por Render para migraciones)
+    # no está disponible en el plan free, así que la migración va acá, al
+    # final del build. `prisma migrate deploy` es seguro de correr de nuevo
+    # aunque no haya nada pendiente — no hace nada, no falla.
+    buildCommand: npm install && npx prisma generate --schema=apps/api/prisma/schema.prisma && npm run build --workspace=@vet-teletriage/api && npm run prisma:deploy --workspace=@vet-teletriage/api
+    startCommand: npm run start --workspace=@vet-teletriage/api
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vet-teletriage-prueba-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: WEB_APP_URL
+        fromService:
+          name: vet-teletriage-prueba-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+      # A completar en el dashboard de Render cuando existan — no bloquean
+      # el arranque, cada una solo se usa cuando se llama a esa función.
+      # Avisos push al veterinario. Se generan una sola vez con
+      #   npx web-push generate-vapid-keys
+      # La clave pública puede ser pública; la privada NO se comparte ni se sube.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: WHATSAPP_CLOUD_API_TOKEN
+        sync: false
+      - key: WHATSAPP_CLOUD_API_PHONE_NUMBER_ID
+        sync: false
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
+      - key: MERCADOPAGO_WEBHOOK_SECRET
+        sync: false
+      - key: MERCADOPAGO_APP_ID
+        sync: false
+      - key: MERCADOPAGO_CLIENT_SECRET
+        sync: false
+      - key: MERCADOPAGO_OAUTH_REDIRECT_URI
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      # PayPal usa hosts distintos para sandbox y producción: acá queda fijo
+      # en sandbox, porque esta copia es solo para pruebas.
+      - key: PAYPAL_API_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: TRUORA_API_KEY
+        sync: false
+      - key: TRUORA_FLOW_ID
+        sync: false
+      # Proveedor de video (Sergio, 2026-09-29: eligió Agora — ver
+      # apps/api/src/modules/video/agora.util.ts). El App ID no es secreto
+      # en sí (viaja al navegador dentro de la respuesta del token), pero
+      # el App Certificate NUNCA debe salir de acá: con él, cualquiera
+      # podría firmarse tokens válidos para cualquier consulta.
+      - key: AGORA_APP_ID
+        sync: false
+      - key: AGORA_APP_CERTIFICATE
+        sync: false
+
+  - type: web
+    runtime: node
+    branch: precios-propios
+    name: vet-teletriage-prueba-web
+    plan: free
+    region: virginia
+    buildCommand: npm install && npm run build --workspace=@vet-teletriage/web
+    startCommand: npm run start --workspace=@vet-teletriage/web
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: vet-teletriage-prueba-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
