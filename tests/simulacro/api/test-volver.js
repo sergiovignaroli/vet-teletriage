@@ -6,14 +6,19 @@ const S = JSON.parse(fs.readFileSync("seed1.json")), O = JSON.parse(fs.readFileS
 const WEB = "http://localhost:3100";
 const sv = (n) => { const l = S.vets[n].login; return { va_sesion_veterinario: { accessToken: l.accessToken, refreshToken: l.refreshToken, accesoVenceEl: Date.now() + 3600e3, veterinarioId: l.veterinarioId, nombre: l.nombre, apellido: l.apellido, estado: l.estado, disponible: l.disponible, presencia: l.presencia, margenPorcentaje: 0, onboardingCompletado: true } }; };
 const sc = (ob = true) => ({ va_sesion_cliente: { accessToken: S.cliente.accessToken, clienteId: S.cliente.clienteId, onboardingCompletado: ob } });
-const sa = { va_sesion_admin: S.admin };
+const sa = () => ({ va_sesion_admin: S.admin });
 let f = 0; const ok = (c, t) => { console.log((c ? "OK   " : "FALLA") + " " + t); if (!c) f++; };
 const errs = [];
 (async () => {
+  // Sesiones frescas (los tokens de los datos sembrados vencen a los 15 minutos).
+  const entrar = async (ruta, cuerpo) => (await fetch("http://localhost:3999" + ruta, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(cuerpo) })).json();
+  S.vets.Ana.login = await entrar("/auth/veterinario/login", { email: "ana@vet.test", password: "abcdefgh1" });
+  S.admin = await entrar("/auth/admin/login", { email: "admin@videollamadaanimal.test", password: "AdminPass123!" });
   const b = await chromium.launch();
   const nuevo = async (st) => { const c = await b.newContext({ viewport: { width: 400, height: 850 } }); await c.addInitScript((s) => { for (const [k, v] of Object.entries(s)) localStorage.setItem(k, JSON.stringify(v)); }, st || {}); const p = await c.newPage(); p.on("pageerror", (e) => errs.push(e.message.slice(0, 100))); return p; };
   const ir = async (p, r) => { await p.goto(WEB + r, { waitUntil: "load" }); await p.waitForLoadState("networkidle").catch(() => {}); await p.waitForTimeout(1200); };
-  const hayVolver = async (p) => p.locator('[aria-label="Volver"]').first().isVisible().catch(() => false);
+  // "Quiénes somos" es una página aparte (no usa el marco común): su volver es el enlace de texto "Volver al inicio".
+  const hayVolver = async (p) => p.locator('[aria-label="Volver"], a:has-text("Volver al inicio")').first().isVisible().catch(() => false);
   const no404 = async (p) => !(await p.getByText("No encontramos esa página").isVisible().catch(() => false));
 
   // sesión -> rutas. "destino" = a dónde debe llevar la flecha (null = no se verifica el destino exacto)
@@ -21,7 +26,7 @@ const errs = [];
     ["público", {}, [["/quienes-somos", "/"], ["/veterinarios", "/"], ["/contacto", "/"], ["/datos-legales", "/"], ["/terminos", "/"], ["/privacidad", "/"], ["/convenio-veterinario", "/registrar-veterinario"], ["/ingresar", "/"], ["/ingresar-veterinario", "/"], ["/registrar-veterinario", "/ingresar-veterinario"], ["/recuperar-contrasena", "/ingresar-veterinario"], ["/recuperar-usuario", "/ingresar-veterinario"], ["/restablecer-contrasena", "/ingresar-veterinario"], ["/admin/ingresar", "/"], ["/ayuda", "/"], ["/veterinario/ayuda", "/ingresar-veterinario"], ["/esta-no-existe", "/"]]],
     ["tutor", sc(), [["/panel", "/"], ["/intake", "/panel"], ["/ayuda", "/panel"], ["/pago/exito", "/panel"], ["/pago/fallo", "/panel"], ["/elegir-veterinario/" + O.elegir, "/panel"], ["/elegir-veterinario/" + O.pendiente, "/panel"], ["/elegir-veterinario/" + O.asignado, "/panel"], ["/calificar/" + O.cerrado, "/panel"], ["/reportar-problema/" + O.cerrado, "/panel"], ["/consulta/" + O.asignado, null]]],
     ["veterinario", sv("Ana"), [["/panel-veterinario", "/"], ["/veterinario/cobros", "/panel-veterinario"], ["/veterinario/ayuda", "/panel-veterinario"]]],
-    ["admin", sa, [["/admin", "/"], ["/admin/precios", "/admin"], ["/admin/tarifas", "/admin/precios"]]],
+    ["admin", sa(), [["/admin", "/"], ["/admin/precios", "/admin"], ["/admin/tarifas", "/admin/precios"]]],
   ];
   for (const [quien, st, rutas] of casos) {
     const p = await nuevo(st);
@@ -31,10 +36,10 @@ const errs = [];
         await ir(p, ruta);
         const v = await hayVolver(p);
         ok(v, `${nombre}: tiene botón Volver`);
-        const logo = await p.locator('a[aria-label*="portada"]').first().isVisible().catch(() => false);
+        const logo = await p.locator('a[aria-label^="Videollamada Animal"]').first().isVisible().catch(() => false);
         ok(logo, `${nombre}: el logo del encabezado lleva a la portada`);
         if (v && destino) {
-          const el = p.locator('[aria-label="Volver"]').first();
+          const el = p.locator('[aria-label="Volver"], a:has-text("Volver al inicio")').first();
           const href = await el.getAttribute("href");
           ok(href === destino, `${nombre}: Volver -> ${destino} (${href})`);
         }
@@ -50,7 +55,7 @@ const errs = [];
 
   // Tocar el logo lleva a la portada (desde una pantalla con marco y desde "Quiénes somos")
   for (const r of ["/contacto", "/ingresar", "/quienes-somos"]) {
-    await ir(p, r); await p.locator('a[aria-label*="portada"]').first().click(); await p.waitForURL(WEB + "/", { timeout: 5000 }).catch(() => {});
+    await ir(p, r); await p.locator('a[aria-label^="Videollamada Animal"]').first().click(); await p.waitForURL(WEB + "/", { timeout: 5000 }).catch(() => {});
     ok(p.url() === WEB + "/", `logo de ${r} -> portada (${p.url()})`);
   }
   // Las flechas llevan a páginas que existen: seguir cada Volver de las públicas
