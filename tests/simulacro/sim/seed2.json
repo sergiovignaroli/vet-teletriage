@@ -1,0 +1,22 @@
+{
+ "elegir": "165ddff7-55e2-4ad3-8c38-542b2b414f18",
+ "emergencia": "3bfe52c1-a933-43d4-a8e4-21bcd795812b",
+ "pendiente": "b3a7d3b5-45e0-4c98-a06e-d73f3e248f2b",
+ "solPendiente": {
+  "id": "acda3923-1fc8-419f-b1e9-09b433664e27",
+  "casoId": "b3a7d3b5-45e0-4c98-a06e-d73f3e248f2b",
+  "estado": "PENDIENTE",
+  "venceEl": "2026-11-05T12:44:41.444Z",
+  "vetEnConsulta": false,
+  "propuestaPara": null,
+  "veterinario": {
+   "id": "8ed9c73e-34ae-4fb5-a55d-3bb3fa887e9f",
+   "nombre": "Ana",
+   "apellido": "Pérez"
+  }
+ },
+ "asignado": "833447c4-a149-4db4-a343-fbc44cfb7a5d",
+ "cerrado": "03a53b72-1fd3-4de2-9566-8d117c9cc98a",
+ "cerrado2": "06b4f255-8485-46bc-acbd-4422e34c31be",
+ "postergado": "5f8286b6-a7bd-4a64-8eaf-45084b011929"
+}

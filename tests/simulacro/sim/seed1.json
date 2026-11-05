@@ -1,0 +1,105 @@
+{
+ "vets": {
+  "Ana": {
+   "id": "8ed9c73e-34ae-4fb5-a55d-3bb3fa887e9f",
+   "email": "ana@vet.test",
+   "login": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4ZWQ5YzczZS0zNGFlLTRmYjUtYTU1ZC0zYmIzZmE4ODdlOWYiLCJyb2wiOiJWRVRFUklOQVJJTyIsInR2IjowLCJpYXQiOjE3OTM4ODI1MDMsImV4cCI6MTc5Mzg4MzQwM30.XLZk4VLQbOMDr8mn8KH0uBOHywZZdOx3sDWnqcred7k",
+    "refreshToken": "qkhLw25e-bGCeqIN_pbVo9SjUsHlRgpXWdGhWq9dFwjU1OohR4xxXMy-YGrW93yZ",
+    "accesoExpiraEnSegundos": 900,
+    "rol": "VETERINARIO",
+    "veterinarioId": "8ed9c73e-34ae-4fb5-a55d-3bb3fa887e9f",
+    "nombre": "Ana",
+    "apellido": "Pérez",
+    "estado": "HABILITADO",
+    "disponible": true,
+    "presencia": "CONECTADO",
+    "margenPorcentaje": 0,
+    "onboardingCompletado": true
+   }
+  },
+  "Luis": {
+   "id": "97a055e7-b80d-4b0b-b726-5382a5183456",
+   "email": "luis@vet.test",
+   "login": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5N2EwNTVlNy1iODBkLTRiMGItYjcyNi01MzgyYTUxODM0NTYiLCJyb2wiOiJWRVRFUklOQVJJTyIsInR2IjowLCJpYXQiOjE3OTM4ODI1MTcsImV4cCI6MTc5Mzg4MzQxN30.oxx_LReAcWYXfLeud7Qqus07qvODLKL-cLE5HfYmLOQ",
+    "refreshToken": "IsnfXo-E1DSJzClkMK17IMeterqWYunfyGD7W44HKeTBIgtaIm81THmirxnv24kv",
+    "accesoExpiraEnSegundos": 900,
+    "rol": "VETERINARIO",
+    "veterinarioId": "97a055e7-b80d-4b0b-b726-5382a5183456",
+    "nombre": "Luis",
+    "apellido": "Gómez",
+    "estado": "HABILITADO",
+    "disponible": true,
+    "presencia": "CONECTADO",
+    "margenPorcentaje": 0,
+    "onboardingCompletado": true
+   }
+  },
+  "Sofía": {
+   "id": "7f061973-8dba-4275-b81f-b7ce678f6044",
+   "email": "sofia@vet.test",
+   "login": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3ZjA2MTk3My04ZGJhLTQyNzUtYjgxZi1iN2NlNjc4ZjYwNDQiLCJyb2wiOiJWRVRFUklOQVJJTyIsInR2IjowLCJpYXQiOjE3OTM4ODI1MzEsImV4cCI6MTc5Mzg4MzQzMX0.Yt6rfUuLQnTy4Ujk5sVYsePMexc-0Jj7U0nD8h1hutg",
+    "refreshToken": "c9cQEeAuvBhWdPQw1THBADU8CeluJvjkB_QkCMVN4D31eW0En311sWTO8iEfs_-C",
+    "accesoExpiraEnSegundos": 900,
+    "rol": "VETERINARIO",
+    "veterinarioId": "7f061973-8dba-4275-b81f-b7ce678f6044",
+    "nombre": "Sofía",
+    "apellido": "Ramírez",
+    "estado": "HABILITADO",
+    "disponible": false,
+    "presencia": "STAND_BY",
+    "margenPorcentaje": 0,
+    "onboardingCompletado": true
+   }
+  },
+  "Diego": {
+   "id": "a0fba7e7-e46a-48ae-bb74-8c9405bd01be",
+   "email": "diego@vet.test",
+   "login": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMGZiYTdlNy1lNDZhLTQ4YWUtYmI3NC04Yzk0MDViZDAxYmUiLCJyb2wiOiJWRVRFUklOQVJJTyIsInR2IjowLCJpYXQiOjE3OTM4ODI1NDQsImV4cCI6MTc5Mzg4MzQ0NH0.hnhILzwwIjltAV7FppF8ZVUeHF1MTOkcxotx4PIAPOY",
+    "refreshToken": "qM_QYdo2FtkjzK2BUuZKhEMwv9O59X-LnCKEfphAjUXFyK5BRzMWShd1bW4SiuWg",
+    "accesoExpiraEnSegundos": 900,
+    "rol": "VETERINARIO",
+    "veterinarioId": "a0fba7e7-e46a-48ae-bb74-8c9405bd01be",
+    "nombre": "Diego",
+    "apellido": "Alonso",
+    "estado": "HABILITADO",
+    "disponible": false,
+    "presencia": "DESCONECTADO",
+    "margenPorcentaje": 0,
+    "onboardingCompletado": true
+   }
+  },
+  "Martín": {
+   "id": "804d8161-cd70-48b7-8947-1079485b1aec",
+   "email": "martin@vet.test"
+  },
+  "Lucía": {
+   "id": "",
+   "email": "lucia@vet.test"
+  },
+  "Tomás": {
+   "id": "",
+   "email": "tomas@vet.test",
+   "login": {
+    "message": "Credenciales inválidas",
+    "error": "Unauthorized",
+    "statusCode": 401
+   }
+  }
+ },
+ "tokens": {},
+ "casos": {},
+ "admin": {
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNDM2NDZlNS0zODRhLTQ2ZTItOTY1Ny04NjdlNmU3MzM5ZDUiLCJyb2wiOiJBRE1JTiIsInR2IjowLCJpYXQiOjE3OTM4ODI0ODksImV4cCI6MTc5MzkyNTY4OX0.rnDx-8LeY7XDaez_3Tz_CgX_TueJq-q_P8V3JZZDoy4",
+  "rol": "ADMIN"
+ },
+ "cliente": {
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1YTQyMzE2ZS01MDA2LTQ4NDEtYTNmZi05ZGQ1MDIwZmM5MTciLCJyb2wiOiJDTElFTlRFIiwidHYiOjAsImlhdCI6MTc5Mzg4MjU4NSwiZXhwIjoxNzkzOTI1Nzg1fQ.iWq7S7Jqgg7cVNdp_e6RdQjkz45abxT6K00RRrijEIk",
+  "rol": "CLIENTE",
+  "clienteId": "5a42316e-5006-4841-a3ff-9dd5020fc917",
+  "onboardingCompletado": false
+ }
+}

@@ -1,10 +1,10 @@
 // Aviso de derechos, en todas las pantallas (Sergio, 2026-09-29).
 //
-// Marca (Sergio, 2026-11-03): "Videollamada Animal" y su logo son marca
-// registrada. El pie lleva siempre el logo junto al nombre, el símbolo ® y la
-// leyenda de titularidad. Todo depende de MARCA_REGISTRADA en
-// lib/datos-legales.ts: si el registro del INPI no estuviera otorgado, usar ®
-// o "marca registrada" es objetable — ahí se cambia a false y todo pasa a ™.
+// Marca (Sergio, 2026-11-05): todavía sin registro concedido en el INPI, así
+// que el pie lleva el nombre con ™ y NO la leyenda "marcas registradas de …".
+// Todo depende de MARCA_REGISTRADA (packages/types, reexportada por
+// lib/datos-legales.ts): al conceder el INPI la marca se pone en true y
+// aparecen ® y la leyenda de titularidad.
 // Links a Términos, Privacidad y Contacto (Sergio, 2026-09-30) agregados
 // acá porque este componente ya se renderiza en todas las pantallas — es
 // el único lugar que garantiza que las tres páginas sean encontrables

@@ -17,7 +17,7 @@ Recorrido automático y pruebas de la plataforma **contra una base de prueba loc
 
 ## Cómo se usa
 
-1. Compilar: `npm run build` en `apps/api` y en `apps/web`.
+1. Compilar: `npm run build` en `apps/api` y, en `apps/web`, `NEXT_PUBLIC_API_URL=http://localhost:3999 npm run build` (sin esa variable la web compilada le habla a otra API y las pantallas del veterinario salen con «No pudimos cargar»).
 2. Tener PostgreSQL instalado y una base `vet` creada en el puerto 5544 con las migraciones aplicadas (`prisma migrate deploy`).
 3. `bash tests/simulacro/rehacer.sh`
 4. Mirar `sim/tour.log` (termina con `FIN`) y las capturas en `sim/shots/`.
@@ -33,10 +33,11 @@ Videollamada real (Agora), pagos reales, WhatsApp y correo reales, avisos push e
 
 ## Límite de intentos
 
-El registro de veterinarios admite 5 por hora por IP. Si el recorrido se corta ahí, `up.sh` reinicia la API y se vuelve a correr.
+El registro de veterinarios admite 5 por hora por IP. `rehacer.sh` reinicia la API entre cada paso que registra, para que el límite no corte el recorrido.
 
 ## Estado de las pruebas (05/11/2026)
 
+- Recorrido completo (`rehacer.sh`): sin fallas, con la marca en ™ (la marca todavía no está registrada).
 - `test-graves`, `test-especies`, `test-ayuda`, `test-modos`, `test-flujo`: pasan.
 - `test-foto`: una aserción espera 400 y la API responde 413 para una foto demasiado pesada (el límite de tamaño del servidor actúa antes). Es anterior a esta etapa y no es un error de la plataforma.
 - `test-api-precios`: una aserción (que el piso suba el precio efectivo) quedó desactualizada porque el modo de precio por defecto ahora es LIBRE; el comportamiento por modo lo cubre `test-modos`. Pendiente de actualizar.

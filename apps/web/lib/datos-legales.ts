@@ -20,5 +20,6 @@ export const DOMICILIO_COMERCIAL = "Montevideo 2620, Rosario, Santa Fe, Argentin
 export const TELEFONO_VISIBLE = "+54 341 334-0156";
 export const TELEFONO_ENLACE = "tel:+543413340156";
 
-// La marca ("Videollamada Animal" ® y su logo): ver MARCA_REGISTRADA en packages/types.
+// La marca ("Videollamada Animal" y su logo, hoy con ™ porque aún no está
+// registrada): ver MARCA_REGISTRADA en packages/types.
 export { MARCA_REGISTRADA, SIMBOLO_MARCA, NOMBRE_CON_MARCA } from "@vet-teletriage/types";

@@ -619,9 +619,11 @@ export function atiendeEspecie(especiesAtiende: string[], especieDelCaso: string
   return lista.includes(especieDelCaso);
 }
 
-// Marca (Sergio, 2026-11-03): "Videollamada Animal" y su logo son marca
-// registrada. UN solo interruptor para web y servidor: si el registro del INPI
-// no estuviera otorgado, cambiar a false y todo pasa a mostrar ™.
-export const MARCA_REGISTRADA = true;
+// Marca (Sergio, 2026-11-05): "Videollamada Animal" y su logo TODAVÍA NO están
+// registrados (el trámite en el INPI se hace en una o dos semanas). Mientras no
+// haya registro concedido se usa ™ y no se dice "marca registrada". UN solo
+// interruptor para web y servidor: cuando el INPI conceda la marca, cambiar a
+// true y todo pasa a mostrar ® y la leyenda de marcas registradas del pie.
+export const MARCA_REGISTRADA = false;
 export const SIMBOLO_MARCA = MARCA_REGISTRADA ? "®" : "™";
 export const NOMBRE_CON_MARCA = `Videollamada Animal${SIMBOLO_MARCA}`;

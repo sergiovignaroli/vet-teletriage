@@ -33,9 +33,11 @@ Si cambian los textos legales, subir las versiones en `packages/types` (`VERSION
 
 ## 3. Cosas fuera del código que dependen del titular
 
-- **Marca "Videollamada Animal" ® y logo (INPI):** la titularidad hoy es de la persona humana. Al constituir
-  la S.A. hay que **ceder la marca (o su solicitud) a la sociedad** e inscribir la cesión. El símbolo ® solo
-  puede usarse con la marca ya concedida (bandera `MARCA_REGISTRADA` en `packages/types`).
+- **Marca "Videollamada Animal" y logo (INPI):** al 2026-11-05 **todavía no está registrada** (se presenta en
+  una o dos semanas), por eso la plataforma muestra ™. La titularidad hoy sería de la persona humana. Al
+  constituir la S.A. hay que **ceder la marca (o su solicitud) a la sociedad** e inscribir la cesión. El
+  símbolo ® solo puede usarse con la marca ya concedida: ahí se pone `MARCA_REGISTRADA = true` en
+  `packages/types`.
 - **Cuentas de cobro de la plataforma:** Mercado Pago (marketplace/OAuth) y PayPal deben quedar a nombre de la
   S.A. (CUIT de la sociedad). Esto cambia las credenciales en Render.
 - **AFIP / ARCA:** alta de la S.A., punto de venta y facturación del cargo de servicio.
