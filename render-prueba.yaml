@@ -50,6 +50,10 @@ services:
       # Avisos push al veterinario. Se generan una sola vez con
       #   npx web-push generate-vapid-keys
       # La clave pública puede ser pública; la privada NO se comparte ni se sube.
+      # Solo en esta copia de prueba: código de ingreso fijo para el tutor, porque
+      # todavía no hay cuenta de WhatsApp. NO existe en render.yaml (servicio real).
+      - key: OTP_FIJO_PRUEBA
+        value: "482915"
       - key: VAPID_PUBLIC_KEY
         sync: false
       - key: VAPID_PRIVATE_KEY

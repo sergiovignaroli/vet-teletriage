@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { createHash, randomBytes, randomInt } from "crypto";
 import * as bcrypt from "bcryptjs";
@@ -59,6 +59,8 @@ interface RegistrarVeterinarioInput {
 
 @Injectable()
 export class AuthService {
+  private readonly log = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -218,7 +220,15 @@ export class AuthService {
       );
     }
 
-    const codigo = randomInt(100000, 1000000).toString();
+    // SOLO PARA LA COPIA DE PRUEBA (Sergio, 2026-11-05): si existe la variable
+    // OTP_FIJO_PRUEBA (6 dígitos) se usa ese código y NO se manda ningún
+    // WhatsApp. La variable se define únicamente en render-prueba.yaml; en el
+    // servicio publicado no existe y el ingreso funciona como siempre. Antes de
+    // lanzar hay que sacarla (y este bloque) para que no quede ninguna puerta
+    // de ingreso con código conocido.
+    const otpFijo = process.env.OTP_FIJO_PRUEBA;
+    const usarFijo = !!otpFijo && /^\d{6}$/.test(otpFijo);
+    const codigo = usarFijo ? (otpFijo as string) : randomInt(100000, 1000000).toString();
     const otpCodeHash = await bcrypt.hash(codigo, RONDAS_BCRYPT);
     const otpExpiraEl = new Date(Date.now() + OTP_TTL_MINUTOS * 60 * 1000);
 
@@ -227,6 +237,11 @@ export class AuthService {
       create: { telefono, otpCodeHash, otpExpiraEl, otpIntentos: 0 },
       update: { otpCodeHash, otpExpiraEl, otpIntentos: 0 },
     });
+
+    if (usarFijo) {
+      this.log.warn("OTP_FIJO_PRUEBA activo: se usa el código fijo y no se envía WhatsApp (solo copia de prueba)");
+      return { enviado: true, expiraEnMinutos: OTP_TTL_MINUTOS };
+    }
 
     // Con plantilla de autenticación aprobada por Meta (WHATSAPP_PLANTILLA_OTP)
     // el código llega aunque la persona nunca haya escrito al número. Sin ella,
