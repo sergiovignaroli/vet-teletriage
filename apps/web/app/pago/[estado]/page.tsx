@@ -35,7 +35,7 @@ const COPY: Record<string, { titulo: string; texto: string }> = {
   pendiente: {
     titulo: "Tu pago quedó pendiente de acreditación",
     texto:
-      "Es normal con algunos medios de pago (efectivo, transferencia) — te avisamos apenas se acredite. Tu asesoramiento ya está reservado.",
+      "Es normal con algunos medios de pago (por ejemplo, transferencia) — te avisamos apenas se acredite. Tu asesoramiento ya está reservado.",
   },
   fallo: {
     titulo: "No pudimos procesar tu pago",

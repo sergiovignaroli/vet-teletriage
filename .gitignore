@@ -6,3 +6,9 @@ dist/
 .env
 .env.local
 *.tsbuildinfo
+
+# simulacro
+tests/simulacro/.trabajo/
+tests/simulacro/sim/shots/
+tests/simulacro/fakes.log
+tests/simulacro/galeria/galeria.html

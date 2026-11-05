@@ -74,7 +74,7 @@ export const GUIA_TUTOR: ItemAyuda[] = [
     titulo: "Cómo pagar",
     cuerpo: [
       "Cuando el veterinario acepta, seguís directo al pago. Pagás con Mercado Pago (en pesos) o, si ese veterinario lo ofrece, con PayPal (en dólares, a un valor fijo que ves antes de confirmar).",
-      "El pago se hace siempre dentro de la plataforma, antes de la videollamada. Si el pago queda pendiente (por ejemplo, con efectivo o transferencia), tu asesoramiento queda reservado y te avisamos cuando se acredite.",
+      "El pago se hace siempre dentro de la plataforma, antes de la videollamada. Si el pago queda pendiente (por ejemplo, con una transferencia), tu asesoramiento queda reservado y te avisamos cuando se acredite.",
     ],
   },
   {

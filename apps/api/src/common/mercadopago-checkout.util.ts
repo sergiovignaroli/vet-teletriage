@@ -107,6 +107,14 @@ export async function crearPreferenciaDePago(
       auto_return: "approved",
       notification_url: input.urlNotificacion,
       marketplace_fee: input.cargoPlataforma,
+      // Sin efectivo (Sergio, 2026-11-05): un pago en Rapipago / Pago Fácil se
+      // acredita horas después y el asesoramiento es por video, inmediato.
+      // "ticket" es el tipo de Mercado Pago para pagos offline en efectivo
+      // (doc oficial: payment_methods.excluded_payment_types). Se dejan
+      // tarjetas de crédito y débito, dinero en cuenta y transferencia.
+      payment_methods: {
+        excluded_payment_types: [{ id: "ticket" }],
+      },
     }),
   });
 
