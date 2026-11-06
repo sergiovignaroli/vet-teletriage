@@ -13,17 +13,22 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
  */
 export type MedioDePago = "mercadopago" | "paypal" | "visa" | "mastercard";
 
-const MEDIOS: Record<MedioDePago, { nombre: string; archivo: string }> = {
-  mercadopago: { nombre: "Mercado Pago", archivo: "mercadopago" },
-  paypal: { nombre: "PayPal", archivo: "paypal" },
-  visa: { nombre: "Visa", archivo: "visa" },
-  mastercard: { nombre: "Mastercard", archivo: "mastercard" },
+// "factor": cuánto mide el logo respecto de `alto`. Los logos apilados (PayPal,
+// Mastercard) son casi cuadrados y necesitan más altura que los horizontales
+// (Mercado Pago, Visa) para que se lea la marca; todos comparten el mismo recuadro.
+const MEDIOS: Record<MedioDePago, { nombre: string; archivo: string; factor: number }> = {
+  mercadopago: { nombre: "Mercado Pago", archivo: "mercadopago", factor: 1.1 },
+  paypal: { nombre: "PayPal", archivo: "paypal", factor: 1.45 },
+  visa: { nombre: "Visa", archivo: "visa", factor: 0.85 },
+  mastercard: { nombre: "Mastercard", archivo: "mastercard", factor: 1.45 },
 };
+const FACTOR_MAXIMO = 1.45;
 
 const EXTENSIONES = ["svg", "png"] as const;
 
 export function LogoMedio({ medio, alto = 18, style }: { medio: MedioDePago; alto?: number; style?: CSSProperties }) {
-  const { nombre, archivo } = MEDIOS[medio];
+  const { nombre, archivo, factor } = MEDIOS[medio];
+  const altoLogo = Math.round(alto * factor);
   const [intento, setIntento] = useState(0); // 0: svg, 1: png, 2: texto
   const img = useRef<HTMLImageElement>(null);
 
@@ -44,8 +49,8 @@ export function LogoMedio({ medio, alto = 18, style }: { medio: MedioDePago; alt
         alignItems: "center",
         justifyContent: "center",
         verticalAlign: "middle",
-        height: alto + 12,
-        padding: "0 9px",
+        height: Math.round(alto * FACTOR_MAXIMO) + 12,
+        padding: "0 10px",
         background: "#fff",
         border: "1px solid rgba(0,0,0,0.09)",
         borderRadius: 8,
@@ -59,8 +64,8 @@ export function LogoMedio({ medio, alto = 18, style }: { medio: MedioDePago; alt
           ref={img}
           src={`/pagos/${archivo}.${EXTENSIONES[intento]}`}
           alt={nombre}
-          height={alto}
-          style={{ height: alto, width: "auto", display: "block" }}
+          height={altoLogo}
+          style={{ height: altoLogo, width: "auto", display: "block" }}
           onError={() => setIntento((i) => i + 1)}
         />
       ) : (

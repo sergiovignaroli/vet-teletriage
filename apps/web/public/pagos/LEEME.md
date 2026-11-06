@@ -1,16 +1,23 @@
 # Logos de medios de pago
 
-Acá van los logos OFICIALES de cada medio de pago, tal como los entrega cada marca
-(sin recolorear, estirar ni modificar). La web los muestra en un recuadro claro y chico.
+Logos de cada medio de pago que muestra la web (recuadro claro, chico y discreto).
+Los que están acá fueron enviados por Sergio y mejorados (recortados, fondo
+transparente, bordes nítidos a mayor resolución) sin cambiar colores ni formas.
 
-Nombres de archivo (SVG preferido; si solo hay PNG, usar el mismo nombre con .png):
-
-| Archivo | Marca | De dónde bajarlo |
+| Archivo | Marca | Notas |
 | --- | --- | --- |
-| `mercadopago.svg` | Mercado Pago | https://www.mercadopago.com.ar/developers/es/docs/style-guide/landing |
-| `paypal.svg` | PayPal | https://www.paypal.com/uk/webapps/mpp/logo-center |
-| `visa.svg` | Visa | https://corporate.visa.com/en/about-visa/brand.html |
-| `mastercard.svg` | Mastercard | https://www.mastercard.com/brandcenter |
+| `mercadopago.png` | Mercado Pago | Versión horizontal. El original era muy chico (140 px de ancho): se ve nítido a tamaño chico; si se quiere mostrar grande, reemplazar por el SVG oficial |
+| `paypal.png` | PayPal | Versión apilada |
+| `visa.png` | Visa | Reconstruido de un original de baja resolución |
+| `mastercard.png` | Mastercard | Original de alta resolución, solo reducido |
 
-Mientras un archivo no exista, la web muestra el NOMBRE en texto en su lugar (no se rompe nada).
-Cada marca tiene reglas de uso (tamaño mínimo, espacio libre, versión sobre fondo claro); revisarlas al bajar los archivos.
+**Para la mejor calidad posible** conviene reemplazarlos por los SVG oficiales de cada marca
+(con el mismo nombre y extensión `.svg`: la web prueba primero `.svg` y después `.png`):
+
+- Mercado Pago: https://www.mercadopago.com.ar/developers/es/docs/style-guide/landing
+- PayPal: https://www.paypal.com/uk/webapps/mpp/logo-center
+- Visa: https://corporate.visa.com/en/about-visa/brand.html
+- Mastercard: https://www.mastercard.com/brandcenter
+
+Si un archivo falta, la web muestra el NOMBRE del medio en el mismo recuadro.
+Revisar las reglas de uso de cada marca (tamaño mínimo, espacio libre).
