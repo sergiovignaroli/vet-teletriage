@@ -183,14 +183,14 @@ function DibujoPaso({ n }: { n: 1 | 2 | 3 | 4 }) {
 const PASOS: Array<{ n: 1 | 2 | 3 | 4; titulo: string; texto: string }> = [
   { n: 1, titulo: "Contanos qué pasa", texto: "Respondé unas preguntas cortas." },
   { n: 2, titulo: "Elegí un veterinario", texto: "Ves quién está conectado y cuánto cuesta." },
-  { n: 3, titulo: "Acepta y pagás", texto: "Cuando el veterinario acepta, pagás con Mercado Pago o PayPal." },
+  { n: 3, titulo: "Acepta y pagás", texto: "Cuando el veterinario acepta, pagás con los medios de pago disponibles." },
   { n: 4, titulo: "Hablan por video", texto: "Te orienta y después podés calificar la atención." },
 ];
 
 const BENEFICIOS_VET: Array<{ negrita: string; texto: string }> = [
   { negrita: "Vos decidís cuándo.", texto: "Conectado, Stand by o Desconectado: tu disponibilidad la manejás vos." },
   { negrita: "Te avisan y elegís.", texto: "Cuando un tutor te elige, te llega un aviso: aceptás, rechazás o proponés otro horario." },
-  { negrita: "Cobrás tu honorario", texto: "por Mercado Pago, sin perseguir pagos." },
+  { negrita: "Cobrás tus honorarios", texto: "por los medios de pago asociados a tu cuenta, sin perseguir pagos." },
   { negrita: "Sin exclusividad ni horarios obligatorios.", texto: "Tu matrícula, tu criterio, tus tutores." },
 ];
 
@@ -380,7 +380,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <p style={{ fontSize: 14, lineHeight: 1.5, color: "#fde8e0", margin: "14px 0 0", maxWidth: 460 }}>
-                Verificamos tu matrícula y tu seguro antes de habilitarte.
+                Verificamos tu matrícula y tu identidad antes de habilitarte.
               </p>
             </div>
 

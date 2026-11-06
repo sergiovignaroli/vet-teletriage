@@ -83,7 +83,8 @@ export class DisputasService {
       });
       const hoy = new Date();
       const matriculaVigente = vet.matriculaVenceEl > hoy;
-      const seguroVigente = vet.seguroVenceEl > hoy;
+      // El seguro es opcional: sin seguro cargado no hay nada que vencer.
+      const seguroVigente = vet.seguroVenceEl == null || vet.seguroVenceEl > hoy;
 
       await this.prisma.veterinario.update({
         where: { id: disputa.veterinarioId },

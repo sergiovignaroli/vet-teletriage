@@ -52,7 +52,7 @@ export default function DirectorioVeterinariosPage() {
         Nuestros veterinarios
       </h1>
       <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
-        Matrícula y seguro presentados y revisados antes de habilitarlos. El rating es de dueños reales, después de cada asesoramiento.
+        Matrícula e identidad presentadas y revisadas antes de habilitarlos. El rating es de dueños reales, después de cada asesoramiento.
       </p>
 
       <Foto

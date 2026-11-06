@@ -48,9 +48,10 @@ interface RegistrarVeterinarioInput {
   matriculaColegio: string;
   // Llegan como texto por JSON ("AAAA-MM-DD" del formulario, o ISO completo).
   matriculaVenceEl: Date | string;
-  seguroAseguradora: string;
-  seguroPoliza: string;
-  seguroVenceEl: Date | string;
+  // Seguro: OPCIONAL (Sergio, 2026-11-06). Si se informa algo, tienen que venir los tres.
+  seguroAseguradora?: string;
+  seguroPoliza?: string;
+  seguroVenceEl?: Date | string;
   // Especies que atiende (ids del catálogo ESPECIES); al menos una.
   especiesAtiende?: string[];
   // Foto de perfil opcional (data URI ya reducida por el navegador).
@@ -81,9 +82,21 @@ export class AuthService {
       );
     }
     const especiesAtiende = especiesValidas(input.especiesAtiende);
+    // Mismo largo que exige la recuperación de contraseña: si no, alguien podría
+    // registrarse con una clave que después no puede restablecer.
+    if (typeof input.password !== "string" || input.password.length < PASSWORD_MINIMA || input.password.length > 72) {
+      throw new BadRequestException(`La contraseña tiene que tener entre ${PASSWORD_MINIMA} y 72 caracteres`);
+    }
     if (input.foto) decodificarFoto(input.foto);
     const matriculaVenceEl = fechaValida(input.matriculaVenceEl, "el vencimiento de la matrícula");
-    const seguroVenceEl = fechaValida(input.seguroVenceEl, "el vencimiento del seguro");
+    const seguroAseguradora = (input.seguroAseguradora ?? "").trim();
+    const seguroPoliza = (input.seguroPoliza ?? "").trim();
+    const seguroFecha = input.seguroVenceEl === undefined || input.seguroVenceEl === null || input.seguroVenceEl === "";
+    const datosSeguro = [seguroAseguradora !== "", seguroPoliza !== "", !seguroFecha];
+    if (datosSeguro.some(Boolean) && !datosSeguro.every(Boolean)) {
+      throw new BadRequestException("Si cargás el seguro, completá aseguradora, número de póliza y vencimiento (o dejá los tres vacíos)");
+    }
+    const seguroVenceEl = seguroFecha ? null : fechaValida(input.seguroVenceEl, "el vencimiento del seguro");
     const yaExiste = await this.prisma.veterinario.findUnique({ where: { email: input.email } });
     if (yaExiste) throw new BadRequestException("Ya existe un veterinario con ese email");
 
@@ -100,8 +113,8 @@ export class AuthService {
         matriculaNumero: input.matriculaNumero,
         matriculaColegio: input.matriculaColegio,
         matriculaVenceEl,
-        seguroAseguradora: input.seguroAseguradora,
-        seguroPoliza: input.seguroPoliza,
+        seguroAseguradora: seguroAseguradora || null,
+        seguroPoliza: seguroPoliza || null,
         seguroVenceEl,
         especiesAtiende,
         fotoPerfil: input.foto || null,

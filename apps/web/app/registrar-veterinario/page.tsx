@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SelectorEspecies } from "../../components/SelectorEspecies";
 import { SelectorFoto } from "../../components/SelectorFoto";
-import { apiPost, ApiError } from "../../lib/api";
+import { apiPost, apiPut, ApiError } from "../../lib/api";
 import { useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { Pantalla, MarcaGrande } from "../../components/Pantalla";
 import { Foto } from "../../components/Foto";
 import { CampoContrasena } from "../../components/CampoContrasena";
+import { SubirDocumento } from "../../components/SubirDocumento";
 
 // Situación probable, la más grande que se encontró en toda la revisión
 // pantalla por pantalla del 2026-09-29: POST /auth/veterinario/registrar
@@ -47,29 +48,61 @@ export default function RegistrarVeterinarioPage() {
   const [seguroPoliza, setSeguroPoliza] = useState("");
   const [seguroVenceEl, setSeguroVenceEl] = useState("");
 
+  const [docFrente, setDocFrente] = useState<string | null>(null);
+  const [docDorso, setDocDorso] = useState<string | null>(null);
+  const [docTitulo, setDocTitulo] = useState<string | null>(null);
+  const [docHabilitacion, setDocHabilitacion] = useState<string | null>(null);
+
   const [especies, setEspecies] = useState<string[]>([]);
   const [foto, setFoto] = useState<string | null>(null);
   const [aceptoConvenio, setAceptoConvenio] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Recién después del primer intento de enviar se marcan en rojo los campos que
+  // faltan (antes, el botón estaba apagado sin decir por qué).
+  const [intentado, setIntentado] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
-  const passwordsNoCoinciden = confirmarPassword.length > 0 && password !== confirmarPassword;
+  // Qué está mal en cada campo (si falta o es inválido). Vacío = todo bien.
+  const errores: Record<string, string> = {};
+  const hoyTexto = new Date().toISOString().slice(0, 10);
+  if (!nombre.trim()) errores.nombre = "Escribí tu nombre";
+  if (!apellido.trim()) errores.apellido = "Escribí tu apellido";
+  if (!email.trim()) errores.email = "Escribí tu email";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errores.email = "Revisá el email: no parece válido";
+  if (!dniONumero.trim()) errores.dni = "Escribí tu DNI o número de documento";
+  if (!password) errores.password = "Elegí una contraseña";
+  else if (password.length < 8) errores.password = "Tiene que tener al menos 8 caracteres";
+  else if (password.length > 72) errores.password = "Es demasiado larga (máximo 72 caracteres)";
+  if (!confirmarPassword) errores.confirmar = "Repetí la contraseña";
+  else if (password !== confirmarPassword) errores.confirmar = "Las contraseñas no coinciden";
+  if (!matriculaNumero.trim()) errores.matricula = "Escribí tu número de matrícula";
+  if (!matriculaColegio.trim()) errores.colegio = "Indicá el colegio o jurisdicción";
+  if (!matriculaVenceEl) errores.matriculaVence = "Indicá hasta cuándo vale tu matrícula";
+  else if (matriculaVenceEl < hoyTexto) errores.matriculaVence = "Esa fecha ya pasó: tu matrícula tiene que estar vigente";
+  // Seguro: opcional, pero si empieza a cargarlo tiene que completarlo.
+  const seguroEmpezado = !!(seguroAseguradora.trim() || seguroPoliza.trim() || seguroVenceEl);
+  if (seguroEmpezado) {
+    if (!seguroAseguradora.trim()) errores.aseguradora = "Falta la aseguradora (o dejá el seguro vacío)";
+    if (!seguroPoliza.trim()) errores.poliza = "Falta el número de póliza (o dejá el seguro vacío)";
+    if (!seguroVenceEl) errores.seguroVence = "Falta el vencimiento (o dejá el seguro vacío)";
+    else if (seguroVenceEl < hoyTexto) errores.seguroVence = "Esa fecha ya pasó: el seguro tiene que estar vigente";
+  }
+  if (!docFrente) errores.docFrente = "Falta la foto de tu documento";
+  if (!docTitulo) errores.docTitulo = "Falta la foto de tu título";
+  if (!docHabilitacion) errores.docHabilitacion = "Falta la foto de tu carnet o certificado";
+  if (especies.length === 0) errores.especies = "Marcá al menos una especie";
+  if (!aceptoConvenio) errores.convenio = "Para crear la cuenta tenés que aceptar el convenio, los términos y la política de privacidad";
 
-  const faltanCampos =
-    !nombre ||
-    !apellido ||
-    !email ||
-    !password ||
-    password !== confirmarPassword ||
-    !dniONumero ||
-    !matriculaNumero ||
-    !matriculaColegio ||
-    !matriculaVenceEl ||
-    !seguroAseguradora ||
-    !seguroPoliza ||
-    !seguroVenceEl ||
-    especies.length === 0 ||
-    !aceptoConvenio;
+  const hayErrores = Object.keys(errores).length > 0;
+  // Se muestra el error de un campo solo después de intentar enviar (o, para las
+  // contraseñas, apenas escribió algo que no coincide).
+  const ver = (k: string): string | undefined => {
+    if (!errores[k]) return undefined;
+    if (intentado) return errores[k];
+    if (k === "confirmar" && confirmarPassword.length > 0 && password !== confirmarPassword) return errores[k];
+    return undefined;
+  };
 
   interface RespuestaRegistroVeterinario {
     accessToken: string;
@@ -86,7 +119,17 @@ export default function RegistrarVeterinarioPage() {
   }
 
   async function registrar() {
-    if (faltanCampos) return;
+    setIntentado(true);
+    if (hayErrores) {
+      setError("Revisá los campos marcados en rojo para poder crear tu cuenta.");
+      // Espera a que React pinte los errores y lleva la vista al primero.
+      setTimeout(() => {
+        const primero = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"], [data-campo-error="1"]');
+        primero?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (primero && "focus" in primero) primero.focus({ preventScroll: true });
+      }, 50);
+      return;
+    }
     setError(null);
     setEnviando(true);
     try {
@@ -100,9 +143,9 @@ export default function RegistrarVeterinarioPage() {
         matriculaNumero,
         matriculaColegio,
         matriculaVenceEl,
-        seguroAseguradora,
-        seguroPoliza,
-        seguroVenceEl,
+        seguroAseguradora: seguroAseguradora.trim() || undefined,
+        seguroPoliza: seguroPoliza.trim() || undefined,
+        seguroVenceEl: seguroVenceEl || undefined,
         especiesAtiende: especies,
         foto: foto ?? undefined,
         aceptoConvenio: true,
@@ -120,6 +163,22 @@ export default function RegistrarVeterinarioPage() {
         margenPorcentaje: respuesta.margenPorcentaje,
         onboardingCompletado: respuesta.onboardingCompletado,
       });
+      // La documentación se sube justo después de crear la cuenta (con la sesión
+      // recién emitida). Si alguna falla, el panel muestra qué falta subir.
+      const documentos: Array<[string, string | null]> = [
+        ["DOCUMENTO_FRENTE", docFrente],
+        ["DOCUMENTO_DORSO", docDorso],
+        ["TITULO", docTitulo],
+        ["HABILITACION", docHabilitacion],
+      ];
+      for (const [tipo, imagen] of documentos) {
+        if (!imagen) continue;
+        try {
+          await apiPut(`/veterinarios/documentos/${tipo}`, respuesta.accessToken, { imagen });
+        } catch {
+          /* queda como faltante en el panel */
+        }
+      }
       // panel-veterinario ya sabe mostrar el onboarding de 3 pantallas
       // cuando onboardingCompletado es false (default para una cuenta
       // recién creada) — no hace falta ninguna pantalla intermedia acá.
@@ -137,7 +196,7 @@ export default function RegistrarVeterinarioPage() {
         Sumate como veterinario
       </h1>
       <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
-        Con matrícula y seguro vigentes podés empezar a brindar asesoramiento online. Revisamos tus datos y tu documentación antes de habilitarte — mientras tanto tu cuenta queda pendiente de revisión.
+        Con tu matrícula vigente podés empezar a brindar asesoramiento online. Revisamos tus datos y tu documentación antes de habilitarte — mientras tanto tu cuenta queda pendiente de revisión.
       </p>
 
       <Foto
@@ -164,23 +223,27 @@ export default function RegistrarVeterinarioPage() {
       </Foto>
 
       <form
+        ref={formRef}
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
           registrar();
         }}
       >
         <h2 className="va-etiqueta" style={{ marginTop: 20, marginBottom: 10 }}>Tus datos</h2>
-        <Campo etiqueta="Nombre" value={nombre} onChange={setNombre} autoComplete="given-name" />
-        <Campo etiqueta="Apellido" value={apellido} onChange={setApellido} autoComplete="family-name" />
-        <Campo etiqueta="Email" value={email} onChange={setEmail} type="email" autoComplete="email" />
+        <Campo etiqueta="Nombre" value={nombre} onChange={setNombre} autoComplete="given-name" error={ver("nombre")} />
+        <Campo etiqueta="Apellido" value={apellido} onChange={setApellido} autoComplete="family-name" error={ver("apellido")} />
+        <Campo etiqueta="Email" value={email} onChange={setEmail} type="email" autoComplete="email" error={ver("email")} />
         <Campo etiqueta="Teléfono (opcional)" value={telefono} onChange={setTelefono} type="tel" autoComplete="tel" />
-        <Campo etiqueta="DNI o número de documento" value={dniONumero} onChange={setDniONumero} />
+        <Campo etiqueta="DNI o número de documento" value={dniONumero} onChange={setDniONumero} error={ver("dni")} />
         <Campo
           etiqueta="Contraseña"
           value={password}
           onChange={setPassword}
           type="password"
           autoComplete="new-password"
+          ayuda="Mínimo 8 caracteres."
+          error={ver("password")}
         />
         <Campo
           etiqueta="Confirmar contraseña"
@@ -188,22 +251,60 @@ export default function RegistrarVeterinarioPage() {
           onChange={setConfirmarPassword}
           type="password"
           autoComplete="new-password"
-          error={passwordsNoCoinciden ? "Las contraseñas no coinciden" : undefined}
+          error={ver("confirmar")}
         />
 
         <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 10 }}>
           Matrícula profesional
         </h2>
-        <Campo etiqueta="Número de matrícula" value={matriculaNumero} onChange={setMatriculaNumero} />
-        <Campo etiqueta="Colegio / jurisdicción" value={matriculaColegio} onChange={setMatriculaColegio} />
-        <Campo etiqueta="Vencimiento de la matrícula" value={matriculaVenceEl} onChange={setMatriculaVenceEl} type="date" />
+        <Campo etiqueta="Número de matrícula" value={matriculaNumero} onChange={setMatriculaNumero} error={ver("matricula")} />
+        <Campo etiqueta="Colegio / jurisdicción" value={matriculaColegio} onChange={setMatriculaColegio} error={ver("colegio")} />
+        <Campo etiqueta="Vencimiento de la matrícula" value={matriculaVenceEl} onChange={setMatriculaVenceEl} type="date" error={ver("matriculaVence")} />
 
-        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 10 }}>
-          Seguro de responsabilidad civil profesional
+        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 6 }}>
+          Tu documentación
         </h2>
-        <Campo etiqueta="Aseguradora" value={seguroAseguradora} onChange={setSeguroAseguradora} />
-        <Campo etiqueta="Número de póliza" value={seguroPoliza} onChange={setSeguroPoliza} />
-        <Campo etiqueta="Vencimiento del seguro" value={seguroVenceEl} onChange={setSeguroVenceEl} type="date" />
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 4px", lineHeight: 1.5 }}>
+          Sacale una foto con el celular o subí una imagen. Solo la ve nuestro equipo, para verificar que sos vos y que estás habilitado para ejercer.
+        </p>
+        <SubirDocumento
+          etiqueta="DNI o pasaporte (frente)"
+          ayuda="Que se lea bien y se vea completo."
+          valor={docFrente}
+          onChange={setDocFrente}
+          error={ver("docFrente")}
+        />
+        <SubirDocumento
+          etiqueta="DNI (dorso)"
+          ayuda="Solo si es DNI. El pasaporte no lo necesita."
+          opcional
+          valor={docDorso}
+          onChange={setDocDorso}
+        />
+        <SubirDocumento
+          etiqueta="Carnet del Colegio de Médicos Veterinarios o certificado de habilitación"
+          ayuda="El que tengas: alcanza con uno."
+          valor={docHabilitacion}
+          onChange={setDocHabilitacion}
+          error={ver("docHabilitacion")}
+        />
+        <SubirDocumento
+          etiqueta="Título habilitante"
+          ayuda="Foto del título de Médico Veterinario."
+          valor={docTitulo}
+          onChange={setDocTitulo}
+          error={ver("docTitulo")}
+        />
+
+        <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 6 }}>
+          Seguro de responsabilidad civil (opcional)
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 4px", lineHeight: 1.5 }}>
+          No es obligatorio. Si tenés uno, cargalo y lo tenemos en cuenta; si no, dejá estos tres campos vacíos.
+        </p>
+        <Campo etiqueta="Aseguradora" value={seguroAseguradora} onChange={setSeguroAseguradora} error={ver("aseguradora")} />
+        <Campo etiqueta="Número de póliza" value={seguroPoliza} onChange={setSeguroPoliza} error={ver("poliza")} />
+        <Campo etiqueta="Vencimiento del seguro" value={seguroVenceEl} onChange={setSeguroVenceEl} type="date" error={ver("seguroVence")} />
 
         <h2 className="va-etiqueta" style={{ marginTop: 24, marginBottom: 10 }}>
           Tu foto (opcional)
@@ -216,14 +317,22 @@ export default function RegistrarVeterinarioPage() {
         <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
           Marcá todas las que atendés. Solo te van a llegar consultas de esas especies. Lo podés cambiar después desde tu panel.
         </p>
-        <SelectorEspecies valor={especies} onChange={setEspecies} idBase="reg-esp" />
+        <div data-campo-error={ver("especies") ? "1" : undefined} tabIndex={-1} style={{ outline: "none" }}>
+          <SelectorEspecies valor={especies} onChange={setEspecies} idBase="reg-esp" />
+        </div>
+        {ver("especies") && (
+          <p role="alert" className="va-error-texto">
+            {ver("especies")}
+          </p>
+        )}
 
         <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, lineHeight: 1.5, marginTop: 22 }}>
           <input
             type="checkbox"
             checked={aceptoConvenio}
             onChange={(e) => setAceptoConvenio(e.target.checked)}
-            style={{ width: 20, height: 20, marginTop: 1, flex: "none" }}
+            aria-invalid={ver("convenio") ? true : undefined}
+            style={{ width: 20, height: 20, marginTop: 1, flex: "none", accentColor: ver("convenio") ? "var(--campo-error)" : undefined }}
           />
           <span>
             Leí y acepto el{" "}
@@ -242,13 +351,19 @@ export default function RegistrarVeterinarioPage() {
           </span>
         </label>
 
+        {ver("convenio") && (
+          <p role="alert" className="va-error-texto">
+            {ver("convenio")}
+          </p>
+        )}
+
         {error && (
-          <p style={{ color: "var(--terracota)", fontSize: 13, marginTop: 12 }} role="alert">
+          <p className="va-error-texto" style={{ fontSize: 13.5, marginTop: 12 }} role="alert">
             {error}
           </p>
         )}
 
-        <button type="submit" className="va-boton" disabled={enviando || faltanCampos} style={{ marginTop: 20 }}>
+        <button type="submit" className="va-boton" disabled={enviando} style={{ marginTop: 20 }}>
           {enviando ? "Creando tu cuenta…" : "Crear mi cuenta"}
         </button>
       </form>
@@ -279,6 +394,7 @@ function Campo({
   type = "text",
   autoComplete,
   error,
+  ayuda,
 }: {
   etiqueta: string;
   value: string;
@@ -286,16 +402,18 @@ function Campo({
   type?: string;
   autoComplete?: string;
   error?: string;
+  ayuda?: string;
 }) {
   return (
     <label style={{ display: "block", margin: "12px 0", fontSize: 14, fontWeight: 600 }}>
-      {etiqueta}
+      <span className={error ? "va-etiqueta-error" : undefined}>{etiqueta}</span>
       {type === "password" ? (
         <CampoContrasena
           value={value}
           onChange={onChange}
           autoComplete={autoComplete === "current-password" ? "current-password" : "new-password"}
           style={{ marginTop: 6, fontWeight: 400 }}
+          invalido={!!error}
         />
       ) : (
         <input
@@ -304,11 +422,15 @@ function Campo({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           autoComplete={autoComplete}
+          aria-invalid={error ? true : undefined}
           style={{ marginTop: 6, fontWeight: 400 }}
         />
       )}
+      {ayuda && !error && (
+        <span style={{ display: "block", color: "var(--muted)", fontSize: 12, fontWeight: 400, marginTop: 4 }}>{ayuda}</span>
+      )}
       {error && (
-        <span style={{ display: "block", color: "var(--terracota)", fontSize: 12, fontWeight: 400, marginTop: 4 }}>
+        <span role="alert" className="va-error-texto" style={{ display: "block", marginTop: 4 }}>
           {error}
         </span>
       )}

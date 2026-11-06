@@ -24,9 +24,11 @@ interface VeterinarioPendiente {
   matriculaNumero: string;
   matriculaColegio: string;
   matriculaVenceEl: string;
-  seguroAseguradora: string;
-  seguroVenceEl: string;
+  seguroAseguradora: string | null;
+  seguroVenceEl: string | null;
   creadoEl: string;
+  dniONumero?: string;
+  documentos?: Array<{ tipo: string }>;
 }
 
 interface DisputaIdentidadAbierta {
@@ -80,6 +82,70 @@ function Tarjeta({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+    </div>
+  );
+}
+
+const NOMBRE_DOCUMENTO: Record<string, string> = {
+  DOCUMENTO_FRENTE: "DNI o pasaporte (frente)",
+  DOCUMENTO_DORSO: "DNI (dorso)",
+  HABILITACION: "Carnet del Colegio o certificado de habilitación",
+  TITULO: "Título habilitante",
+};
+const FALTAN_OBLIGATORIOS = ["DOCUMENTO_FRENTE", "HABILITACION", "TITULO"];
+
+// Documentación que subió el veterinario. Las imágenes se piden recién al abrirla.
+function DocumentosAdmin({ veterinarioId, cargados, token }: { veterinarioId: string; cargados: string[]; token: string }) {
+  const [abierto, setAbierto] = useState(false);
+  const [imagenes, setImagenes] = useState<Array<{ tipo: string; imagen: string }> | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const faltan = FALTAN_OBLIGATORIOS.filter((t) => !cargados.includes(t));
+
+  async function alternar() {
+    if (abierto) {
+      setAbierto(false);
+      return;
+    }
+    setAbierto(true);
+    if (imagenes) return;
+    setCargando(true);
+    setError(null);
+    try {
+      setImagenes(await apiGet<Array<{ tipo: string; imagen: string }>>(`/veterinarios/${veterinarioId}/documentos`, token));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No pudimos traer la documentación.");
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 12, color: faltan.length ? "var(--terracota)" : "inherit", opacity: faltan.length ? 1 : 0.65 }}>
+        {faltan.length
+          ? `Documentación incompleta — falta: ${faltan.map((t) => NOMBRE_DOCUMENTO[t]).join(", ")}`
+          : "Documentación completa"}
+      </div>
+      {cargados.length > 0 && (
+        <button type="button" className="va-chip-boton" style={{ marginTop: 6 }} onClick={alternar}>
+          {abierto ? "Ocultar documentación" : "Ver documentación"}
+        </button>
+      )}
+      {abierto && cargando && <p style={{ fontSize: 12, opacity: 0.7 }}>Cargando…</p>}
+      {abierto && error && (
+        <p style={{ color: "var(--terracota)", fontSize: 12 }} role="alert">
+          {error}
+        </p>
+      )}
+      {abierto &&
+        imagenes?.map((d) => (
+          <figure key={d.tipo} style={{ margin: "10px 0 0" }}>
+            <figcaption style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{NOMBRE_DOCUMENTO[d.tipo] ?? d.tipo}</figcaption>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={d.imagen} alt={NOMBRE_DOCUMENTO[d.tipo] ?? d.tipo} style={{ width: "100%", maxWidth: 560, borderRadius: 10, border: "1px solid var(--borde)", display: "block" }} />
+          </figure>
+        ))}
     </div>
   );
 }
@@ -256,7 +322,7 @@ export default function AdminPage() {
         </p>
       )}
       {pendientes?.map((v) => (
-        <PendienteItem key={v.id} veterinario={v} onHabilitar={habilitar} />
+        <PendienteItem key={v.id} veterinario={v} onHabilitar={habilitar} token={sesion.accessToken} />
       ))}
 
       <FotosAdmin token={sesion.accessToken} />
@@ -292,7 +358,7 @@ export default function AdminPage() {
       <Tarjeta>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Reconciliar pagos pendientes</div>
         <p style={{ fontSize: 12, opacity: 0.75, margin: "0 0 10px" }}>
-          Un caso cerrado normalmente liquida su pago solo. Si esa liquidación automática falló (Mercado Pago no
+          Un caso cerrado normalmente liquida su pago solo. Si esa liquidación automática falló (Mercado Pago® no
           respondió, el pago todavía no estaba confirmado, etc.), queda colgado — este botón reintenta todos los
           casos cerrados con un pago sin liquidar.
         </p>
@@ -461,9 +527,11 @@ function AbrirDisputaIdentidad({ onAbrir }: { onAbrir: (email: string, motivo: s
 function PendienteItem({
   veterinario: v,
   onHabilitar,
+  token,
 }: {
   veterinario: VeterinarioPendiente;
   onHabilitar: (id: string) => Promise<void>;
+  token: string;
 }) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -487,7 +555,13 @@ function PendienteItem({
       </div>
       <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>{v.email}</div>
       <VencimientoLinea etiqueta={`Matrícula ${v.matriculaNumero} (${v.matriculaColegio})`} fecha={v.matriculaVenceEl} />
-      <VencimientoLinea etiqueta={`Seguro (${v.seguroAseguradora})`} fecha={v.seguroVenceEl} />
+      {v.seguroVenceEl ? (
+        <VencimientoLinea etiqueta={`Seguro (${v.seguroAseguradora})`} fecha={v.seguroVenceEl} />
+      ) : (
+        <div style={{ fontSize: 12, opacity: 0.65 }}>Seguro: no cargado (es opcional)</div>
+      )}
+      {v.dniONumero && <div style={{ fontSize: 12, opacity: 0.65 }}>Documento: {v.dniONumero}</div>}
+      <DocumentosAdmin veterinarioId={v.id} cargados={(v.documentos ?? []).map((d) => d.tipo)} token={token} />
       {error && (
         <p style={{ color: "var(--terracota)", fontSize: 12, marginTop: 8, marginBottom: 0 }} role="alert">
           {error}

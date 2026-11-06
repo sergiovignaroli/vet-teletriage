@@ -99,7 +99,7 @@ function CobrosVeterinarioContenido() {
       // de excepciones global, eso le llega al cliente como el genérico
       // "Internal server error" de Nest, que no le dice nada útil a un
       // veterinario. Mejor un mensaje propio que cubra el caso real.
-      setError("No pudimos iniciar la conexión con Mercado Pago. Puede que todavía no esté configurada — probá más tarde.");
+      setError("No pudimos iniciar la conexión con Mercado Pago®. Puede que todavía no esté configurada — probá más tarde.");
       setConectando(false);
     }
   }
@@ -117,7 +117,7 @@ function CobrosVeterinarioContenido() {
       setEstado((prev) => (prev ? { ...prev, paypalEmail: paypalEmailForm.trim() } : prev));
       setGuardadoPaypal(true);
     } catch (e) {
-      setErrorPaypal(e instanceof ApiError ? e.message : "No pudimos guardar tu email de PayPal. Probá de nuevo.");
+      setErrorPaypal(e instanceof ApiError ? e.message : "No pudimos guardar tu email de PayPal®. Probá de nuevo.");
     } finally {
       setGuardandoPaypal(false);
     }
@@ -133,8 +133,8 @@ function CobrosVeterinarioContenido() {
         Medios de cobro
       </h1>
       <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 24 }}>
-        Conectá tu propia cuenta de Mercado Pago para poder cobrar tu honorario directamente — la plataforma
-        nunca ve ni guarda tu contraseña, solo un permiso de acceso que Mercado Pago emite.
+        Conectá tu propia cuenta de Mercado Pago® para poder cobrar tu honorario directamente — la plataforma
+        nunca ve ni guarda tu contraseña, solo un permiso de acceso que Mercado Pago® emite.
       </p>
 
       {cargando && <p style={{ fontSize: 14, opacity: 0.75 }}>Cargando…</p>}
@@ -164,7 +164,7 @@ function CobrosVeterinarioContenido() {
               }}
             />
             <span style={{ fontSize: 14, fontWeight: 700 }}>
-              {conectado ? "Mercado Pago conectado" : "Mercado Pago sin conectar"}
+              {conectado ? "Mercado Pago® conectado" : "Mercado Pago® sin conectar"}
             </span>
             <LogoMedio medio="mercadopago" alto={12} style={{ marginLeft: "auto" }} />
           </div>
@@ -185,7 +185,7 @@ function CobrosVeterinarioContenido() {
             onClick={conectarMercadoPago}
             disabled={conectando}
           >
-            {conectando ? "Redirigiendo…" : conectado ? "Reconectar cuenta" : "Conectar mi cuenta de Mercado Pago"}
+            {conectando ? "Redirigiendo…" : conectado ? "Reconectar cuenta" : "Conectar mi cuenta de Mercado Pago®"}
           </button>
         </div>
       )}
@@ -211,13 +211,13 @@ function CobrosVeterinarioContenido() {
               }}
             />
             <span style={{ fontSize: 14, fontWeight: 700 }}>
-              {estado?.paypalEmail ? "PayPal conectado" : "PayPal sin conectar"}
+              {estado?.paypalEmail ? "PayPal® conectado" : "PayPal® sin conectar"}
             </span>
             <LogoMedio medio="paypal" alto={12} style={{ marginLeft: "auto" }} />
           </div>
           <p style={{ fontSize: 13, opacity: 0.75, margin: "0 0 12px" }}>
-            Alternativa a Mercado Pago — acá no hay que autorizar nada, solo cargar tu email de PayPal. Cuando un
-            cliente paga con PayPal, la plataforma te transfiere tu honorario a esta dirección apenas cerrás el
+            Alternativa a Mercado Pago® — acá no hay que autorizar nada, solo cargar tu email de PayPal®. Cuando un
+            cliente paga con PayPal®, la plataforma te transfiere tu honorario a esta dirección apenas cerrás el
             caso.
           </p>
           <form onSubmit={guardarPaypalEmail} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

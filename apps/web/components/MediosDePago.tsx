@@ -67,7 +67,7 @@ export function LogoMedio({ medio, alto = 12, style }: { medio: MedioDePago; alt
           onError={() => setIntento((i) => i + 1)}
         />
       ) : (
-        <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{nombre}</span>
+        <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{nombre}®</span>
       )}
     </span>
   );

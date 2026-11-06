@@ -191,7 +191,7 @@ export function MisPrecios({ token }: { token: string }) {
                 {(!fuera || libre) && Number.isFinite(numero) && (
                   <div style={{ fontSize: 11.5, color: "var(--muted)" }}>
                     El tutor paga {moneda((fijo ? celda.aconsejado : numero) + cargo)}: honorario{" "}
-                    {moneda(fijo ? celda.aconsejado : numero)} + {moneda(cargo)} de cargo de servicio. Mercado Pago descuenta su propia comisión de tu cobro.
+                    {moneda(fijo ? celda.aconsejado : numero)} + {moneda(cargo)} de cargo de servicio. Mercado Pago® descuenta su propia comisión de tu cobro.
                   </div>
                 )}
               </div>

@@ -37,9 +37,11 @@ model Veterinario {
   matriculaNumero   String
   matriculaColegio  String
   matriculaVenceEl  DateTime
-  seguroAseguradora String
-  seguroPoliza      String
-  seguroVenceEl     DateTime
+  // Seguro de responsabilidad civil: OPCIONAL (Sergio, 2026-11-06). Si se carga,
+  // se cargan los tres datos y su vencimiento se controla igual que antes.
+  seguroAseguradora String?
+  seguroPoliza      String?
+  seguroVenceEl     DateTime?
 
   // Estado operativo
   estado     EstadoVeterinario @default(PENDIENTE_VERIFICACION)
@@ -64,6 +66,7 @@ model Veterinario {
   presencia          PresenciaVeterinario @default(DESCONECTADO)
   ultimaSenal        DateTime?
   sesionesRenovables SesionVeterinario[]
+  documentos         DocumentoVeterinario[]
   solicitudes        SolicitudAtencion[]
   pushSuscripciones  PushSuscripcion[]
   // Otros canales de aviso de consultas nuevas (la persona los activa; WhatsApp
@@ -764,4 +767,26 @@ model PreguntaAyuda {
 
   @@index([usuarioId])
   @@index([atendidaEl, creadaEl])
+}
+
+// Documentación que sube el veterinario al registrarse (Sergio, 2026-11-06):
+// documento de identidad, título y matrícula/habilitación. Son fotos ya
+// reducidas por el navegador, guardadas como data URI (el disco de Render no es
+// persistente). Solo las ve el administrador; nunca salen en endpoints públicos.
+enum TipoDocumentoVeterinario {
+  DOCUMENTO_FRENTE
+  DOCUMENTO_DORSO
+  TITULO
+  HABILITACION
+}
+
+model DocumentoVeterinario {
+  id            String                   @id @default(uuid())
+  veterinarioId String
+  veterinario   Veterinario              @relation(fields: [veterinarioId], references: [id], onDelete: Cascade)
+  tipo          TipoDocumentoVeterinario
+  datos         String
+  creadoEl      DateTime                 @default(now())
+
+  @@unique([veterinarioId, tipo])
 }

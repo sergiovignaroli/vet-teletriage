@@ -73,7 +73,7 @@ export const GUIA_TUTOR: ItemAyuda[] = [
     id: "pagar",
     titulo: "Cómo pagar",
     cuerpo: [
-      "Cuando el veterinario acepta, seguís directo al pago. Pagás con Mercado Pago (en pesos) o, si ese veterinario lo ofrece, con PayPal (en dólares, a un valor fijo que ves antes de confirmar).",
+      "Cuando el veterinario acepta, seguís directo al pago. Pagás con Mercado Pago® (en pesos) o, si ese veterinario lo ofrece, con PayPal® (en dólares, a un valor fijo que ves antes de confirmar).",
       "El pago se hace siempre dentro de la plataforma, antes de la videollamada. Si el pago queda pendiente (por ejemplo, con una transferencia), tu asesoramiento queda reservado y te avisamos cuando se acredite.",
     ],
   },
@@ -176,7 +176,7 @@ export const FAQ_TUTOR: ItemAyuda[] = [
     id: "seguridad",
     titulo: "¿Los veterinarios son matriculados?",
     cuerpo: [
-      "Sí. Antes de habilitar a un veterinario revisamos su matrícula, su seguro de responsabilidad civil y, cuando corresponde, su identidad. Cada uno ejerce de forma independiente bajo su propia matrícula y responsabilidad profesional.",
+      "Sí. Antes de habilitar a un veterinario revisamos su matrícula, su título y su identidad. Cada uno ejerce de forma independiente bajo su propia matrícula y responsabilidad profesional.",
     ],
   },
 ];
@@ -190,11 +190,12 @@ export const GUIA_VETERINARIO: ItemAyuda[] = [
     id: "registrarse",
     titulo: "Cómo registrarte",
     cuerpo: [
-      "Necesitás matrícula y seguro de responsabilidad civil profesional vigentes. Revisamos tus datos y tu documentación antes de habilitarte; mientras tanto tu cuenta queda pendiente de revisión.",
+      "Necesitás tu matrícula profesional vigente. El seguro de responsabilidad civil es opcional. Revisamos tus datos y tu documentación antes de habilitarte; mientras tanto tu cuenta queda pendiente de revisión.",
     ],
     pasos: [
       "Entrá a “Sumate como veterinario” y completá tus datos personales y de contacto.",
-      "Cargá tu matrícula y tu seguro con sus vencimientos.",
+      "Cargá tu matrícula con su vencimiento (el seguro es opcional).",
+      "Sacale una foto a tu DNI o pasaporte, a tu carnet o certificado de habilitación y a tu título, o subí las imágenes.",
       "Subí tu foto (opcional): la ven los tutores en la lista.",
       "Marcá las especies que atendés: solo te llegan consultas de esas especies.",
       "Leé y aceptá el Convenio de adhesión, los Términos y la Política de Privacidad, y creá tu cuenta.",
@@ -204,7 +205,7 @@ export const GUIA_VETERINARIO: ItemAyuda[] = [
     id: "habilitacion",
     titulo: "Cuándo quedo habilitado/a",
     cuerpo: [
-      "Cuando revisamos tu documentación y queda aprobada. Hasta entonces no podés conectarte. Tu cuenta también se suspende de forma automática si vence la matrícula o el seguro, hasta que acredites la renovación; avisanos de cualquier cambio.",
+      "Cuando revisamos tu documentación y queda aprobada. Hasta entonces no podés conectarte. Tu cuenta también se suspende de forma automática si vence la matrícula (o el seguro, si lo cargaste), hasta que acredites la renovación; avisanos de cualquier cambio.",
     ],
   },
   {
@@ -212,8 +213,8 @@ export const GUIA_VETERINARIO: ItemAyuda[] = [
     titulo: "Cómo conectar tu cuenta de cobro",
     cuerpo: [
       "Para que te puedan elegir tenés que conectar un medio de cobro desde “Medios de cobro” (se llega desde tu panel). Alcanza con uno:",
-      "Mercado Pago: autorizás tu propia cuenta. La plataforma nunca ve tu contraseña, solo un permiso que emite Mercado Pago, y podés revocarlo cuando quieras. El pago del tutor se genera con tus credenciales: tu honorario se acredita directo en tu cuenta.",
-      "PayPal: cargás tu email de PayPal. Cuando un tutor paga con PayPal, la plataforma te transfiere tu honorario a esa dirección una vez que cerrás el caso.",
+      "Mercado Pago®: autorizás tu propia cuenta. La plataforma nunca ve tu contraseña, solo un permiso que emite Mercado Pago®, y podés revocarlo cuando quieras. El pago del tutor se genera con tus credenciales: tu honorario se acredita directo en tu cuenta.",
+      "PayPal®: cargás tu email de PayPal®. Cuando un tutor paga con PayPal®, la plataforma te transfiere tu honorario a esa dirección una vez que cerrás el caso.",
     ],
   },
   {
@@ -273,21 +274,21 @@ export const FAQ_VETERINARIO: ItemAyuda[] = [
     id: "cuanto-cobro",
     titulo: "¿Cuánto cobro por cada asesoramiento?",
     cuerpo: [
-      "El tutor paga tu honorario más el cargo de servicio de la plataforma (un porcentaje del honorario con un mínimo, distinto en horario diurno y nocturno). El cargo lo ve el tutor por separado, no se descuenta de tu honorario. Las comisiones propias del medio de pago (Mercado Pago o PayPal) sí las soportás vos y se descuentan de tu honorario. El detalle está en el Convenio de adhesión, cláusulas 6 y 7.",
+      "El tutor paga tu honorario más el cargo de servicio de la plataforma (un porcentaje del honorario con un mínimo, distinto en horario diurno y nocturno). El cargo lo ve el tutor por separado, no se descuenta de tu honorario. Las comisiones propias del medio de pago (Mercado Pago® o PayPal®) sí las soportás vos y se descuentan de tu honorario. El detalle está en el Convenio de adhesión, cláusulas 6 y 7.",
     ],
   },
   {
     id: "cuando-cobro",
     titulo: "¿Cuándo me pagan?",
     cuerpo: [
-      "Con Mercado Pago, el honorario se acredita en tu cuenta cuando el tutor paga, que es antes de la videollamada. Con PayPal, la plataforma te transfiere el honorario una vez que cerrás el caso.",
+      "Con Mercado Pago®, el honorario se acredita en tu cuenta cuando el tutor paga, que es antes de la videollamada. Con PayPal®, la plataforma te transfiere el honorario una vez que cerrás el caso.",
     ],
   },
   {
     id: "no-aparezco",
     titulo: "No aparezco en la lista de los tutores, ¿por qué?",
     cuerpo: [
-      "Revisá estas cosas: que tu cuenta esté habilitada, que tengas conectado un medio de cobro, que estés en Conectado o Stand by, que tengas el panel abierto (o los avisos activados), que hayas marcado las especies que atendés y que tu matrícula y tu seguro no estén vencidos. El panel te indica qué falta.",
+      "Revisá estas cosas: que tu cuenta esté habilitada, que tengas conectado un medio de cobro, que estés en Conectado o Stand by, que tengas el panel abierto (o los avisos activados), que hayas marcado las especies que atendés y que tu matrícula (y tu seguro, si lo cargaste) no estén vencidos. El panel te indica qué falta.",
     ],
   },
   {

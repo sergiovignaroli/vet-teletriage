@@ -297,11 +297,11 @@ export default function ElegirVeterinarioPage() {
         <p style={{ fontSize: 15, color: "var(--muted)", marginBottom: 24 }}>
           {errorCheckout
             ? "Ya elegiste veterinario — solo falta completar el pago para confirmar el asesoramiento."
-            : "Ya elegiste veterinario. Te estamos redirigiendo a Mercado Pago para completar el pago."}
+            : "Ya elegiste veterinario. Te estamos redirigiendo a Mercado Pago® para completar el pago."}
         </p>
         {errorCheckout && soloPaypal && (
           <p style={{ fontSize: 14, marginBottom: 16 }} role="status">
-            Este veterinario cobra con PayPal, en dólares. Podés pagar con el botón de abajo.
+            Este veterinario cobra con PayPal®, en dólares. Podés pagar con el botón de abajo.
           </p>
         )}
         {errorCheckout && !soloPaypal && (
@@ -321,9 +321,9 @@ export default function ElegirVeterinarioPage() {
         )}
 
         {/* PayPal — alternativa, no el medio principal (Sergio, 2026-09-30).
-            Solo se ofrece si el veterinario elegido tiene PayPal conectado;
+            Solo se ofrece si el veterinario elegido tiene PayPal® conectado;
             cobra en USD, precio fijo, no una conversión del monto en pesos
-            (PayPal no soporta ARS). */}
+            (PayPal® no soporta ARS). */}
         {paypalUsdElegido != null && (
           <div style={{ marginTop: errorCheckout ? 16 : 8 }}>
             <button
@@ -332,7 +332,7 @@ export default function ElegirVeterinarioPage() {
               onClick={() => irAPagar("PAYPAL")}
               disabled={redirigiendo || redirigiendoPaypal}
             >
-              {redirigiendoPaypal ? "Un momento…" : `Pagar con PayPal (US$${paypalUsdElegido})`}
+              {redirigiendoPaypal ? "Un momento…" : `Pagar con PayPal® (US$${paypalUsdElegido})`}
             </button>
           </div>
         )}
@@ -342,6 +342,9 @@ export default function ElegirVeterinarioPage() {
           etiqueta="Pagás con"
           style={{ justifyContent: "center", marginTop: 28 }}
         />
+        <p style={{ fontSize: 10.5, color: "var(--muted)", textAlign: "center", margin: "10px 0 0", lineHeight: 1.4 }}>
+          Mercado Pago®, PayPal®, Visa® y Mastercard® son marcas registradas de sus respectivos titulares.
+        </p>
     </Pantalla>
     );
   }

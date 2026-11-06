@@ -1,3 +1,4 @@
+import { Throttle } from "@nestjs/throttler";
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from "@nestjs/common";
 import type { Response } from "express";
 import type { PresenciaVeterinario } from "@prisma/client";
@@ -98,6 +99,32 @@ export class VeterinariosController {
       "Cross-Origin-Resource-Policy": "cross-origin",
     });
     res.send(f.buffer);
+  }
+
+  // Documentación del veterinario (identidad, título, matrícula/habilitación).
+  // Las rutas de 2 segmentos que empiezan con "documentos" tienen el límite de
+  // cuerpo ampliado en main.ts.
+  @Get("documentos/mios")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  misDocumentos(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.veterinarios.misDocumentos(usuario.id);
+  }
+
+  @Put("documentos/:tipo")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("VETERINARIO")
+  @Throttle({ default: { limit: 40, ttl: 3600000 } })
+  guardarDocumento(@CurrentUser() usuario: UsuarioAutenticado, @Param("tipo") tipo: string, @Body("imagen") imagen: unknown) {
+    return this.veterinarios.guardarDocumento(usuario.id, tipo, imagen);
+  }
+
+  // Solo administración: ver la documentación de un colega para revisarla.
+  @Get(":id/documentos")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  documentosAdmin(@Param("id") id: string) {
+    return this.veterinarios.documentosParaAdmin(id);
   }
 
   @Get("mi-foto")

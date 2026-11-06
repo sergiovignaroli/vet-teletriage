@@ -45,3 +45,6 @@ El registro de veterinarios admite 5 por hora por IP. `rehacer.sh` reinicia la A
 - `test-ayuda` no se puede repetir sobre los mismos datos (siempre registra `ayuda@v.test` y deja preguntas): correr `rehacer.sh` antes, o borrar ese veterinario y las preguntas de ayuda de la base de prueba.
 - `test-flujo`, `test-api-precios` y `test-modos` necesitan una base `precios_test` limpia: correr antes `api/base-limpia.sh` (variable `DATABASE_URL_PRUEBAS` para otra base).
 - Las pruebas de la API que llaman por HTTP necesitan `JWT_SECRET=testsecret` y reiniciar la API (`up.sh`) entre pruebas de registro, por el límite de 5 registros por hora.
+
+- `api/test-registro-docs.js` — registro con seguro opcional, contraseña mínima, subida de documentos y quién los ve (API). Correr desde `sim/`.
+- `api/test-ui-registro.js` — registro en navegador: campos faltantes en rojo, seguro opcional, subida de fotos y aviso en el panel. Necesita `DOCS_DIR` con `dni.jpg`, `titulo.jpg` y `carnet.jpg`.

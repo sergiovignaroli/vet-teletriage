@@ -72,19 +72,23 @@ export default function PrivacidadPage() {
             <strong>Datos de identidad (solo veterinarios):</strong> para habilitar a un veterinario en la
             plataforma, verificamos su identidad con un proveedor externo especializado (Truora), que puede
             incluir el cotejo de su documento contra el RENAPER y una prueba de vida (una selfie o video corto
-            para confirmar que la persona está presente y es quien dice ser). Nosotros no vemos ni guardamos
-            esas imágenes — solo recibimos el resultado (verificado o no) de ese proceso.
+            para confirmar que la persona está presente y es quien dice ser). De ese proceso externo solo
+            recibimos el resultado (verificado o no). Además, al registrarse, cada veterinario sube fotos de su
+            documento de identidad (DNI o pasaporte), de su título habilitante y de su carnet o certificado de
+            habilitación para ejercer: esas imágenes las guardamos nosotros y solo las ve el equipo de
+            administración, con el único fin de verificar su identidad y su habilitación profesional. No se
+            muestran a clientes ni a otros veterinarios.
           </li>
           <li>
             <strong>Datos profesionales (solo veterinarios):</strong> matrícula profesional, datos del seguro
-            de responsabilidad civil vigente, las especies que atiende y, si la cargan, su foto de perfil.
+            de responsabilidad civil (si deciden cargarlo, es opcional), las especies que atiende y, si la cargan, su foto de perfil.
           </li>
           <li>
             <strong>Datos del asesoramiento:</strong> la especie de la mascota y lo que contás sobre lo que le
             pasa, para poder conectarte con un veterinario y darle contexto antes de la videollamada.
           </li>
           <li>
-            <strong>Datos de pago:</strong> el pago se procesa a través de Mercado Pago (o de PayPal, si elegís esa
+            <strong>Datos de pago:</strong> el pago se procesa a través de Mercado Pago® (o de PayPal®, si elegís esa
             opción) — nosotros no vemos ni guardamos el número de tu tarjeta ni tus credenciales de pago; el
             medio de pago nos informa el resultado (aprobado, pendiente, reembolsado) y el monto.
           </li>
@@ -128,7 +132,7 @@ export default function PrivacidadPage() {
         </p>
         <ul style={{ paddingLeft: 20, margin: "8px 0" }}>
           <li>
-            <strong>Mercado Pago</strong> y, si elegís esa opción, <strong>PayPal</strong>, para procesar el pago.
+            <strong>Mercado Pago®</strong> y, si elegís esa opción, <strong>PayPal®</strong>, para procesar el pago.
           </li>
           <li>
             <strong>Truora</strong>, para verificar la identidad de los veterinarios.
@@ -155,7 +159,7 @@ export default function PrivacidadPage() {
           Para prestar el servicio usamos proveedores tecnológicos que alojan o procesan datos fuera de la República
           Argentina, en particular en los Estados Unidos de América: el servicio de alojamiento donde corre la plataforma,
           el servicio de videollamada en vivo (Agora), el servicio de mensajería (WhatsApp, de Meta), el medio de pago
-          PayPal y los servicios de notificaciones de los navegadores. Esos países pueden no contar con un nivel de
+          PayPal® y los servicios de notificaciones de los navegadores. Esos países pueden no contar con un nivel de
           protección equivalente al de la normativa argentina. Por eso, al aceptar esta política autorizás expresamente
           esa transferencia, que se realiza con proveedores que prevén medidas de seguridad y confidencialidad. Podés
           revocar tu consentimiento contactándonos en <ContactoEmail config={config} />; en ese caso no vamos a poder

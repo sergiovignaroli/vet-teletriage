@@ -214,10 +214,10 @@ export default function AdminPreciosPage() {
             </Campo>
           </Seccion>
 
-          <Seccion titulo="Precio fijo para PayPal (USD)">
+          <Seccion titulo="Precio fijo para PayPal® (USD)">
             <p style={{ fontSize: 11.5, opacity: 0.75, margin: "0 0 10px" }}>
-              PayPal no cobra en pesos (no soporta ARS) — este precio es independiente del de arriba, no una
-              conversión. Sin margen individual por veterinario: todo el que tenga PayPal conectado cobra igual.
+              PayPal® no cobra en pesos (no soporta ARS) — este precio es independiente del de arriba, no una
+              conversión. Sin margen individual por veterinario: todo el que tenga PayPal® conectado cobra igual.
             </p>
             <Campo etiqueta="Honorario, asesoramiento normal (US$)">
               <input

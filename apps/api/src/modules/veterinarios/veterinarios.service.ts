@@ -4,6 +4,7 @@ import { filtroSenalVigente } from "../../common/presencia";
 import type { PresenciaVeterinario } from "@prisma/client";
 import { especiesValidas } from "../../common/especies";
 import { decodificarFoto, urlFoto } from "../../common/foto";
+import { TIPOS_DOCUMENTO_OBLIGATORIOS, tipoDocumentoValido, validarDocumento, type TipoDocumento } from "../../common/documento";
 import { ESPECIES_POR_DEFECTO, MARGEN_PORCENTAJE_MAX, MARGEN_PORCENTAJE_MIN, VERSION_CONVENIO_VETERINARIO } from "@vet-teletriage/types";
 
 @Injectable()
@@ -224,6 +225,14 @@ export class VeterinariosService {
     return this.prisma.veterinario.findMany({
       where: { estado: "PENDIENTE_VERIFICACION" },
       orderBy: { creadoEl: "asc" },
+      include: { documentos: { select: { tipo: true } } },
+      // Nunca mandar al navegador del admin hashes ni tokens de cobro.
+      omit: {
+        passwordHash: true,
+        resetTokenHash: true,
+        mercadoPagoAccessToken: true,
+        mercadoPagoRefreshToken: true,
+      },
     });
   }
 
@@ -289,15 +298,45 @@ export class VeterinariosService {
     return { paypalEmail: limpio };
   }
 
+  // Documentación (identidad, título, matrícula/habilitación). Un documento por
+  // tipo: subir de nuevo lo reemplaza. Solo la ve el administrador.
+  async guardarDocumento(veterinarioId: string, tipoCrudo: unknown, imagen: unknown) {
+    const tipo = tipoDocumentoValido(tipoCrudo);
+    const datos = validarDocumento(imagen);
+    await this.prisma.documentoVeterinario.upsert({
+      where: { veterinarioId_tipo: { veterinarioId, tipo } },
+      create: { veterinarioId, tipo, datos },
+      update: { datos, creadoEl: new Date() },
+    });
+    return this.misDocumentos(veterinarioId);
+  }
+
+  // Qué documentos ya cargó (sin las imágenes) y cuáles faltan.
+  async misDocumentos(veterinarioId: string) {
+    const filas = await this.prisma.documentoVeterinario.findMany({ where: { veterinarioId }, select: { tipo: true } });
+    const cargados = filas.map((f) => f.tipo as TipoDocumento);
+    return { cargados, faltan: TIPOS_DOCUMENTO_OBLIGATORIOS.filter((t) => !cargados.includes(t)) };
+  }
+
+  // Administración: las imágenes de un veterinario (se piden recién al abrir su ficha).
+  async documentosParaAdmin(veterinarioId: string) {
+    const filas = await this.prisma.documentoVeterinario.findMany({
+      where: { veterinarioId },
+      select: { tipo: true, datos: true, creadoEl: true },
+    });
+    return filas.map((f) => ({ tipo: f.tipo, imagen: f.datos, creadoEl: f.creadoEl }));
+  }
+
   private evaluarHabilitable(veterinario: {
     matriculaVenceEl: Date;
-    seguroVenceEl: Date;
+    seguroVenceEl: Date | null;
   }): { habilitable: boolean; motivo?: string } {
     const hoy = new Date();
     if (veterinario.matriculaVenceEl < hoy) {
       return { habilitable: false, motivo: "La matrícula cargada ya está vencida — no se puede habilitar así" };
     }
-    if (veterinario.seguroVenceEl < hoy) {
+    // El seguro es opcional: solo se controla si lo cargó.
+    if (veterinario.seguroVenceEl && veterinario.seguroVenceEl < hoy) {
       return { habilitable: false, motivo: "El seguro cargado ya está vencido — no se puede habilitar así" };
     }
     return { habilitable: true };

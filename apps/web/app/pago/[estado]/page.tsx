@@ -175,7 +175,7 @@ function EstadoRealPago({
   // Mercado Pago cobra en ARS, PayPal en USD (ver Pago.moneda) — nunca
   // asumir "$" = pesos, ni "Mercado Pago" cuando el medio real fue PayPal.
   const monto = `${pago.moneda === "USD" ? "US$" : "$"}${Number(pago.montoTotal).toLocaleString("es-AR")}`;
-  const nombreMedio = pago.medioDeCobro === "PAYPAL" ? "PayPal" : "Mercado Pago";
+  const nombreMedio = pago.medioDeCobro === "PAYPAL" ? "PayPal®" : "Mercado Pago®";
   switch (pago.estado) {
     case "AUTORIZADO":
     case "CAPTURADO":

@@ -42,9 +42,14 @@ const log = []; const falla = (n, e) => { log.push(n + ": " + String(e).split("\
     const p = await nuevo({}); await ir(p, "/registrar-veterinario"); await foto(p, "12-registro-vacio-m");
     const campos = ["Nombre", "Apellido", "Email", "DNI o número de documento", "Número de matrícula", "Colegio / jurisdicción", "Aseguradora", "Número de póliza"];
     const vals = ["Caro", "Benítez", `caro${Date.now()}@vet.test`, "30222333", "MP 4321", "Colegio de Médicos Veterinarios de Santa Fe", "Seguros Rivadavia", "POL-5521"];
-    for (let i = 0; i < campos.length; i++) await p.getByLabel(campos[i], { exact: true }).fill(vals[i]);
-    await p.getByLabel("Contraseña", { exact: true }).fill("abcdefgh1"); await p.getByLabel("Confirmar contraseña").fill("abcdefgh1");
-    await p.getByLabel("Vencimiento de la matrícula").fill("2030-01-01"); await p.getByLabel("Vencimiento del seguro").fill("2030-06-30");
+    // La etiqueta puede llevar un mensaje de error adentro: se busca por el texto exacto del rótulo.
+    const campo = (et) => p.locator("label", { has: p.locator("span", { hasText: new RegExp("^" + et + "$") }) }).locator("input").first();
+    for (let i = 0; i < campos.length; i++) await campo(campos[i]).fill(vals[i]);
+    await campo("Contraseña").fill("abcdefgh1"); await campo("Confirmar contraseña").fill("abcdefgh1");
+    await campo("Vencimiento de la matrícula").fill("2030-01-01"); await campo("Vencimiento del seguro").fill("2030-06-30");
+    const imgDoc = require("path").join(__dirname, "..", "fixtures", "foto.jpg");
+    for (const et of ["DNI o pasaporte (frente)", "Título habilitante"]) await p.locator(`input[type=file][aria-label="${et}"]`).setInputFiles(imgDoc);
+    await p.locator('input[type=file][aria-label^="Carnet"]').setInputFiles(imgDoc); await p.waitForTimeout(800);
     await p.setInputFiles("#reg-foto-archivo", require("path").join(__dirname, "..", "fixtures", "foto.jpg")); await p.waitForTimeout(800); await foto(p, "12e-registro-foto-m");
     await p.getByText("Perros", { exact: true }).click(); await p.getByText("Gatos", { exact: true }).click(); await p.getByText("Reptiles", { exact: true }).click(); await p.getByText("Peces", { exact: true }).click();
     await p.getByRole("heading", { name: /Qué especies atendés|especies atendés/ }).scrollIntoViewIfNeeded(); await p.waitForTimeout(300);

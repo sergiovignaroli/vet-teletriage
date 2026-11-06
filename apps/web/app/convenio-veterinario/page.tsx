@@ -141,7 +141,7 @@ export default function ConvenioVeterinarioPage() {
             <>
               equivalente al {precios.porcentajePlataforma} % del honorario, con un mínimo de{" "}
               {pesos(precios.cargoMinimoDiurno)} en horario diurno y {pesos(precios.cargoMinimoNocturno)} en horario
-              nocturno (noche, domingos y feriados). Cuando se cobra en dólares por PayPal, el cargo es un monto fijo en
+              nocturno (noche, domingos y feriados). Cuando se cobra en dólares por PayPal®, el cargo es un monto fijo en
               dólares que se informa antes de confirmar.
             </>
           ) : (
@@ -154,15 +154,15 @@ export default function ConvenioVeterinarioPage() {
 
       <Seccion titulo="7. Cobro">
         <p>
-          7.1. <strong>Mercado Pago:</strong> el Profesional vincula su propia cuenta mediante autorización OAuth. El pago
+          7.1. <strong>Mercado Pago®:</strong> el Profesional vincula su propia cuenta mediante autorización OAuth. El pago
           del tutor se genera con las credenciales del Profesional; el honorario se acredita en su cuenta y el cargo de
           servicio se acredita a la Plataforma como comisión de marketplace. La Plataforma no accede a la contraseña de
-          Mercado Pago del Profesional y conserva los tokens de autorización cifrados. El Profesional puede revocar la
+          Mercado Pago® del Profesional y conserva los tokens de autorización cifrados. El Profesional puede revocar la
           autorización en cualquier momento.
         </p>
         <p>
-          7.2. <strong>PayPal:</strong> el tutor paga a la cuenta de la Plataforma y ésta transfiere el honorario a la
-          dirección de PayPal informada por el Profesional una vez cerrado el caso, descontadas las comisiones del medio
+          7.2. <strong>PayPal®:</strong> el tutor paga a la cuenta de la Plataforma y ésta transfiere el honorario a la
+          dirección de PayPal® informada por el Profesional una vez cerrado el caso, descontadas las comisiones del medio
           de pago.
         </p>
         <p>

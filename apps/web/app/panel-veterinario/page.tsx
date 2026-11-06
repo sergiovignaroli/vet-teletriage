@@ -8,6 +8,7 @@ import { hayBanderaRoja } from "@vet-teletriage/types";
 import { MisPrecios } from "../../components/MisPrecios";
 import { MisEspecies } from "../../components/MisEspecies";
 import { MiFoto } from "../../components/MiFoto";
+import { DocumentacionVeterinario } from "../../components/DocumentacionVeterinario";
 import { apiGet, apiPatch, apiPostAuth, ApiError } from "../../lib/api";
 import { useLatidoVeterinario, useSesionVeterinario } from "../../lib/sesion-veterinario";
 import { tocarAviso, useSolicitudesVeterinario, useSonidoActivo } from "../../lib/solicitudes-veterinario";
@@ -365,7 +366,7 @@ export default function PanelVeterinarioPage() {
         <div className="va-tarjeta" style={{ padding: 16, marginBottom: 12, borderColor: "var(--alerta-borde)" }}>
           <div className="va-etiqueta" style={{ color: "var(--alerta)" }}>Todavía no te pueden elegir</div>
           <p style={{ fontSize: 14, margin: "6px 0 12px", lineHeight: 1.5 }}>
-            Para aparecer en la lista y recibir consultas, primero conectá tu cuenta de cobro (Mercado Pago o PayPal).
+            Para aparecer en la lista y recibir consultas, primero conectá tu cuenta de cobro (Mercado Pago® o PayPal®).
           </p>
           <Link href="/veterinario/cobros" className="va-boton" style={{ textDecoration: "none" }}>
             Conectar mi cuenta de cobro
@@ -639,6 +640,8 @@ export default function PanelVeterinarioPage() {
       {/* Precios propios (Sergio, 2026-11-03): cuatro precios — normal y
           urgencia, diurno y nocturno — dentro de la banda que define la
           plataforma. Reemplaza al margen sobre un precio base. */}
+      <DocumentacionVeterinario token={sesion.accessToken} />
+
       <MiFoto token={sesion.accessToken} nombre={sesion.nombre} apellido={sesion.apellido} />
 
       <MisEspecies token={sesion.accessToken} />
@@ -650,7 +653,7 @@ export default function PanelVeterinarioPage() {
         className="va-chip-boton"
         style={{ marginBottom: 24, textDecoration: "none" }}
       >
-        Medios de cobro: Mercado Pago o PayPal
+        Medios de cobro: Mercado Pago® o PayPal®
       </Link>
 
       <h2 className="va-etiqueta" style={{ marginBottom: 10 }}>Mis casos</h2>

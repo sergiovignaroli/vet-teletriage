@@ -14,6 +14,7 @@ export function CampoContrasena({
   autoComplete,
   style,
   nombre,
+  invalido,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -21,6 +22,8 @@ export function CampoContrasena({
   autoComplete: "current-password" | "new-password";
   style?: CSSProperties;
   nombre?: string;
+  // Marca el campo en rojo (falta completarlo o tiene un error).
+  invalido?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -37,6 +40,7 @@ export function CampoContrasena({
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
+        aria-invalid={invalido ? true : undefined}
         style={{ paddingRight: 52 }}
       />
       <button
