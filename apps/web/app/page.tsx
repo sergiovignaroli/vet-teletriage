@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { FilaMedios, LogoMedio } from "../components/MediosDePago";
 import "./portada.css";
 import { LegalFooter } from "../components/LegalFooter";
 import { Foto } from "../components/Foto";
@@ -336,7 +335,6 @@ export default function HomePage() {
                   <div className="vp-disp vp-paso-n">{p.n}</div>
                   <h3 style={{ fontSize: 20, lineHeight: 1.25, fontWeight: 800, margin: "8px 0 0" }}>{p.titulo}</h3>
                   <p style={{ fontSize: 16, lineHeight: 1.5, color: "var(--muted)", margin: "6px 0 0" }}>{p.texto}</p>
-                  {p.n === 3 && <FilaMedios medios={["mercadopago", "paypal", "visa", "mastercard"]} style={{ marginTop: 10 }} />}
                 </div>
               </article>
             ))}
@@ -368,12 +366,6 @@ export default function HomePage() {
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <b>{b.negrita}</b> {b.texto}
-                      {b.negrita === "Cobrás tu honorario" && (
-                        <>
-                          {" "}
-                          <LogoMedio medio="mercadopago" alto={14} />
-                        </>
-                      )}
                     </span>
                   </li>
                 ))}

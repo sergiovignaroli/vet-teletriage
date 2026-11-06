@@ -299,11 +299,6 @@ export default function ElegirVeterinarioPage() {
             ? "Ya elegiste veterinario — solo falta completar el pago para confirmar el asesoramiento."
             : "Ya elegiste veterinario. Te estamos redirigiendo a Mercado Pago para completar el pago."}
         </p>
-        <FilaMedios
-          medios={soloPaypal ? ["paypal"] : paypalUsdElegido != null ? ["mercadopago", "visa", "mastercard", "paypal"] : ["mercadopago", "visa", "mastercard"]}
-          etiqueta="Medios de pago"
-          style={{ justifyContent: "center", marginBottom: 22 }}
-        />
         {errorCheckout && soloPaypal && (
           <p style={{ fontSize: 14, marginBottom: 16 }} role="status">
             Este veterinario cobra con PayPal, en dólares. Podés pagar con el botón de abajo.
@@ -341,6 +336,12 @@ export default function ElegirVeterinarioPage() {
             </button>
           </div>
         )}
+        {/* Logos: un detalle mínimo al pie, no arriba (Sergio, 2026-11-06). */}
+        <FilaMedios
+          medios={soloPaypal ? ["paypal"] : paypalUsdElegido != null ? ["mercadopago", "visa", "mastercard", "paypal"] : ["mercadopago", "visa", "mastercard"]}
+          etiqueta="Pagás con"
+          style={{ justifyContent: "center", marginTop: 28 }}
+        />
     </Pantalla>
     );
   }
